@@ -1,4 +1,4 @@
-import { Component, ReactNode } from 'react';
+import { Component, type ReactNode } from 'react';
 import { StyledButton } from './StyledButton';
 
 interface Props {
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
               ページを再読み込み
             </StyledButton>
           </div>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <pre className="mt-6 p-4 bg-card rounded-lg text-left text-sm text-red-400 max-w-2xl overflow-auto">
               {this.state.error.toString()}
             </pre>

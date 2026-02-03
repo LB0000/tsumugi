@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User, Sparkles } from 'lucide-react';
+import { Menu, Search, ShoppingCart, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
