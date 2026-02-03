@@ -1,0 +1,11 @@
+export { HomePage } from './HomePage';
+export { PricingPage } from './PricingPage';
+export { SupportPage } from './SupportPage';
+export { LegalPage } from './LegalPage';
+export { FaqPage } from './FaqPage';
+export { CartPage } from './CartPage';
+export { LoginPage } from './LoginPage';
+export { ContactPage } from './ContactPage';
+export { ForgotPasswordPage } from './ForgotPasswordPage';
+export { TermsPage } from './TermsPage';
+export { PrivacyPage } from './PrivacyPage';
