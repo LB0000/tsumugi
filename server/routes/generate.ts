@@ -36,20 +36,20 @@ interface GenerateImageResponse {
   creditsRemaining: number;
 }
 
-// Style prompts for each art style
+// Style prompts for each art style - Using "Edit" language for image-to-image transformation
 const stylePrompts: Record<string, string> = {
-  'intelligent': 'Transform this image into a beautiful classical portrait, automatically selecting the best artistic style',
-  'baroque-red': 'Transform this image into a luxurious Baroque portrait with deep red velvet drapes, ornate golden frame, dramatic chiaroscuro lighting, in the style of Rubens and Velázquez',
-  'florentine-renaissance': 'Transform this image into a Florentine Renaissance portrait with refined brushwork, classical composition, warm earthy tones, in the style of Leonardo da Vinci and Raphael',
-  'renaissance-sky': 'Transform this image into a Renaissance portrait with dramatic sky background, atmospheric perspective, golden hour lighting, masterful technique of Italian Renaissance masters',
-  'rococo': 'Transform this image into a Rococo style portrait with pastel colors, playful elegance, elaborate decorative elements, flowing curves, in the style of Boucher and Fragonard',
-  'dutch-golden': 'Transform this image into a Dutch Golden Age portrait with rich chiaroscuro, warm candlelight, intimate atmosphere, in the style of Rembrandt and Vermeer',
-  'venetian': 'Transform this image into a Venetian Renaissance portrait with warm glowing colors, sensuous brushwork, luxurious fabrics, in the style of Titian and Giorgione',
-  'neoclassical': 'Transform this image into a Neoclassical portrait with elegant simplicity, idealized beauty, Greek and Roman inspired aesthetics, in the style of Jacques-Louis David',
-  'watercolor': 'Transform this image into a delicate Japanese watercolor painting with soft brushstrokes, subtle gradients, traditional wash techniques, ethereal and poetic atmosphere',
-  'anime': 'Transform this image into a vibrant Japanese anime illustration with bold colors, expressive eyes, dynamic composition, clean cel-shaded style',
-  'japanese-modern': 'Transform this image into a Japanese modern art style, blending traditional aesthetics with contemporary design, minimalist composition with bold accents',
-  'ukiyo-e': 'Transform this image into a traditional Ukiyo-e woodblock print style with bold outlines, flat colors, dramatic compositions, in the style of Hokusai and Hiroshige'
+  'intelligent': 'Edit this exact image: Apply a beautiful classical portrait style while keeping the subject exactly the same. Preserve all facial features, pose, and composition.',
+  'baroque-red': 'Edit this exact image: Apply luxurious Baroque painting style with deep red velvet drapes background, ornate golden frame effect, and dramatic chiaroscuro lighting. Keep the subject\'s face and features exactly the same, in the style of Rubens and Velázquez.',
+  'florentine-renaissance': 'Edit this exact image: Apply Florentine Renaissance painting style with refined brushwork texture, classical composition, and warm earthy tones. Preserve the subject exactly as shown, in the style of Leonardo da Vinci and Raphael.',
+  'renaissance-sky': 'Edit this exact image: Apply Renaissance portrait style with a dramatic sky background, atmospheric perspective, and golden hour lighting. Keep the subject identical, using masterful Italian Renaissance techniques.',
+  'rococo': 'Edit this exact image: Apply Rococo painting style with pastel colors, playful elegance, and elaborate decorative elements. Preserve the subject exactly, in the style of Boucher and Fragonard.',
+  'dutch-golden': 'Edit this exact image: Apply Dutch Golden Age portrait style with rich chiaroscuro, warm candlelight effect, and intimate atmosphere. Keep the subject the same, in the style of Rembrandt and Vermeer.',
+  'venetian': 'Edit this exact image: Apply Venetian Renaissance painting style with warm glowing colors, sensuous brushwork, and luxurious fabric textures. Preserve the subject exactly, in the style of Titian and Giorgione.',
+  'neoclassical': 'Edit this exact image: Apply Neoclassical portrait style with elegant simplicity, idealized beauty, and Greek/Roman inspired aesthetics. Keep the subject identical, in the style of Jacques-Louis David.',
+  'watercolor': 'Edit this exact image: Apply delicate Japanese watercolor painting style with soft brushstrokes, subtle gradients, and traditional wash techniques. Preserve the subject exactly with an ethereal atmosphere.',
+  'anime': 'Edit this exact image: Convert to vibrant Japanese anime illustration style with bold colors, expressive eyes, dynamic composition, and clean cel-shaded rendering. Keep the subject recognizable.',
+  'japanese-modern': 'Edit this exact image: Apply Japanese modern art style, blending traditional aesthetics with contemporary design. Use minimalist composition with bold accents while preserving the subject.',
+  'ukiyo-e': 'Edit this exact image: Apply traditional Ukiyo-e woodblock print style with bold outlines, flat colors, and dramatic compositions. Preserve the subject, in the style of Hokusai and Hiroshige.'
 };
 
 // Category-specific prompt additions
@@ -85,9 +85,19 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
     const categoryPrompt = categoryPrompts[category] || '';
     const customPrompt = options?.customPrompt || '';
 
-    const fullPrompt = `${stylePrompt}. ${categoryPrompt}. ${customPrompt}.
-Create a high-quality artistic portrait that maintains the subject's likeness while applying the specified artistic style.
-The result should be suitable for framing and display.`;
+    const fullPrompt = `IMPORTANT: You must edit the provided image, not create a new one.
+
+${stylePrompt}
+
+${categoryPrompt}
+
+${customPrompt}
+
+CRITICAL REQUIREMENTS:
+- Keep the EXACT same subject, pose, and composition from the input image
+- Only change the artistic style and visual treatment
+- The subject's face and features must remain recognizable
+- Output a high-quality artistic portrait suitable for framing`;
 
     // Extract base64 image data
     const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
