@@ -7,9 +7,10 @@ interface StyleCardProps {
   isSelected: boolean;
   onSelect: (style: ArtStyle) => void;
   index?: number;
+  compact?: boolean;
 }
 
-function ColorPaletteStrip({ colors }: { colors: string[] }) {
+function ColorPaletteStrip({ colors, compact = false }: { colors: string[]; compact?: boolean }) {
   if (colors.length === 0) return null;
 
   const gradient = colors
@@ -22,7 +23,7 @@ function ColorPaletteStrip({ colors }: { colors: string[] }) {
 
   return (
     <div
-      className="h-2 w-full rounded-full overflow-hidden"
+      className={`w-full rounded-full overflow-hidden ${compact ? 'h-1.5' : 'h-2'}`}
       style={{ background: `linear-gradient(90deg, ${gradient})` }}
       aria-label="カラーパレット"
     />
@@ -41,7 +42,8 @@ export const StyleCard = memo(function StyleCard({
   style,
   isSelected,
   onSelect,
-  index = 0
+  index = 0,
+  compact = false
 }: StyleCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -63,17 +65,17 @@ export const StyleCard = memo(function StyleCard({
     >
       {/* 選択チェックマーク */}
       {isSelected && (
-        <div className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg">
-          <Check className="w-4 h-4 text-white" strokeWidth={3} />
+        <div className={`absolute z-10 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg ${compact ? 'top-2 right-2 w-6 h-6' : 'top-3 right-3 w-8 h-8'}`}>
+          <Check className={compact ? 'w-3 h-3 text-white' : 'w-4 h-4 text-white'} strokeWidth={3} />
         </div>
       )}
 
       {/* サムネイル */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-muted/5">
+      <div className={`relative overflow-hidden bg-muted/5 ${compact ? 'aspect-square' : 'aspect-[4/5]'}`}>
         {style.isIntelligent ? (
           <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 flex items-center justify-center group-hover:from-primary/15 group-hover:to-primary/15 transition-colors duration-500">
             <div className="relative">
-              <Sparkles className="w-16 h-16 text-primary animate-floatUp group-hover:scale-110 transition-transform duration-500" />
+              <Sparkles className={`text-primary animate-floatUp group-hover:scale-110 transition-transform duration-500 ${compact ? 'w-10 h-10' : 'w-16 h-16'}`} />
               <div className="absolute inset-0 bg-primary/20 blur-3xl" />
             </div>
           </div>
@@ -106,9 +108,8 @@ export const StyleCard = memo(function StyleCard({
         {style.tier !== 'free' && (
           <span
             className={`
-              absolute bottom-3 left-3 px-3 py-1.5 text-[10px] font-bold
-              rounded-full tracking-wider
-              shadow-lg
+              absolute rounded-full tracking-wider shadow-lg font-bold
+              ${compact ? 'bottom-2 left-2 px-2 py-1 text-[8px]' : 'bottom-3 left-3 px-3 py-1.5 text-[10px]'}
               ${style.tier === 'studio'
                 ? 'bg-gradient-to-r from-amber-500/90 to-yellow-500/90 text-white'
                 : 'bg-gradient-to-r from-primary/90 to-primary/80 text-white'
@@ -121,19 +122,21 @@ export const StyleCard = memo(function StyleCard({
       </div>
 
       {/* 情報エリア */}
-      <div className="p-4">
+      <div className={compact ? 'p-2.5' : 'p-4'}>
         {/* スタイル名 */}
-        <h3 className="font-serif font-semibold text-foreground text-base mb-1.5 line-clamp-1 group-hover:text-primary transition-colors duration-300">
+        <h3 className={`font-serif font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300 ${compact ? 'text-sm mb-1' : 'text-base mb-1.5'}`}>
           {style.name}
         </h3>
 
-        {/* 説明 */}
-        <p className="text-sm text-muted line-clamp-2 mb-3 leading-relaxed min-h-[2.5rem]">
-          {style.description}
-        </p>
+        {/* 説明（compactモードでは非表示） */}
+        {!compact && (
+          <p className="text-sm text-muted line-clamp-2 mb-3 leading-relaxed min-h-[2.5rem]">
+            {style.description}
+          </p>
+        )}
 
         {/* カラーパレット */}
-        <ColorPaletteStrip colors={style.colorPalette} />
+        <ColorPaletteStrip colors={style.colorPalette} compact={compact} />
       </div>
 
       {/* 選択時のボーダーグロー */}

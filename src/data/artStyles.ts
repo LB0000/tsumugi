@@ -20,7 +20,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#8B0000', '#DAA520', '#2F1810', '#F5DEB3'],
     isIntelligent: false,
     tier: 'free',
-    category: 'baroque',
+    category: 'western-classic',
     tags: ['豪華', '王室', '古典', 'ベルベット', '金']
   },
   {
@@ -31,7 +31,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#8B4513', '#D2691E', '#2F2F2F', '#F5F5DC'],
     isIntelligent: false,
     tier: 'starter',
-    category: 'renaissance',
+    category: 'western-classic',
     tags: ['エレガント', '古典', 'フィレンツェ', 'イタリア']
   },
   {
@@ -42,7 +42,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#4682B4', '#87CEEB', '#2F4F4F', '#F0E68C'],
     isIntelligent: false,
     tier: 'starter',
-    category: 'renaissance',
+    category: 'western-classic',
     tags: ['ドラマチック', '空', '照明', '巨匠']
   },
   {
@@ -53,7 +53,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#4169E1', '#DC143C', '#FFD700', '#228B22'],
     isIntelligent: false,
     tier: 'starter',
-    category: 'baroque',
+    category: 'western-classic',
     tags: ['華やか', '豊か', '鮮やか', 'フランス']
   },
   {
@@ -64,7 +64,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#3D2314', '#8B7355', '#DAA520', '#1C1C1C'],
     isIntelligent: false,
     tier: 'studio',
-    category: 'baroque',
+    category: 'western-classic',
     tags: ['レンブラント', 'フェルメール', '明暗法', 'オランダ']
   },
   {
@@ -75,7 +75,7 @@ export const artStyles: ArtStyle[] = [
     colorPalette: ['#C41E3A', '#FFD700', '#006994', '#8B4513'],
     isIntelligent: false,
     tier: 'studio',
-    category: 'renaissance',
+    category: 'western-classic',
     tags: ['ヴェネツィア', '温かみ', '輝き', 'イタリア']
   },
   {

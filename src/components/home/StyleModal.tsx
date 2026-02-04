@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, Search } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
+import { styleCategories } from '../../data/styleCategories';
 import { StyledButton } from '../common/StyledButton';
-import {
-  StyleGrid,
-  StyleCategorySidebar,
-  StyleSearchHeader
-} from './style-selector';
+import { StyleCategoryCarousel } from './style-selector/StyleCategoryCarousel';
 
 export function StyleModal() {
   const {
@@ -17,8 +14,7 @@ export function StyleModal() {
     setSelectedStyle,
     styleFilterState,
     setStyleSearchQuery,
-    setStyleTierFilter,
-    setStyleCategoryFilter
+    setStyleTierFilter
   } = useAppStore();
 
   // フィルタリング
@@ -45,23 +41,31 @@ export function StyleModal() {
         return false;
       }
 
-      // カテゴリフィルター
-      if (
-        styleFilterState.selectedCategory !== 'all' &&
-        style.category !== styleFilterState.selectedCategory
-      ) {
-        return false;
-      }
-
       return true;
     });
   }, [styleFilterState]);
+
+  // カテゴリごとにスタイルをグループ化
+  const stylesByCategory = useMemo(() => {
+    const categories = styleCategories.filter(c => c.id !== 'all');
+    return categories.map(category => ({
+      category,
+      styles: filteredStyles.filter(style => style.category === category.id)
+    })).filter(group => group.styles.length > 0);
+  }, [filteredStyles]);
 
   if (!isStyleModalOpen) return null;
 
   const handleConfirm = () => {
     closeStyleModal();
   };
+
+  const tierOptions = [
+    { key: 'all' as const, label: 'すべて' },
+    { key: 'free' as const, label: '無料' },
+    { key: 'starter' as const, label: 'スターター' },
+    { key: 'studio' as const, label: 'スタジオ' }
+  ];
 
   return (
     <>
@@ -81,8 +85,8 @@ export function StyleModal() {
         className="fixed inset-4 md:inset-6 lg:inset-10 bg-background rounded-3xl z-50 flex flex-col overflow-hidden animate-slideUp shadow-2xl"
       >
         {/* ヘッダー */}
-        <header className="px-6 py-5 border-b border-border bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
-          <div className="flex items-center justify-between">
+        <header className="px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-6 h-px bg-secondary" />
@@ -105,49 +109,78 @@ export function StyleModal() {
               <X className="w-5 h-5 text-muted group-hover:text-foreground transition-colors" />
             </button>
           </div>
-        </header>
 
-        {/* メインコンテンツ（2カラムレイアウト） */}
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* サイドバー（デスクトップ） */}
-          <aside className="hidden lg:block w-56 border-r border-border bg-card/30 p-4 overflow-y-auto">
-            <StyleCategorySidebar
-              selectedCategory={styleFilterState.selectedCategory}
-              onCategorySelect={setStyleCategoryFilter}
-            />
-          </aside>
-
-          {/* メインエリア */}
-          <main className="flex-1 flex flex-col overflow-hidden">
-            {/* 検索・フィルター */}
-            <div className="px-6 py-4 border-b border-border/50 bg-card/20 flex-shrink-0">
-              {/* モバイル用カテゴリ選択 */}
-              <div className="lg:hidden mb-4">
-                <StyleCategorySidebar
-                  selectedCategory={styleFilterState.selectedCategory}
-                  onCategorySelect={setStyleCategoryFilter}
-                />
-              </div>
-
-              <StyleSearchHeader
-                searchQuery={styleFilterState.searchQuery}
-                selectedTier={styleFilterState.selectedTier}
-                onSearchChange={setStyleSearchQuery}
-                onTierChange={setStyleTierFilter}
-                resultCount={filteredStyles.length}
+          {/* 検索・フィルター */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* 検索バー */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                placeholder="スタイルを検索..."
+                value={styleFilterState.searchQuery}
+                onChange={(e) => setStyleSearchQuery(e.target.value)}
+                className="
+                  w-full pl-10 pr-4 py-2.5 rounded-xl
+                  bg-white/80 backdrop-blur-sm
+                  border border-border/50
+                  focus:border-primary/50 focus:ring-2 focus:ring-primary/20
+                  outline-none transition-all text-sm
+                  placeholder:text-muted
+                "
               />
             </div>
 
-            {/* スタイルグリッド */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-transparent to-card/30 scrollbar-thin scrollbar-thumb-muted/20 scrollbar-track-transparent">
-              <StyleGrid
-                styles={filteredStyles}
+            {/* Tier フィルター */}
+            <div className="flex gap-1.5">
+              {tierOptions.map((tier) => (
+                <button
+                  key={tier.key}
+                  onClick={() => setStyleTierFilter(tier.key)}
+                  className={`
+                    px-3 py-2 rounded-lg text-xs font-medium
+                    transition-all duration-200 cursor-pointer whitespace-nowrap
+                    ${styleFilterState.selectedTier === tier.key
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white/60 border border-border/50 text-muted hover:text-foreground hover:border-primary/30'
+                    }
+                  `}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        {/* メインコンテンツ（カテゴリ別カルーセル） */}
+        <main className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {stylesByCategory.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center p-8 min-h-[300px]">
+              <div className="text-center animate-fadeIn">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/10 flex items-center justify-center">
+                  <Search className="w-8 h-8 text-muted" />
+                </div>
+                <p className="text-muted font-medium mb-1">
+                  スタイルが見つかりません
+                </p>
+                <p className="text-sm text-muted/70">
+                  検索条件を変更してお試しください
+                </p>
+              </div>
+            </div>
+          ) : (
+            stylesByCategory.map(({ category, styles }) => (
+              <StyleCategoryCarousel
+                key={category.id}
+                category={category}
+                styles={styles}
                 selectedStyle={selectedStyle}
                 onStyleSelect={setSelectedStyle}
               />
-            </div>
-          </main>
-        </div>
+            ))
+          )}
+        </main>
 
         {/* フッター */}
         <footer className="px-6 py-4 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">

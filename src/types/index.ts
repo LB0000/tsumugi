@@ -9,7 +9,7 @@ export interface Category {
   sampleImages: string[];
 }
 
-export type StyleCategoryId = 'all' | 'renaissance' | 'baroque' | 'modern' | 'japanese' | 'other';
+export type StyleCategoryId = 'all' | 'western-classic' | 'modern' | 'japanese' | 'other';
 
 export interface ArtStyle {
   id: string;

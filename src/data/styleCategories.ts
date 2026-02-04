@@ -8,15 +8,9 @@ export const styleCategories: StyleCategory[] = [
     icon: 'Grid3X3'
   },
   {
-    id: 'renaissance',
-    name: 'ルネサンス',
-    description: '15-16世紀イタリアの古典様式',
-    icon: 'Palette'
-  },
-  {
-    id: 'baroque',
-    name: 'バロック',
-    description: '17世紀の劇的で壮麗な様式',
+    id: 'western-classic',
+    name: '西洋古典',
+    description: 'ルネサンス・バロック様式',
     icon: 'Crown'
   },
   {
