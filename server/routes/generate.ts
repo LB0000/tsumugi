@@ -6,9 +6,14 @@ export const generateRouter = Router();
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Gemini 3 Pro Image - 最新・最高品質モデル (Nano Banana Pro)
+// Gemini 2.0 Flash - 画像生成対応モデル
+// responseModalities: ['image', 'text'] で画像出力を有効化
 const model = genAI.getGenerativeModel({
-  model: 'gemini-3-pro-image-preview'
+  model: 'gemini-2.0-flash-exp-image-generation',
+  generationConfig: {
+    // @ts-expect-error - responseModalities is valid but not in types yet
+    responseModalities: ['image', 'text'],
+  },
 });
 
 interface GenerateImageRequest {
@@ -87,7 +92,9 @@ The result should be suitable for framing and display.`;
     // Extract base64 image data
     const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
 
-    // Generate image using Gemini 3 Pro Image
+    console.log('Generating image with Gemini 2.0 Flash...', { styleId, category });
+
+    // Generate image using Gemini 2.0 Flash with image generation
     const result = await model.generateContent([
       {
         inlineData: {
@@ -102,23 +109,36 @@ The result should be suitable for framing and display.`;
 
     // Extract generated image from response
     let generatedImage = '';
+    let textResponse = '';
+
+    console.log('Gemini response received, checking for image...');
 
     if (response.candidates && response.candidates[0]?.content?.parts) {
+      console.log(`Found ${response.candidates[0].content.parts.length} parts in response`);
+
       for (const part of response.candidates[0].content.parts) {
         if ('inlineData' in part && part.inlineData) {
+          console.log(`Found image: ${part.inlineData.mimeType}, size: ${part.inlineData.data?.length || 0} bytes`);
           generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          break;
+        }
+        if ('text' in part && part.text) {
+          textResponse = part.text;
+          console.log(`Found text response: ${textResponse.substring(0, 100)}...`);
         }
       }
+    } else {
+      console.log('No candidates or parts in response');
     }
 
     if (!generatedImage) {
       // If no image in response, fall back to mock
-      console.log('No image in Gemini response, using mock');
+      console.log('No image in Gemini response, using mock. Text response:', textResponse);
       const mockResponse = await generateMockResponse(styleId);
       res.json(mockResponse);
       return;
     }
+
+    console.log('Image generation successful!');
 
     // Generate project ID
     const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
