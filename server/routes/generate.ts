@@ -6,10 +6,10 @@ export const generateRouter = Router();
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Gemini 2.0 Flash - 画像生成対応モデル
+// Gemini 3 Pro Image - 画像生成対応の最新モデル
 // responseModalities: ['image', 'text'] で画像出力を有効化
 const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-exp-image-generation',
+  model: 'gemini-3-pro-image-preview',
   generationConfig: {
     // @ts-expect-error - responseModalities is valid but not in types yet
     responseModalities: ['image', 'text'],
@@ -102,9 +102,9 @@ CRITICAL REQUIREMENTS:
     // Extract base64 image data
     const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
 
-    console.log('Generating image with Gemini 2.0 Flash...', { styleId, category });
+    console.log('Generating image with Gemini 3 Pro Image...', { styleId, category });
 
-    // Generate image using Gemini 2.0 Flash with image generation
+    // Generate image using Gemini 3 Pro Image
     const result = await model.generateContent([
       {
         inlineData: {
