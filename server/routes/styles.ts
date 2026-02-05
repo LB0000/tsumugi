@@ -40,15 +40,6 @@ const artStyles = [
     tier: 'starter'
   },
   {
-    id: 'rococo',
-    name: 'Rococo',
-    description: 'Vibrant painterly style with bold brushstrokes and rich color harmonies',
-    thumbnailUrl: '/images/styles/rococo.jpg',
-    colorPalette: ['#4169E1', '#DC143C', '#FFD700', '#228B22'],
-    isIntelligent: false,
-    tier: 'starter'
-  },
-  {
     id: 'dutch-golden',
     name: 'Dutch Golden Age',
     description: 'Rich chiaroscuro lighting inspired by Rembrandt and Vermeer',

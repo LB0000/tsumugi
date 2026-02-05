@@ -46,17 +46,6 @@ export const artStyles: ArtStyle[] = [
     tags: ['ドラマチック', '空', '照明', '巨匠']
   },
   {
-    id: 'rococo',
-    name: 'ロココ',
-    description: '大胆な筆遣いと豊かな色彩による鮮やかな絵画スタイル',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=400&h=500&fit=crop&q=80',
-    colorPalette: ['#4169E1', '#DC143C', '#FFD700', '#228B22'],
-    isIntelligent: false,
-    tier: 'starter',
-    category: 'western-classic',
-    tags: ['華やか', '豊か', '鮮やか', 'フランス']
-  },
-  {
     id: 'dutch-golden',
     name: 'オランダ黄金時代',
     description: 'レンブラントとフェルメールにインスパイアされた豊かな明暗法',
@@ -110,17 +99,6 @@ export const artStyles: ArtStyle[] = [
     tier: 'starter',
     category: 'japanese',
     tags: ['アニメ', 'イラスト', '鮮やか', 'ポップ']
-  },
-  {
-    id: 'japanese-modern',
-    name: '和モダン',
-    description: '伝統的な日本美術と現代デザインの融合',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&h=500&fit=crop&q=80',
-    colorPalette: ['#2D3436', '#DFE6E9', '#D4A373', '#E07A5F'],
-    isIntelligent: false,
-    tier: 'studio',
-    category: 'japanese',
-    tags: ['和', 'モダン', '融合', '現代']
   },
   {
     id: 'ukiyo-e',

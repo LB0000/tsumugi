@@ -74,13 +74,11 @@ const stylePrompts: Record<string, string> = {
   'baroque-red': 'Transform this photo into a dramatic Baroque masterpiece like Rubens or Velázquez. Use deep crimson red velvet drapes as background, golden ornate decorations, intense chiaroscuro lighting with dark shadows and bright highlights. Render with thick oil paint brushstrokes and rich saturated colors.',
   'florentine-renaissance': 'Transform this photo into a Florentine Renaissance painting like Leonardo da Vinci or Raphael. Apply sfumato technique, warm earthy browns and ochres, soft gradients, classical composition with architectural elements in background. Use visible oil paint texture.',
   'renaissance-sky': 'Transform this photo into an Italian Renaissance portrait with dramatic cloudy sky background. Apply golden sunset lighting, atmospheric perspective, and masterful oil painting techniques. Include distant landscape elements like mountains or countryside.',
-  'rococo': 'Transform this photo into an elegant Rococo painting like Boucher or Fragonard. Use soft pastel pinks, blues, and creams. Add playful decorative flourishes, ribbons, flowers, and dreamy romantic atmosphere. Render with delicate brushwork and luminous skin tones.',
   'dutch-golden': 'Transform this photo into a Dutch Golden Age painting like Rembrandt. Apply dramatic candlelight chiaroscuro with deep blacks and warm golden highlights. Use rich brown palette, intimate dark background, and visible impasto brushwork.',
   'venetian': 'Transform this photo into a Venetian Renaissance painting like Titian. Use warm glowing colors - deep reds, golds, and rich browns. Apply sensuous brushwork, luxurious velvet and silk fabric textures, and atmospheric golden light.',
   'neoclassical': 'Transform this photo into a Neoclassical portrait like Jacques-Louis David. Apply clean elegant lines, idealized marble-like skin, Greek/Roman inspired drapery, cool color palette with dramatic lighting, and refined composition.',
   'watercolor': 'Transform this photo into a delicate Japanese watercolor painting. Apply soft wet-on-wet brushstrokes, subtle color bleeding, transparent washes, and ethereal atmosphere. Use muted pastels with occasional vibrant accents.',
   'anime': 'Transform this photo into vibrant Japanese anime illustration style. Apply bold cel-shading, clean lines, large expressive eyes, vibrant saturated colors, and dynamic composition. Use flat color areas with sharp highlights.',
-  'japanese-modern': 'Transform this photo into Japanese modern art style. Blend traditional ink wash aesthetics with bold contemporary design. Use minimalist composition, strong graphic elements, limited color palette with striking accents, and clean geometric shapes.',
   'ukiyo-e': 'Transform this photo into traditional Japanese Ukiyo-e woodblock print style like Hokusai or Hiroshige. Apply bold black outlines, flat areas of color, decorative patterns, dramatic compositions, and distinctive Eastern artistic perspective.'
 };
 
@@ -284,11 +282,9 @@ function getStyleColors(styleId: string): Record<string, string> {
     'baroque-red': { bg1: '#2F1810', bg2: '#1a0d08', frame1: '#DAA520', frame2: '#8B4513', accent: '#8B0000', text: '#F5DEB3' },
     'florentine-renaissance': { bg1: '#2F2F2F', bg2: '#1a1a1a', frame1: '#D2691E', frame2: '#8B4513', accent: '#8B4513', text: '#F5F5DC' },
     'renaissance-sky': { bg1: '#2F4F4F', bg2: '#1a2f2f', frame1: '#87CEEB', frame2: '#4682B4', accent: '#4682B4', text: '#F0E68C' },
-    'rococo': { bg1: '#1a1a2e', bg2: '#0f0f1a', frame1: '#FFD700', frame2: '#4169E1', accent: '#DC143C', text: '#FFFFFF' },
     'dutch-golden': { bg1: '#1C1C1C', bg2: '#0a0a0a', frame1: '#DAA520', frame2: '#3D2314', accent: '#8B7355', text: '#F5DEB3' },
     'watercolor': { bg1: '#E8F4F8', bg2: '#B8D4E3', frame1: '#7FB3D5', frame2: '#2E86AB', accent: '#2E86AB', text: '#1a3a5c' },
     'anime': { bg1: '#FF6B9D', bg2: '#C44569', frame1: '#F8B500', frame2: '#00D9FF', accent: '#FF6B9D', text: '#FFFFFF' },
-    'japanese-modern': { bg1: '#2D3436', bg2: '#1a1a1a', frame1: '#D4A373', frame2: '#E07A5F', accent: '#D4A373', text: '#DFE6E9' },
     'ukiyo-e': { bg1: '#1A3A5C', bg2: '#0f1f30', frame1: '#C9B037', frame2: '#E8D5B7', accent: '#C9B037', text: '#E8D5B7' },
     'default': { bg1: '#262626', bg2: '#1a1a1a', frame1: '#1ABC9C', frame2: '#16a085', accent: '#1ABC9C', text: '#FFFFFF' }
   };
