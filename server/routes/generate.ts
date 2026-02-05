@@ -68,20 +68,20 @@ interface GenerateImageResponse {
   creditsRemaining: number;
 }
 
-// Style prompts for each art style - Using "Edit" language for image-to-image transformation
+// Style prompts for each art style - Strong transformation with subject preservation
 const stylePrompts: Record<string, string> = {
-  'intelligent': 'Edit this exact image: Apply a beautiful classical portrait style while keeping the subject exactly the same. Preserve all facial features, pose, and composition.',
-  'baroque-red': 'Edit this exact image: Apply luxurious Baroque painting style with deep red velvet drapes background, ornate golden frame effect, and dramatic chiaroscuro lighting. Keep the subject\'s face and features exactly the same, in the style of Rubens and Velázquez.',
-  'florentine-renaissance': 'Edit this exact image: Apply Florentine Renaissance painting style with refined brushwork texture, classical composition, and warm earthy tones. Preserve the subject exactly as shown, in the style of Leonardo da Vinci and Raphael.',
-  'renaissance-sky': 'Edit this exact image: Apply Renaissance portrait style with a dramatic sky background, atmospheric perspective, and golden hour lighting. Keep the subject identical, using masterful Italian Renaissance techniques.',
-  'rococo': 'Edit this exact image: Apply Rococo painting style with pastel colors, playful elegance, and elaborate decorative elements. Preserve the subject exactly, in the style of Boucher and Fragonard.',
-  'dutch-golden': 'Edit this exact image: Apply Dutch Golden Age portrait style with rich chiaroscuro, warm candlelight effect, and intimate atmosphere. Keep the subject the same, in the style of Rembrandt and Vermeer.',
-  'venetian': 'Edit this exact image: Apply Venetian Renaissance painting style with warm glowing colors, sensuous brushwork, and luxurious fabric textures. Preserve the subject exactly, in the style of Titian and Giorgione.',
-  'neoclassical': 'Edit this exact image: Apply Neoclassical portrait style with elegant simplicity, idealized beauty, and Greek/Roman inspired aesthetics. Keep the subject identical, in the style of Jacques-Louis David.',
-  'watercolor': 'Edit this exact image: Apply delicate Japanese watercolor painting style with soft brushstrokes, subtle gradients, and traditional wash techniques. Preserve the subject exactly with an ethereal atmosphere.',
-  'anime': 'Edit this exact image: Convert to vibrant Japanese anime illustration style with bold colors, expressive eyes, dynamic composition, and clean cel-shaded rendering. Keep the subject recognizable.',
-  'japanese-modern': 'Edit this exact image: Apply Japanese modern art style, blending traditional aesthetics with contemporary design. Use minimalist composition with bold accents while preserving the subject.',
-  'ukiyo-e': 'Edit this exact image: Apply traditional Ukiyo-e woodblock print style with bold outlines, flat colors, and dramatic compositions. Preserve the subject, in the style of Hokusai and Hiroshige.'
+  'intelligent': 'Transform this photo into a stunning classical oil painting portrait. Apply visible brushstrokes, rich oil paint textures, and dramatic Renaissance lighting. The subject must remain recognizable but rendered as a masterpiece painting.',
+  'baroque-red': 'Transform this photo into a dramatic Baroque masterpiece like Rubens or Velázquez. Use deep crimson red velvet drapes as background, golden ornate decorations, intense chiaroscuro lighting with dark shadows and bright highlights. Render with thick oil paint brushstrokes and rich saturated colors.',
+  'florentine-renaissance': 'Transform this photo into a Florentine Renaissance painting like Leonardo da Vinci or Raphael. Apply sfumato technique, warm earthy browns and ochres, soft gradients, classical composition with architectural elements in background. Use visible oil paint texture.',
+  'renaissance-sky': 'Transform this photo into an Italian Renaissance portrait with dramatic cloudy sky background. Apply golden sunset lighting, atmospheric perspective, and masterful oil painting techniques. Include distant landscape elements like mountains or countryside.',
+  'rococo': 'Transform this photo into an elegant Rococo painting like Boucher or Fragonard. Use soft pastel pinks, blues, and creams. Add playful decorative flourishes, ribbons, flowers, and dreamy romantic atmosphere. Render with delicate brushwork and luminous skin tones.',
+  'dutch-golden': 'Transform this photo into a Dutch Golden Age painting like Rembrandt. Apply dramatic candlelight chiaroscuro with deep blacks and warm golden highlights. Use rich brown palette, intimate dark background, and visible impasto brushwork.',
+  'venetian': 'Transform this photo into a Venetian Renaissance painting like Titian. Use warm glowing colors - deep reds, golds, and rich browns. Apply sensuous brushwork, luxurious velvet and silk fabric textures, and atmospheric golden light.',
+  'neoclassical': 'Transform this photo into a Neoclassical portrait like Jacques-Louis David. Apply clean elegant lines, idealized marble-like skin, Greek/Roman inspired drapery, cool color palette with dramatic lighting, and refined composition.',
+  'watercolor': 'Transform this photo into a delicate Japanese watercolor painting. Apply soft wet-on-wet brushstrokes, subtle color bleeding, transparent washes, and ethereal atmosphere. Use muted pastels with occasional vibrant accents.',
+  'anime': 'Transform this photo into vibrant Japanese anime illustration style. Apply bold cel-shading, clean lines, large expressive eyes, vibrant saturated colors, and dynamic composition. Use flat color areas with sharp highlights.',
+  'japanese-modern': 'Transform this photo into Japanese modern art style. Blend traditional ink wash aesthetics with bold contemporary design. Use minimalist composition, strong graphic elements, limited color palette with striking accents, and clean geometric shapes.',
+  'ukiyo-e': 'Transform this photo into traditional Japanese Ukiyo-e woodblock print style like Hokusai or Hiroshige. Apply bold black outlines, flat areas of color, decorative patterns, dramatic compositions, and distinctive Eastern artistic perspective.'
 };
 
 // Category-specific prompt additions
@@ -117,19 +117,17 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
     const categoryPrompt = categoryPrompts[category] || '';
     const customPrompt = options?.customPrompt || '';
 
-    const fullPrompt = `IMPORTANT: You must edit the provided image, not create a new one.
-
-${stylePrompt}
+    const fullPrompt = `${stylePrompt}
 
 ${categoryPrompt}
 
 ${customPrompt}
 
-CRITICAL REQUIREMENTS:
-- Keep the EXACT same subject, pose, and composition from the input image
-- Only change the artistic style and visual treatment
-- The subject's face and features must remain recognizable
-- Output a high-quality artistic portrait suitable for framing`;
+REQUIREMENTS:
+- Apply the artistic style STRONGLY - the result should look like a real painting, not a photo filter
+- Keep the same subject and pose from the input image
+- The subject should be recognizable but fully rendered in the new art style
+- Output a high-quality artistic portrait with visible artistic techniques (brushstrokes, textures, etc.)`;
 
     // Extract base64 image data
     const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
