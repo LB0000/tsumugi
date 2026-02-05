@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User } from 'lucide-react';
+import { Menu, ShoppingCart, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
@@ -33,28 +33,8 @@ export function Header() {
               </div>
             </Link>
 
-            {/* Search Bar - Desktop */}
-            <div className="hidden md:flex flex-1 max-w-lg mx-8">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="作品・スタイルを検索..."
-                  className="w-full pl-12 pr-4 py-3 border border-border bg-card text-foreground placeholder:text-muted/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-300 rounded-[var(--radius-button)]"
-                />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-              </div>
-            </div>
-
             {/* User Actions */}
             <div className="flex items-center gap-1">
-              {/* Search Button - Mobile */}
-              <button
-                className="md:hidden p-3 hover:bg-card-hover transition-all duration-300 rounded-[var(--radius-button)]"
-                aria-label="検索"
-              >
-                <Search className="w-5 h-5 text-foreground" />
-              </button>
-
               {/* User Icon */}
               <Link
                 to="/login"

@@ -3,6 +3,38 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const generateRouter = Router();
 
+// Retry configuration for handling 503 errors
+const MAX_RETRIES = 3;
+const INITIAL_DELAY_MS = 2000;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function generateWithRetry<T>(
+  operation: () => Promise<T>,
+  retries = MAX_RETRIES
+): Promise<T> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      const isRetryable = error instanceof Error &&
+        'status' in error &&
+        (error as { status: number }).status === 503;
+
+      if (!isRetryable || attempt === retries) {
+        throw error;
+      }
+
+      const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
+      console.log(`Attempt ${attempt} failed with 503, retrying in ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -104,16 +136,18 @@ CRITICAL REQUIREMENTS:
 
     console.log('Generating image with Gemini 3 Pro Image...', { styleId, category });
 
-    // Generate image using Gemini 3 Pro Image
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: base64Data
-        }
-      },
-      { text: fullPrompt }
-    ]);
+    // Generate image using Gemini 3 Pro Image with retry for 503 errors
+    const result = await generateWithRetry(() =>
+      model.generateContent([
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Data
+          }
+        },
+        { text: fullPrompt }
+      ])
+    );
 
     const response = await result.response;
 

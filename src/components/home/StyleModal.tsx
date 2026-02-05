@@ -58,6 +58,14 @@ export function StyleModal() {
 
   const handleConfirm = () => {
     closeStyleModal();
+
+    // 準備完了セクションへ自動スクロール（モーダルが閉じた後）
+    setTimeout(() => {
+      document.getElementById('generate-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }, 300);
   };
 
   const tierOptions = [

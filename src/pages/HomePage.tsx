@@ -1,7 +1,6 @@
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter } from '../components/home';
-import { FloatingCTA } from '../components/common';
 
 export function HomePage() {
   const { selectedCategory } = useAppStore();
@@ -29,7 +28,6 @@ export function HomePage() {
 
           <div className="animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
             <ImageUploader />
-            <GeneratePreview />
           </div>
         </div>
       </section>
@@ -38,7 +36,7 @@ export function HomePage() {
       <div className="divider-japanese max-w-3xl mx-auto" />
 
       {/* Style Selection Section */}
-      <section className="py-16 sm:py-20">
+      <section id="style-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <p className="text-secondary text-sm tracking-[0.2em] uppercase mb-3">Step 2</p>
@@ -49,6 +47,11 @@ export function HomePage() {
 
           <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
             <StyleSection />
+          </div>
+
+          {/* 準備完了セクション */}
+          <div id="generate-section" className="scroll-mt-20">
+            <GeneratePreview />
           </div>
         </div>
       </section>
@@ -74,9 +77,6 @@ export function HomePage() {
 
       {/* Style Modal */}
       <StyleModal />
-
-      {/* Floating CTA */}
-      <FloatingCTA />
     </div>
   );
 }

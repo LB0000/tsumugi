@@ -1,5 +1,5 @@
 import { useCallback, useRef, useMemo } from 'react';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
@@ -12,7 +12,6 @@ export function ImageUploader() {
     selectedCategory,
     uploadState,
     setUploadState,
-    openStyleModal,
     setCurrentStep
   } = useAppStore();
 
@@ -58,6 +57,14 @@ export function ImageUploader() {
         previewUrl: reader.result as string
       });
       setCurrentStep('preview');
+
+      // Step2へ自動スクロール（少し遅延させてUIの更新を待つ）
+      setTimeout(() => {
+        document.getElementById('style-section')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 500);
     };
     reader.onerror = () => {
       setUploadState({ status: 'error', errorMessage: 'ファイルの読み込みに失敗しました' });
@@ -98,7 +105,7 @@ export function ImageUploader() {
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 items-stretch">
+    <div className="max-w-2xl mx-auto">
       {/* Upload Area */}
       <div
         role="button"
@@ -110,7 +117,7 @@ export function ImageUploader() {
         aria-label="画像をアップロード。クリックまたはドラッグ&ドロップで画像を選択"
         aria-describedby={uploadState.status === 'error' ? 'upload-error' : undefined}
         className={`
-          flex-1 min-h-[280px] border-2 border-dashed rounded-2xl
+          w-full min-h-[280px] border-2 border-dashed rounded-2xl
           flex flex-col items-center justify-center gap-4 cursor-pointer
           transition-all duration-300 ease-out
           focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background
@@ -186,20 +193,6 @@ export function ImageUploader() {
           </div>
         )}
       </div>
-
-      {/* Pick Style Button */}
-      <button
-        onClick={openStyleModal}
-        className="md:w-56 p-8 rounded-2xl bg-gradient-to-br from-card to-card/50 border-2 border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-4 group"
-      >
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <ImageIcon className="w-7 h-7 text-secondary" />
-        </div>
-        <div className="text-center">
-          <span className="font-semibold text-foreground block mb-1">スタイルを選択</span>
-          <span className="text-xs text-muted">20種類以上のスタイル</span>
-        </div>
-      </button>
     </div>
   );
 }
