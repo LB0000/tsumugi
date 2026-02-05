@@ -29,11 +29,11 @@ export const StyleCategoryCarousel = memo(function StyleCategoryCarousel({
         </span>
       </div>
 
-      {/* グリッドで均等配置 */}
+      {/* グリッドで均等配置（最大幅制限付き） */}
       <div
         className="grid gap-3"
         style={{
-          gridTemplateColumns: `repeat(${styles.length}, minmax(140px, 1fr))`
+          gridTemplateColumns: `repeat(${styles.length}, minmax(140px, ${styles.length <= 2 ? '200px' : '1fr'}))`
         }}
       >
         {styles.map((style) => (
