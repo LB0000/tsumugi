@@ -160,8 +160,23 @@ REQUIREMENTS:
 
       for (const part of response.candidates[0].content.parts) {
         if ('inlineData' in part && part.inlineData) {
-          console.log(`Found image: ${part.inlineData.mimeType}, size: ${part.inlineData.data?.length || 0} bytes`);
-          generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          // Clean base64 data: remove any whitespace/newlines that might corrupt the data URL
+          const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
+          console.log(`Found image: ${part.inlineData.mimeType}, size: ${cleanBase64.length} bytes`);
+
+          // Validate base64 data
+          if (cleanBase64.length === 0) {
+            console.error('Empty image data received from Gemini');
+            continue;
+          }
+
+          // Ensure valid base64 characters
+          if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+            console.error('Invalid base64 characters detected');
+            continue;
+          }
+
+          generatedImage = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
         }
         if ('text' in part && part.text) {
           textResponse = part.text;
