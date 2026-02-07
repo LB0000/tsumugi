@@ -1,5 +1,5 @@
-import { useCallback, useRef, useMemo } from 'react';
-import { Upload } from 'lucide-react';
+import { useCallback, useRef, useMemo, useState } from 'react';
+import { Upload, FileImage, HardDrive } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
@@ -72,14 +72,30 @@ export function ImageUploader() {
     reader.readAsDataURL(file);
   }, [setUploadState, setCurrentStep, throttledProgressUpdate]);
 
+  const [dragActive, setDragActive] = useState(false);
+  const [dragValid, setDragValid] = useState<boolean | null>(null);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragActive(true);
+    if (e.dataTransfer.items.length > 0) {
+      setDragValid(e.dataTransfer.items[0].type.startsWith('image/'));
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    setDragValid(null);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragActive(false);
+    setDragValid(null);
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFile(files[0]);
@@ -113,6 +129,7 @@ export function ImageUploader() {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         aria-label="画像をアップロード。クリックまたはドラッグ&ドロップで画像を選択"
         aria-describedby={uploadState.status === 'error' ? 'upload-error' : undefined}
@@ -124,7 +141,11 @@ export function ImageUploader() {
           group
           ${uploadState.status === 'complete'
             ? 'border-accent-sage bg-accent-sage/5'
-            : 'border-border/50 hover:border-primary/50 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent'
+            : dragActive && dragValid
+              ? 'border-accent-sage bg-accent-sage/5'
+              : dragActive && dragValid === false
+                ? 'border-sale bg-sale/5'
+                : 'border-border/50 hover:border-primary/50 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent'
           }
         `}
       >
@@ -176,11 +197,16 @@ export function ImageUploader() {
                 クリックまたはドラッグ&ドロップ
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted/60">
-              <span className="w-1 h-1 bg-secondary rounded-full" />
-              <span>最大10MB</span>
-              <span className="w-1 h-1 bg-secondary rounded-full" />
-              <span>JPG, PNG, WEBP対応</span>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted bg-card/50 rounded-lg px-4 py-2 border border-border/30">
+              <div className="flex items-center gap-1.5">
+                <FileImage className="w-4 h-4 text-secondary" />
+                <span>JPG, PNG, WEBP</span>
+              </div>
+              <span className="w-px h-4 bg-border" />
+              <div className="flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4 text-secondary" />
+                <span>最大10MB</span>
+              </div>
             </div>
           </>
         )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Check, Sparkles, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
@@ -135,6 +135,31 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
 
 export function StyleSection() {
   const { selectedStyle, setSelectedStyle, openStyleModal } = useAppStore();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(true);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeftFade(el.scrollLeft > 8);
+    setShowRightFade(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
+  }, []);
+
+  // ピークアニメーション（モバイル初回表示時）
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    handleScroll();
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReducedMotion && el.scrollWidth > el.clientWidth) {
+      const timer = setTimeout(() => {
+        el.scrollTo({ left: 40, behavior: 'smooth' });
+        setTimeout(() => el.scrollTo({ left: 0, behavior: 'smooth' }), 600);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [handleScroll]);
 
   const handleStyleClick = (style: ArtStyle) => {
     setSelectedStyle(style);
@@ -147,15 +172,21 @@ export function StyleSection() {
       <div className="flex justify-end mb-4">
         <button
           onClick={openStyleModal}
-          className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors group cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-full text-sm font-medium text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all group cursor-pointer"
         >
-          すべて見る
+          すべて見る ({artStyles.length}種類)
           <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
         </button>
       </div>
 
       {/* 横スクロールコンテナ */}
-      <div className="flex gap-5 overflow-x-auto pb-4 px-1 scrollbar-thin scrollbar-thumb-muted/20 scrollbar-track-transparent -mx-1">
+      <div className="relative">
+        {/* 左フェードグラデーション */}
+        {showLeftFade && (
+          <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+        )}
+
+        <div ref={scrollRef} onScroll={handleScroll} className="flex gap-5 overflow-x-auto pb-4 px-1 scrollbar-thin scrollbar-thumb-muted/20 scrollbar-track-transparent -mx-1">
         {artStyles.slice(0, 6).map((style, index) => (
           <StyleCardMini
             key={style.id}
@@ -189,6 +220,12 @@ export function StyleSection() {
             {artStyles.length}種類
           </span>
         </button>
+      </div>
+
+        {/* 右フェードグラデーション */}
+        {showRightFade && (
+          <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none transition-opacity duration-300" />
+        )}
       </div>
     </section>
   );

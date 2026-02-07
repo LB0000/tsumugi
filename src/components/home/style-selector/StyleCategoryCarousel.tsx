@@ -18,7 +18,7 @@ export const StyleCategoryCarousel = memo(function StyleCategoryCarousel({
   if (styles.length === 0) return null;
 
   return (
-    <section>
+    <section id={`style-category-${category.id}`}>
       {/* カテゴリヘッダー */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <h3 className="font-serif font-semibold text-foreground text-lg">

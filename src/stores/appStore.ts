@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId } from '../types';
+import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId, CartItem } from '../types';
 import { artStyles } from '../data/artStyles';
 
 const initialStyleFilterState: StyleFilterState = {
@@ -45,6 +45,13 @@ interface AppState {
   // Current Step
   currentStep: 'upload' | 'preview' | 'download';
   setCurrentStep: (step: 'upload' | 'preview' | 'download') => void;
+
+  // Cart
+  cartItems: CartItem[];
+  addToCart: (item: Omit<CartItem, 'id'>) => void;
+  removeFromCart: (id: string) => void;
+  updateCartItemQuantity: (id: string, quantity: number) => void;
+  clearCart: () => void;
 }
 
 const initialUploadState: UploadState = {
@@ -102,5 +109,41 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Current Step
   currentStep: 'upload',
-  setCurrentStep: (step) => set({ currentStep: step })
+  setCurrentStep: (step) => set({ currentStep: step }),
+
+  // Cart
+  cartItems: [],
+  addToCart: (item) => set((state) => {
+    // 同じ商品・スタイル・オプションのアイテムがあれば数量を増やす
+    const existingItemIndex = state.cartItems.findIndex(i =>
+      i.productId === item.productId &&
+      i.artStyleId === item.artStyleId &&
+      i.imageUrl === item.imageUrl
+    );
+
+    if (existingItemIndex > -1) {
+      const newCartItems = [...state.cartItems];
+      newCartItems[existingItemIndex].quantity += item.quantity;
+      return { cartItems: newCartItems };
+    }
+
+    return {
+      cartItems: [...state.cartItems, { ...item, id: Math.random().toString(36).substring(7) }]
+    };
+  }),
+  removeFromCart: (id) => set((state) => ({
+    cartItems: state.cartItems.filter((i) => i.id !== id)
+  })),
+  updateCartItemQuantity: (id, quantity) => set((state) => {
+    if (quantity <= 0) {
+      return { cartItems: state.cartItems.filter((i) => i.id !== id) };
+    }
+
+    return {
+      cartItems: state.cartItems.map((i) =>
+        i.id === id ? { ...i, quantity } : i
+      )
+    };
+  }),
+  clearCart: () => set({ cartItems: [] })
 }));

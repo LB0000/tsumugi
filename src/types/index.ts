@@ -129,3 +129,15 @@ export interface GenerateImageResponse {
   creditsUsed: number;
   creditsRemaining: number;
 }
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  name: string; // Product Name
+  artStyleId: string;
+  artStyleName: string; // Style Name
+  imageUrl: string;
+  quantity: number;
+  price: number;
+  options?: Record<string, unknown>;
+}

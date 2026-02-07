@@ -2,20 +2,12 @@ import { ShoppingCart, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
-// ダミーデータ（実際はZustandストアから取得）
-const cartItems = [
-  {
-    id: '1',
-    name: 'ペット肖像画 - ルネサンス貴族',
-    style: 'ルネサンス貴族',
-    thumbnail: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop',
-    price: 2900,
-    quantity: 1
-  }
-];
+import { useAppStore } from '../stores/appStore';
 
 export function CartPage() {
+  const { cartItems, removeFromCart, updateCartItemQuantity } = useAppStore();
   const isEmpty = cartItems.length === 0;
+  const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = subtotal >= 5000 ? 0 : 500;
   const total = subtotal + shipping;
@@ -35,7 +27,7 @@ export function CartPage() {
             <h1 className="font-serif text-3xl font-semibold text-foreground">ショッピングカート</h1>
           </div>
           <p className="text-muted">
-            {isEmpty ? 'カートは空です' : `${cartItems.length}点の商品`}
+            {isEmpty ? 'カートは空です' : `${itemCount}点の商品`}
           </p>
         </div>
       </div>
@@ -70,16 +62,18 @@ export function CartPage() {
                   className="flex gap-4 p-4 bg-card rounded-xl border border-border"
                 >
                   <img
-                    src={item.thumbnail}
-                    alt={item.name}
+                    src={item.imageUrl}
+                    alt={item.artStyleName}
                     className="w-24 h-24 object-cover rounded-lg"
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
-                    <p className="text-sm text-muted mb-3">スタイル: {item.style}</p>
+                    <p className="text-sm text-muted mb-3">スタイル: {item.artStyleName || 'Standard'}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
                           aria-label="数量を減らす"
                           className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors"
                         >
@@ -87,16 +81,21 @@ export function CartPage() {
                         </button>
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <button
+                          onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
                           aria-label="数量を増やす"
                           className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="font-semibold text-primary">¥{item.price.toLocaleString()}</p>
+                      <div className="text-right">
+                        <p className="text-sm text-muted">¥{item.price.toLocaleString()} / 点</p>
+                        <p className="font-semibold text-primary">¥{(item.price * item.quantity).toLocaleString()}</p>
+                      </div>
                     </div>
                   </div>
                   <button
+                    onClick={() => removeFromCart(item.id)}
                     aria-label="商品を削除"
                     className="self-start p-2 text-muted hover:text-sale transition-colors"
                   >

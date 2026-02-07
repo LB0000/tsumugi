@@ -2,7 +2,7 @@ import React from 'react';
 
 interface StyledButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'cta';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
@@ -55,6 +55,14 @@ export function StyledButton({
       hover:from-sale/90 hover:to-sale/80
       hover:shadow-lg hover:shadow-sale/25 hover:-translate-y-0.5
       shadow-md
+    `,
+    cta: `
+      bg-gradient-to-r from-secondary to-secondary/90 text-white
+      hover:from-secondary/90 hover:to-secondary/80
+      hover:shadow-xl hover:shadow-secondary/30 hover:-translate-y-1
+      shadow-lg shadow-secondary/20
+      relative overflow-hidden
+      animate-subtlePulse
     `
   };
 

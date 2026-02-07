@@ -1,9 +1,11 @@
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter } from '../components/home';
+import { StepProgress } from '../components/common/StepProgress';
+import { TrustBadges } from '../components/common/TrustBadges';
 
 export function HomePage() {
-  const { selectedCategory } = useAppStore();
+  const { selectedCategory, uploadState, selectedStyle, generatedImage } = useAppStore();
   const currentCategory = categories.find(c => c.id === selectedCategory);
 
   if (!currentCategory) return null;
@@ -15,6 +17,18 @@ export function HomePage() {
 
       {/* 区切り線 */}
       <div className="divider-japanese max-w-3xl mx-auto" />
+
+      {/* 信頼バッジ */}
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <TrustBadges variant="compact" className="justify-center" />
+      </div>
+
+      {/* ステップ進捗インジケーター */}
+      <StepProgress
+        hasUpload={uploadState.status === 'complete'}
+        hasStyle={selectedStyle !== null}
+        hasGenerated={generatedImage !== null}
+      />
 
       {/* Upload Section */}
       <section id="upload-section" className="py-16 sm:py-20 scroll-mt-20">

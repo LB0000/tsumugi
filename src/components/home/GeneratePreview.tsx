@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
@@ -11,9 +12,9 @@ export function GeneratePreview() {
     selectedCategory,
     generatedImage,
     setGeneratedImage,
-    setCurrentStep,
     resetUpload
   } = useAppStore();
+  const navigate = useNavigate();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +61,8 @@ export function GeneratePreview() {
       });
 
       setGeneratedImage(result.generatedImage);
-      setCurrentStep('download');
+      navigate('/result');
+      // setCurrentStep('download'); // Removed in favor of redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : '画像の生成に失敗しました');
     } finally {
@@ -118,9 +120,8 @@ export function GeneratePreview() {
                   {generationStages.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        idx <= generationStage ? 'bg-primary' : 'bg-muted/30'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${idx <= generationStage ? 'bg-primary' : 'bg-muted/30'
+                        }`}
                     />
                   ))}
                 </div>
@@ -169,44 +170,44 @@ export function GeneratePreview() {
 
           {/* Before/After Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              {/* Original */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-muted/30" />
-                  <p className="text-sm font-medium text-muted">Before</p>
-                </div>
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
-                  <img
-                    src={uploadState.previewUrl}
-                    alt="元の写真"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            {/* Original */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-muted/30" />
+                <p className="text-sm font-medium text-muted">Before</p>
               </div>
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
+                <img
+                  src={uploadState.previewUrl}
+                  alt="元の写真"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
 
-              {/* Generated */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-primary" />
-                  <p className="text-sm font-medium text-primary">After</p>
-                </div>
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative">
-                  <img
-                    src={generatedImage}
-                    alt="生成された肖像画"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Watermark overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
-                      <p className="text-foreground/30 text-xl font-serif tracking-wider">
-                        PREVIEW
-                      </p>
-                    </div>
+            {/* Generated */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-primary" />
+                <p className="text-sm font-medium text-primary">After</p>
+              </div>
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative">
+                <img
+                  src={generatedImage}
+                  alt="生成された肖像画"
+                  className="w-full h-full object-cover"
+                />
+                {/* Watermark overlay */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
+                    <p className="text-foreground/30 text-xl font-serif tracking-wider">
+                      PREVIEW
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap justify-center gap-4 pt-4">

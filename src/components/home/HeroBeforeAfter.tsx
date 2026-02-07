@@ -293,20 +293,7 @@ function FloatingParticles() {
 
 export function HeroBeforeAfter() {
   const { selectedCategory } = useAppStore();
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [displayCategory, setDisplayCategory] = useState(selectedCategory);
-
-  // カテゴリ変更時のトランジション
-  useEffect(() => {
-    if (selectedCategory !== displayCategory) {
-      setIsTransitioning(true);
-      const timer = setTimeout(() => {
-        setDisplayCategory(selectedCategory);
-        setIsTransitioning(false);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedCategory, displayCategory]);
+  const displayCategory = selectedCategory;
 
   // 現在のカテゴリに対応するサンプルを取得
   const samples = useMemo(() => {
@@ -362,14 +349,20 @@ export function HeroBeforeAfter() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-center">
 
           {/* 左: パララックス画像エリア */}
-          <div className={`relative h-[420px] sm:h-[480px] lg:h-[540px] order-1 lg:order-1 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <div
+            key={`visual-${displayCategory}`}
+            className="relative h-[420px] sm:h-[480px] lg:h-[540px] order-1 lg:order-1 animate-fadeIn"
+          >
             {samples.map((sample, index) => (
               <ParallaxCard key={`${displayCategory}-${sample.id}`} sample={sample} index={index} />
             ))}
           </div>
 
           {/* 右: コピー */}
-          <div className={`text-center lg:text-left space-y-6 lg:space-y-8 order-2 lg:order-2 transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+          <div
+            key={`copy-${displayCategory}`}
+            className="text-center lg:text-left space-y-6 lg:space-y-8 order-2 lg:order-2 animate-fadeIn"
+          >
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
               <span className="text-secondary text-xs sm:text-sm tracking-[0.3em] uppercase font-semibold">
@@ -406,17 +399,25 @@ export function HeroBeforeAfter() {
             </div>
 
             {/* 信頼指標 */}
-            <div className="flex items-center justify-center lg:justify-start gap-6 text-sm animate-fadeIn pt-2" style={{ animationDelay: '1.1s' }}>
-              <div className="flex items-center gap-1.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 text-secondary fill-secondary" />
-                ))}
-                <span className="ml-2 text-foreground font-bold">4.9</span>
+            <div className="space-y-3 animate-fadeIn pt-2" style={{ animationDelay: '1.1s' }}>
+              <div className="flex items-center justify-center lg:justify-start gap-6 text-sm">
+                <div className="flex items-center gap-1.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-secondary fill-secondary" />
+                  ))}
+                  <span className="ml-2 text-foreground font-bold">4.9</span>
+                  <span className="text-muted">(2,847件)</span>
+                </div>
+                <div className="w-px h-5 bg-border" />
+                <span className="text-muted">
+                  {currentCategory?.trustText || '多くのお客様に選ばれています'}
+                </span>
               </div>
-              <div className="w-px h-5 bg-border" />
-              <span className="text-muted">
-                {currentCategory?.trustText || '多くのお客様に選ばれています'}
-              </span>
+              {/* リアルタイム風アクティビティ */}
+              <div className="flex items-center justify-center lg:justify-start gap-2 text-sm text-muted">
+                <span className="w-2 h-2 bg-accent-sage rounded-full animate-pulse" />
+                <span>直近24時間で<strong className="text-foreground">127名</strong>が作成</span>
+              </div>
             </div>
           </div>
         </div>

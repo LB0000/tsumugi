@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { X, Check, Search } from 'lucide-react';
+import { X, Check, Search, Info } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
@@ -111,7 +111,7 @@ export function StyleModal() {
             </div>
             <button
               onClick={closeStyleModal}
-              className="p-2.5 rounded-xl hover:bg-card-hover transition-colors group cursor-pointer"
+              className="p-3 rounded-xl hover:bg-card-hover transition-colors group cursor-pointer"
               aria-label="モーダルを閉じる"
             >
               <X className="w-5 h-5 text-muted group-hover:text-foreground transition-colors" />
@@ -146,7 +146,7 @@ export function StyleModal() {
                   key={tier.key}
                   onClick={() => setStyleTierFilter(tier.key)}
                   className={`
-                    px-3 py-2 rounded-lg text-xs font-medium
+                    px-4 py-3 rounded-xl text-sm font-medium min-h-[44px]
                     transition-all duration-200 cursor-pointer whitespace-nowrap
                     ${styleFilterState.selectedTier === tier.key
                       ? 'bg-primary text-white shadow-sm'
@@ -158,6 +158,30 @@ export function StyleModal() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Tier説明 */}
+          <div className="flex items-center gap-1.5 text-xs text-muted mt-2">
+            <Info className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>無料: プレビュー可 / スターター: ¥2,900〜 / スタジオ: ¥4,900〜</span>
+          </div>
+
+          {/* モバイルカテゴリナビ（横スクロールピル） */}
+          <div className="flex gap-2 overflow-x-auto pb-1 mt-3 scrollbar-thin scrollbar-thumb-muted/20 -mx-1 px-1">
+            {styleCategories.filter(c => c.id !== 'all').map((category) => (
+              <button
+                key={category.id}
+                onClick={() => {
+                  document.getElementById(`style-category-${category.id}`)?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                  });
+                }}
+                className="flex-shrink-0 px-4 py-2.5 min-h-[44px] rounded-full text-sm font-medium transition-all whitespace-nowrap border border-border/50 bg-white/60 text-muted hover:text-foreground hover:border-primary/30 cursor-pointer"
+              >
+                {category.name}
+              </button>
+            ))}
           </div>
         </header>
 
