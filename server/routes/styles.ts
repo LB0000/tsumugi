@@ -5,66 +5,93 @@ export const stylesRouter = Router();
 const artStyles = [
   {
     id: 'intelligent',
-    name: 'Intelligent',
-    description: 'Let AI choose the perfect style based on your photos',
+    name: 'おまかせAI',
+    description: 'AIがあなたの写真に最適なスタイルを自動選択',
     thumbnailUrl: '',
     colorPalette: [],
     isIntelligent: true,
     tier: 'free'
   },
   {
-    id: 'baroque-red',
-    name: 'Baroque Red',
-    description: 'Classic royal portrait with rich velvet drapes and golden baroque frames',
-    thumbnailUrl: '/images/styles/baroque-red.jpg',
+    id: 'baroque',
+    name: 'バロック',
+    description: '赤ベルベットと金の額縁で彩る豪華な王室肖像画',
+    thumbnailUrl: '/images/styles/baroque.jpg',
     colorPalette: ['#8B0000', '#DAA520', '#2F1810', '#F5DEB3'],
     isIntelligent: false,
     tier: 'free'
   },
   {
-    id: 'florentine-renaissance',
-    name: 'Florentine Renaissance',
-    description: 'Timeless elegance with refined brushwork and classical composition',
-    thumbnailUrl: '/images/styles/florentine.jpg',
+    id: 'renaissance',
+    name: 'ルネサンス',
+    description: 'ダヴィンチやラファエロのような洗練された古典肖像画',
+    thumbnailUrl: '/images/styles/renaissance.jpg',
     colorPalette: ['#8B4513', '#D2691E', '#2F2F2F', '#F5F5DC'],
     isIntelligent: false,
     tier: 'starter'
   },
   {
-    id: 'renaissance-sky',
-    name: 'Renaissance Sky',
-    description: 'Atmospheric Renaissance style with dramatic lighting and old master technique',
-    thumbnailUrl: '/images/styles/renaissance-sky.jpg',
-    colorPalette: ['#4682B4', '#87CEEB', '#2F4F4F', '#F0E68C'],
+    id: 'impressionist',
+    name: '印象派',
+    description: 'モネやルノワールのような柔らかな光と色彩の絵画',
+    thumbnailUrl: '/images/styles/impressionist.jpg',
+    colorPalette: ['#87CEEB', '#F0E68C', '#DDA0DD', '#98FB98'],
+    isIntelligent: false,
+    tier: 'studio'
+  },
+  {
+    id: 'watercolor',
+    name: '水彩画',
+    description: '繊細な筆遣いと淡い色彩による和風水彩画',
+    thumbnailUrl: '/images/styles/watercolor.jpg',
+    colorPalette: ['#E8F4F8', '#B8D4E3', '#7FB3D5', '#2E86AB'],
     isIntelligent: false,
     tier: 'starter'
   },
   {
-    id: 'dutch-golden',
-    name: 'Dutch Golden Age',
-    description: 'Rich chiaroscuro lighting inspired by Rembrandt and Vermeer',
-    thumbnailUrl: '/images/styles/dutch-golden.jpg',
-    colorPalette: ['#3D2314', '#8B7355', '#DAA520', '#1C1C1C'],
+    id: 'ukiyo-e',
+    name: '浮世絵',
+    description: '北斎や広重のような伝統的な木版画スタイル',
+    thumbnailUrl: '/images/styles/ukiyo-e.jpg',
+    colorPalette: ['#1A3A5C', '#C9B037', '#E8D5B7', '#8B4513'],
     isIntelligent: false,
     tier: 'studio'
   },
   {
-    id: 'venetian',
-    name: 'Venetian',
-    description: 'Warm, luminous colors and sensuous brushwork of the Venetian masters',
-    thumbnailUrl: '/images/styles/venetian.jpg',
-    colorPalette: ['#C41E3A', '#FFD700', '#006994', '#8B4513'],
+    id: 'sumi-e',
+    name: '水墨画',
+    description: '墨の濃淡で描く東洋の伝統画法',
+    thumbnailUrl: '/images/styles/sumi-e.jpg',
+    colorPalette: ['#2C2C2C', '#696969', '#A9A9A9', '#F5F5F5'],
     isIntelligent: false,
     tier: 'studio'
   },
   {
-    id: 'neoclassical',
-    name: 'Neoclassical',
-    description: 'Elegant simplicity and idealized beauty inspired by ancient Greece and Rome',
-    thumbnailUrl: '/images/styles/neoclassical.jpg',
-    colorPalette: ['#F5F5DC', '#708090', '#CD853F', '#2F4F4F'],
+    id: 'anime',
+    name: 'アニメ',
+    description: 'セル画風の鮮やかなアニメイラスト',
+    thumbnailUrl: '/images/styles/anime.jpg',
+    colorPalette: ['#FF6B9D', '#C44569', '#F8B500', '#00D9FF'],
     isIntelligent: false,
-    tier: 'studio'
+    tier: 'free'
+  },
+  {
+    id: 'ghibli',
+    name: 'ジブリ風',
+    description: '温かみのある手描き風アニメーション',
+    thumbnailUrl: '/images/styles/ghibli.jpg',
+    colorPalette: ['#4CAF50', '#8BC34A', '#FF9800', '#87CEEB'],
+    isIntelligent: false,
+    tier: 'starter'
+  },
+  {
+    id: 'pop-art',
+    name: 'ポップアート',
+    description: 'ウォーホル風のカラフルでインパクトのあるアート',
+    thumbnailUrl: '/images/styles/pop-art.jpg',
+    colorPalette: ['#FF1493', '#FFD700', '#00CED1', '#FF4500'],
+    isIntelligent: false,
+    tier: 'starter'
   }
 ];
 

@@ -68,18 +68,18 @@ interface GenerateImageResponse {
   creditsRemaining: number;
 }
 
-// Style prompts for each art style - Strong transformation with subject preservation
+// Style prompts for each art style
 const stylePrompts: Record<string, string> = {
   'intelligent': 'Transform this photo into a stunning classical oil painting portrait. Apply visible brushstrokes, rich oil paint textures, and dramatic Renaissance lighting. The subject must remain recognizable but rendered as a masterpiece painting.',
-  'baroque-red': 'Transform this photo into a dramatic Baroque masterpiece like Rubens or Velázquez. Use deep crimson red velvet drapes as background, golden ornate decorations, intense chiaroscuro lighting with dark shadows and bright highlights. Render with thick oil paint brushstrokes and rich saturated colors.',
-  'florentine-renaissance': 'Transform this photo into a Florentine Renaissance painting like Leonardo da Vinci or Raphael. Apply sfumato technique, warm earthy browns and ochres, soft gradients, classical composition with architectural elements in background. Use visible oil paint texture.',
-  'renaissance-sky': 'Transform this photo into an Italian Renaissance portrait with dramatic cloudy sky background. Apply golden sunset lighting, atmospheric perspective, and masterful oil painting techniques. Include distant landscape elements like mountains or countryside.',
-  'dutch-golden': 'Transform this photo into a Dutch Golden Age painting like Rembrandt. Apply dramatic candlelight chiaroscuro with deep blacks and warm golden highlights. Use rich brown palette, intimate dark background, and visible impasto brushwork.',
-  'venetian': 'Transform this photo into a Venetian Renaissance painting like Titian. Use warm glowing colors - deep reds, golds, and rich browns. Apply sensuous brushwork, luxurious velvet and silk fabric textures, and atmospheric golden light.',
-  'neoclassical': 'Transform this photo into a Neoclassical portrait like Jacques-Louis David. Apply clean elegant lines, idealized marble-like skin, Greek/Roman inspired drapery, cool color palette with dramatic lighting, and refined composition.',
+  'baroque': 'Transform this photo into a dramatic Baroque masterpiece like Rubens or Velázquez. Use deep crimson red velvet drapes as background, golden ornate decorations, intense chiaroscuro lighting with dark shadows and bright highlights. Render with thick oil paint brushstrokes and rich saturated colors.',
+  'renaissance': 'Transform this photo into a Florentine Renaissance painting like Leonardo da Vinci or Raphael. Apply sfumato technique, warm earthy browns and ochres, soft gradients, classical composition with architectural elements in background. Use visible oil paint texture.',
+  'impressionist': 'Transform this photo into a French Impressionist painting like Claude Monet or Pierre-Auguste Renoir. Apply loose, visible brushstrokes, soft dappled light, vibrant pastel colors, and an outdoor atmospheric quality. Capture the fleeting impression of light and color.',
   'watercolor': 'Transform this photo into a delicate Japanese watercolor painting. Apply soft wet-on-wet brushstrokes, subtle color bleeding, transparent washes, and ethereal atmosphere. Use muted pastels with occasional vibrant accents.',
+  'ukiyo-e': 'Transform this photo into traditional Japanese Ukiyo-e woodblock print style like Hokusai or Hiroshige. Apply bold black outlines, flat areas of color, decorative patterns, dramatic compositions, and distinctive Eastern artistic perspective.',
+  'sumi-e': 'Transform this photo into a traditional East Asian ink wash painting (sumi-e). Use only black ink with varying shades of gray, bold expressive brush strokes, minimalist composition, and abundant white space. Capture the essence of the subject with elegant simplicity.',
   'anime': 'Transform this photo into vibrant Japanese anime illustration style. Apply bold cel-shading, clean lines, large expressive eyes, vibrant saturated colors, and dynamic composition. Use flat color areas with sharp highlights.',
-  'ukiyo-e': 'Transform this photo into traditional Japanese Ukiyo-e woodblock print style like Hokusai or Hiroshige. Apply bold black outlines, flat areas of color, decorative patterns, dramatic compositions, and distinctive Eastern artistic perspective.'
+  'ghibli': 'Transform this photo into a Studio Ghibli-inspired hand-drawn animation style. Use warm, nostalgic colors, soft watercolor-like backgrounds, gentle lighting, rounded friendly features, and a whimsical fairy-tale atmosphere. The style should feel cozy and magical.',
+  'pop-art': 'Transform this photo into bold Pop Art style like Andy Warhol. Use high contrast, bright saturated colors (hot pink, electric blue, vivid yellow), halftone dot patterns, thick black outlines, and flat graphic areas. Make it look like a screen-printed poster.'
 };
 
 // Category-specific prompt additions
@@ -279,13 +279,15 @@ function generateMockPortrait(styleId: string): string {
 
 function getStyleColors(styleId: string): Record<string, string> {
   const styles: Record<string, Record<string, string>> = {
-    'baroque-red': { bg1: '#2F1810', bg2: '#1a0d08', frame1: '#DAA520', frame2: '#8B4513', accent: '#8B0000', text: '#F5DEB3' },
-    'florentine-renaissance': { bg1: '#2F2F2F', bg2: '#1a1a1a', frame1: '#D2691E', frame2: '#8B4513', accent: '#8B4513', text: '#F5F5DC' },
-    'renaissance-sky': { bg1: '#2F4F4F', bg2: '#1a2f2f', frame1: '#87CEEB', frame2: '#4682B4', accent: '#4682B4', text: '#F0E68C' },
-    'dutch-golden': { bg1: '#1C1C1C', bg2: '#0a0a0a', frame1: '#DAA520', frame2: '#3D2314', accent: '#8B7355', text: '#F5DEB3' },
+    'baroque': { bg1: '#2F1810', bg2: '#1a0d08', frame1: '#DAA520', frame2: '#8B4513', accent: '#8B0000', text: '#F5DEB3' },
+    'renaissance': { bg1: '#2F2F2F', bg2: '#1a1a1a', frame1: '#D2691E', frame2: '#8B4513', accent: '#8B4513', text: '#F5F5DC' },
+    'impressionist': { bg1: '#E8F0FE', bg2: '#C5D5EA', frame1: '#87CEEB', frame2: '#DDA0DD', accent: '#F0E68C', text: '#2F4F4F' },
     'watercolor': { bg1: '#E8F4F8', bg2: '#B8D4E3', frame1: '#7FB3D5', frame2: '#2E86AB', accent: '#2E86AB', text: '#1a3a5c' },
-    'anime': { bg1: '#FF6B9D', bg2: '#C44569', frame1: '#F8B500', frame2: '#00D9FF', accent: '#FF6B9D', text: '#FFFFFF' },
     'ukiyo-e': { bg1: '#1A3A5C', bg2: '#0f1f30', frame1: '#C9B037', frame2: '#E8D5B7', accent: '#C9B037', text: '#E8D5B7' },
+    'sumi-e': { bg1: '#F5F5F5', bg2: '#D3D3D3', frame1: '#2C2C2C', frame2: '#696969', accent: '#2C2C2C', text: '#1a1a1a' },
+    'anime': { bg1: '#FF6B9D', bg2: '#C44569', frame1: '#F8B500', frame2: '#00D9FF', accent: '#FF6B9D', text: '#FFFFFF' },
+    'ghibli': { bg1: '#E8F5E9', bg2: '#A5D6A7', frame1: '#4CAF50', frame2: '#FF9800', accent: '#87CEEB', text: '#2E7D32' },
+    'pop-art': { bg1: '#FF1493', bg2: '#FF4500', frame1: '#FFD700', frame2: '#00CED1', accent: '#FF1493', text: '#FFFFFF' },
     'default': { bg1: '#262626', bg2: '#1a1a1a', frame1: '#1ABC9C', frame2: '#16a085', accent: '#1ABC9C', text: '#FFFFFF' }
   };
 
