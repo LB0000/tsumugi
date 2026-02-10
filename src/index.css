@@ -433,6 +433,90 @@ textarea:focus-visible {
   color: var(--color-secondary);
 }
 
+/* ステップ進捗 - セレブレーション */
+@keyframes confetti {
+  0% {
+    transform: translate(-50%, -50%) translateY(0) translateX(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translateY(-80px) translateX(var(--confetti-x, 0px)) rotate(var(--confetti-r, 720deg));
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti 1.5s ease-out forwards;
+}
+
+/* ステップ進捗 - アクティベーション */
+@keyframes stepActivate {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-stepActivate {
+  animation: stepActivate 0.5s ease-out;
+}
+
+/* CTA シマー効果 */
+@keyframes shimmerSlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* CTA パルス */
+@keyframes subtlePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(184, 134, 11, 0.25); }
+  50% { transform: scale(1.02); box-shadow: 0 12px 32px rgba(184, 134, 11, 0.35); }
+}
+
+.animate-subtlePulse {
+  animation: subtlePulse 3s ease-in-out infinite;
+}
+
+/* スタイル選択マイクロフィードバック */
+@keyframes selectBounce {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(0.95); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(0.98); }
+}
+
+.animate-selectBounce {
+  animation: selectBounce 0.4s ease-out;
+}
+
+@keyframes particleBurst {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--particle-angle, 0deg)) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--particle-angle, 0deg)) translateY(-35px);
+    opacity: 0;
+  }
+}
+
+.animate-particleBurst {
+  animation: particleBurst 0.6s ease-out forwards;
+}
+
+/* テスティモニアルティッカー */
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-tickerScroll {
+  animation: tickerScroll 40s linear infinite;
+}
+
+.animate-tickerScroll:hover {
+  animation-play-state: paused;
+}
+
 /* prefers-reduced-motion対応 */
 @media (prefers-reduced-motion: reduce) {
   .glass-card,
@@ -441,7 +525,13 @@ textarea:focus-visible {
   .animate-floatUp,
   .animate-pulseGlow,
   .animate-slideInFromLeft,
-  .animate-cardEnter {
+  .animate-cardEnter,
+  .animate-confetti,
+  .animate-stepActivate,
+  .animate-subtlePulse,
+  .animate-selectBounce,
+  .animate-particleBurst,
+  .animate-tickerScroll {
     animation: none;
     transition: none;
   }

@@ -1,8 +1,7 @@
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
-import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter } from '../components/home';
+import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
 import { StepProgress } from '../components/common/StepProgress';
-import { TrustBadges } from '../components/common/TrustBadges';
 
 export function HomePage() {
   const { selectedCategory, uploadState, selectedStyle, generatedImage } = useAppStore();
@@ -15,13 +14,8 @@ export function HomePage() {
       {/* Hero Section with Before/After */}
       <HeroBeforeAfter />
 
-      {/* 区切り線 */}
-      <div className="divider-japanese max-w-3xl mx-auto" />
-
-      {/* 信頼バッジ */}
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <TrustBadges variant="compact" className="justify-center" />
-      </div>
+      {/* 信頼メトリクス — Hero直後にシームレスに接続 */}
+      <TrustedBy />
 
       {/* ステップ進捗インジケーター */}
       <StepProgress
@@ -69,6 +63,12 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 区切り線 */}
+      <div className="divider-japanese max-w-3xl mx-auto" />
+
+      {/* テスティモニアルティッカー */}
+      <TestimonialTicker />
 
       {/* 区切り線 */}
       <div className="divider-japanese max-w-3xl mx-auto" />

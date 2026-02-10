@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { X, Check, Search, Info } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { X, Check, Search, Info, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
@@ -16,6 +16,11 @@ export function StyleModal() {
     setStyleSearchQuery,
     setStyleTierFilter
   } = useAppStore();
+
+  const [showTierComparison, setShowTierComparison] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const mainRef = useRef<HTMLElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // フィルタリング
   const filteredStyles = useMemo(() => {
@@ -54,6 +59,89 @@ export function StyleModal() {
     })).filter(group => group.styles.length > 0);
   }, [filteredStyles]);
 
+  // カテゴリごとのスタイル数
+  const styleCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    styleCategories.filter(c => c.id !== 'all').forEach(cat => {
+      counts[cat.id] = filteredStyles.filter(s => s.category === cat.id).length;
+    });
+    return counts;
+  }, [filteredStyles]);
+
+  // IntersectionObserverでアクティブカテゴリを検出
+  const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+        const categoryId = entry.target.id.replace('style-category-', '');
+        setActiveCategory(categoryId);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isStyleModalOpen) return;
+
+    let observer: IntersectionObserver | null = null;
+
+    // DOMがレンダリングされるのを待つ
+    const timer = setTimeout(() => {
+      observer = new IntersectionObserver(observerCallback, {
+        root: mainRef.current,
+        threshold: 0.3
+      });
+
+      const cats = styleCategories.filter(c => c.id !== 'all');
+      cats.forEach((cat) => {
+        const el = document.getElementById(`style-category-${cat.id}`);
+        if (el) observer!.observe(el);
+      });
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      observer?.disconnect();
+    };
+  }, [isStyleModalOpen, observerCallback]);
+
+  // Escapeキーでモーダルを閉じる + フォーカストラップ
+  useEffect(() => {
+    if (!isStyleModalOpen) return;
+
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    // 初期フォーカスを検索入力に移動
+    const searchInput = modal.querySelector('input[type="text"]') as HTMLElement;
+    searchInput?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeStyleModal();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      const focusableElements = modal.querySelectorAll(focusableSelector);
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0] as HTMLElement;
+      const last = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isStyleModalOpen, closeStyleModal]);
+
   if (!isStyleModalOpen) return null;
 
   const handleConfirm = () => {
@@ -66,6 +154,14 @@ export function StyleModal() {
         block: 'center'
       });
     }, 300);
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    document.getElementById(`style-category-${categoryId}`)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
   };
 
   const tierOptions = [
@@ -87,6 +183,7 @@ export function StyleModal() {
 
       {/* モーダル */}
       <div
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="style-modal-title"
@@ -111,7 +208,7 @@ export function StyleModal() {
             </div>
             <button
               onClick={closeStyleModal}
-              className="p-3 rounded-xl hover:bg-card-hover transition-colors group cursor-pointer"
+              className="p-4 min-h-[48px] min-w-[48px] rounded-xl hover:bg-card-hover transition-colors group cursor-pointer flex items-center justify-center"
               aria-label="モーダルを閉じる"
             >
               <X className="w-5 h-5 text-muted group-hover:text-foreground transition-colors" />
@@ -129,7 +226,7 @@ export function StyleModal() {
                 value={styleFilterState.searchQuery}
                 onChange={(e) => setStyleSearchQuery(e.target.value)}
                 className="
-                  w-full pl-10 pr-4 py-2.5 rounded-xl
+                  w-full pl-10 pr-4 py-3.5 min-h-[48px] rounded-xl
                   bg-white/80 backdrop-blur-sm
                   border border-border/50
                   focus:border-primary/50 focus:ring-2 focus:ring-primary/20
@@ -146,7 +243,7 @@ export function StyleModal() {
                   key={tier.key}
                   onClick={() => setStyleTierFilter(tier.key)}
                   className={`
-                    px-4 py-3 rounded-xl text-sm font-medium min-h-[44px]
+                    px-5 py-3.5 rounded-xl text-sm font-medium min-h-[48px]
                     transition-all duration-200 cursor-pointer whitespace-nowrap
                     ${styleFilterState.selectedTier === tier.key
                       ? 'bg-primary text-white shadow-sm'
@@ -160,33 +257,77 @@ export function StyleModal() {
             </div>
           </div>
 
-          {/* Tier説明 */}
-          <div className="flex items-center gap-1.5 text-xs text-muted mt-2">
+          {/* Tier説明（展開式） */}
+          <button
+            onClick={() => setShowTierComparison(!showTierComparison)}
+            className="flex items-center gap-1.5 text-xs text-muted mt-2 hover:text-foreground transition-colors cursor-pointer"
+          >
             <Info className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>無料: プレビュー可 / スターター: ¥2,900〜 / スタジオ: ¥4,900〜</span>
-          </div>
+            <span>Tierプランの違いを確認</span>
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showTierComparison ? 'rotate-180' : ''}`} />
+          </button>
 
-          {/* モバイルカテゴリナビ（横スクロールピル） */}
+          {showTierComparison && (
+            <div className="mt-3 p-4 bg-card/50 rounded-xl border border-border/50 animate-slideUp">
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-white/80 rounded-lg">
+                  <div className="font-bold text-accent-sage mb-2">無料</div>
+                  <ul className="space-y-1 text-muted">
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-accent-sage" />プレビュー生成</li>
+                    <li className="flex items-center gap-1 opacity-50"><X className="w-3 h-3" />ダウンロード</li>
+                  </ul>
+                </div>
+                <div className="p-3 bg-white/80 rounded-lg ring-2 ring-primary/30">
+                  <div className="font-bold text-primary mb-2">スターター</div>
+                  <ul className="space-y-1 text-muted">
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />プレビュー生成</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />HD ダウンロード</li>
+                    <li className="font-semibold text-primary mt-1">¥2,900〜</li>
+                  </ul>
+                </div>
+                <div className="p-3 bg-white/80 rounded-lg">
+                  <div className="font-bold text-secondary mb-2">スタジオ</div>
+                  <ul className="space-y-1 text-muted">
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />全機能</li>
+                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />優先生成</li>
+                    <li className="font-semibold text-secondary mt-1">¥4,900〜</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* モバイルカテゴリナビ（アクティブ状態＋カウント付き） */}
           <div className="flex gap-2 overflow-x-auto pb-1 mt-3 scrollbar-thin scrollbar-thumb-muted/20 -mx-1 px-1">
-            {styleCategories.filter(c => c.id !== 'all').map((category) => (
-              <button
-                key={category.id}
-                onClick={() => {
-                  document.getElementById(`style-category-${category.id}`)?.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                  });
-                }}
-                className="flex-shrink-0 px-4 py-2.5 min-h-[44px] rounded-full text-sm font-medium transition-all whitespace-nowrap border border-border/50 bg-white/60 text-muted hover:text-foreground hover:border-primary/30 cursor-pointer"
-              >
-                {category.name}
-              </button>
-            ))}
+            {styleCategories.filter(c => c.id !== 'all').map((category) => {
+              const isActive = activeCategory === category.id;
+              const count = styleCounts[category.id] || 0;
+
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryClick(category.id)}
+                  className={`
+                    flex-shrink-0 px-5 py-3 min-h-[48px] rounded-full text-sm font-medium transition-all whitespace-nowrap
+                    border cursor-pointer flex items-center gap-2
+                    ${isActive
+                      ? 'bg-primary text-white border-primary shadow-sm'
+                      : 'border-border/50 bg-white/60 text-muted hover:text-foreground hover:border-primary/30'
+                    }
+                  `}
+                >
+                  {category.name}
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-muted/10'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </header>
 
         {/* メインコンテンツ（カテゴリ別カルーセル） */}
-        <main className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           {stylesByCategory.length === 0 ? (
             <div className="flex-1 flex items-center justify-center p-8 min-h-[300px]">
               <div className="text-center animate-fadeIn">
@@ -215,7 +356,7 @@ export function StyleModal() {
         </main>
 
         {/* フッター */}
-        <footer className="px-6 py-4 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
+        <footer className="px-6 py-5 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
           <p className="text-sm text-muted">
             {selectedStyle ? (
               <>

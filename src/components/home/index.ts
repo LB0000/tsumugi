@@ -5,3 +5,5 @@ export { GeneratePreview } from './GeneratePreview';
 export { StyleSection } from './StyleSection';
 export { BeforeAfterSlider } from './BeforeAfterSlider';
 export { HeroBeforeAfter } from './HeroBeforeAfter';
+export { TrustedBy } from './TrustedBy';
+export { TestimonialTicker } from './TestimonialTicker';

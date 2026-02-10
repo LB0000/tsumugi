@@ -5,6 +5,15 @@ import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
 import { StyledButton } from '../common/StyledButton';
 
+const artFacts = [
+  'ルネサンス時代の肖像画は、数ヶ月かけて描かれました',
+  'モナリザの制作には4年以上かかったと言われています',
+  '浮世絵の版画は、最大20色の重ね刷りで表現されました',
+  'バロック絵画では光と影のコントラストが重要視されました',
+  '印象派の画家たちは、屋外で直接光を観察して描きました',
+  '水墨画は「余白の美」を大切にする日本独自の美意識です',
+];
+
 export function GeneratePreview() {
   const {
     uploadState,
@@ -19,6 +28,7 @@ export function GeneratePreview() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generationStage, setGenerationStage] = useState(0);
+  const [currentFact, setCurrentFact] = useState(0);
 
   // Labor Illusion: ステージ付きプログレス表示
   const generationStages = [
@@ -47,6 +57,15 @@ export function GeneratePreview() {
     return () => clearInterval(interval);
   }, [isGenerating, generationStages.length]);
 
+  // アート豆知識を切り替え
+  useEffect(() => {
+    if (!isGenerating) return;
+    const interval = setInterval(() => {
+      setCurrentFact((prev) => (prev + 1) % artFacts.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle) return;
 
@@ -62,7 +81,6 @@ export function GeneratePreview() {
 
       setGeneratedImage(result.generatedImage);
       navigate('/result');
-      // setCurrentStep('download'); // Removed in favor of redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : '画像の生成に失敗しました');
     } finally {
@@ -77,6 +95,11 @@ export function GeneratePreview() {
   if (uploadState.status !== 'complete' || !uploadState.previewUrl) {
     return null;
   }
+
+  const estimatedSeconds = 15 - (generationStage * 3);
+  const dynamicMessage = generationStage === generationStages.length - 1
+    ? '完成間近です！'
+    : `あと約${estimatedSeconds}秒...`;
 
   return (
     <div className="mt-10 animate-fadeInUp">
@@ -97,7 +120,7 @@ export function GeneratePreview() {
             </p>
 
             {isGenerating ? (
-              <div className="w-full max-w-xs space-y-4">
+              <div className="w-full max-w-sm space-y-5">
                 {/* プログレスバー */}
                 <div className="h-2 bg-card rounded-full overflow-hidden">
                   <div
@@ -106,37 +129,51 @@ export function GeneratePreview() {
                   />
                 </div>
 
-                {/* ステージ表示 */}
-                <div className="flex items-center justify-center gap-3 text-foreground">
-                  {(() => {
-                    const StageIcon = generationStages[generationStage].icon;
-                    return <StageIcon className="w-5 h-5 text-primary animate-pulse" />;
-                  })()}
-                  <span className="font-medium">{generationStages[generationStage].label}</span>
+                {/* ステージ表示 + 推定時間 */}
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-foreground">
+                    {(() => {
+                      const StageIcon = generationStages[generationStage].icon;
+                      return <StageIcon className="w-5 h-5 text-primary animate-pulse" />;
+                    })()}
+                    <span className="font-medium">{generationStages[generationStage].label}</span>
+                  </div>
+                  <span className="text-muted text-xs">{dynamicMessage}</span>
                 </div>
 
-                {/* ステージインジケーター */}
+                {/* ステージドットインジケーター */}
                 <div className="flex justify-center gap-2">
                   {generationStages.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${idx <= generationStage ? 'bg-primary' : 'bg-muted/30'
-                        }`}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        idx <= generationStage ? 'w-6 bg-primary' : 'w-2 bg-muted/30'
+                      }`}
                     />
                   ))}
                 </div>
+
+                {/* アート豆知識 */}
+                <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border border-border/50">
+                  <p className="text-xs text-secondary uppercase tracking-wider mb-1">豆知識</p>
+                  <p className="text-sm text-foreground animate-fadeIn" key={currentFact}>
+                    {artFacts[currentFact]}
+                  </p>
+                </div>
               </div>
             ) : (
-              <StyledButton
+              <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                size="lg"
-                className="min-w-[240px]"
+                className="group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.05] transition-all duration-300 cursor-pointer overflow-hidden animate-subtlePulse flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-5 h-5" />
-                肖像画を生成
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </StyledButton>
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <span className="relative flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  肖像画を生成
+                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </button>
             )}
 
             {error && (

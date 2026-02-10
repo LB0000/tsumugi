@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Sparkles, ChevronRight } from 'lucide-react';
+import { Check, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import type { ArtStyle } from '../../types';
@@ -39,10 +39,17 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showBounce, setShowBounce] = useState(false);
+
+  const handleClick = () => {
+    setShowBounce(true);
+    setTimeout(() => setShowBounce(false), 400);
+    onClick();
+  };
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       aria-pressed={isSelected}
       aria-label={`${style.name}スタイルを選択${isSelected ? '（選択中）' : ''}`}
       className={`
@@ -52,6 +59,7 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
         active:scale-[0.98] active:transition-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
         ${isSelected ? 'glass-card-selected' : 'glass-card'}
+        ${showBounce ? 'animate-selectBounce' : ''}
       `}
       style={{ animationDelay: `${index * 50}ms` }}
     >
@@ -138,19 +146,39 @@ export function StyleSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
 
-  const handleScroll = useCallback(() => {
+  const visibleStyles = artStyles.slice(0, 6);
+  const cardWidth = 192 + 20; // w-48 (192px) + gap-5 (20px)
+  const totalPages = Math.max(1, Math.ceil((visibleStyles.length + 1) / 3)); // +1 for "View All"
+
+  const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     setShowLeftFade(el.scrollLeft > 8);
     setShowRightFade(el.scrollLeft < el.scrollWidth - el.clientWidth - 8);
-  }, []);
+    const page = Math.round(el.scrollLeft / (cardWidth * 3));
+    setCurrentPage(Math.min(page, totalPages - 1));
+  }, [cardWidth, totalPages]);
+
+  const scrollBy = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollAmount = cardWidth * 2;
+    el.scrollBy({ left: direction === 'right' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+  };
+
+  const scrollToPage = (page: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: page * cardWidth * 3, behavior: 'smooth' });
+  };
 
   // ピークアニメーション（モバイル初回表示時）
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    handleScroll();
+    updateScrollState();
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!prefersReducedMotion && el.scrollWidth > el.clientWidth) {
       const timer = setTimeout(() => {
@@ -159,7 +187,7 @@ export function StyleSection() {
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [handleScroll]);
+  }, [updateScrollState]);
 
   const handleStyleClick = (style: ArtStyle) => {
     setSelectedStyle(style);
@@ -168,26 +196,41 @@ export function StyleSection() {
 
   return (
     <section className="mb-12">
-      {/* すべて見るボタン */}
+      {/* すべて見るボタン（2.4改善版） */}
       <div className="flex justify-end mb-4">
         <button
           onClick={openStyleModal}
-          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-full text-sm font-medium text-primary bg-primary/5 border border-primary/20 hover:bg-primary/10 hover:border-primary/40 transition-all group cursor-pointer"
+          className="group relative flex items-center gap-2 px-6 py-3 min-h-[48px] rounded-full text-sm font-semibold bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all duration-300 hover:scale-105 cursor-pointer"
         >
-          すべて見る ({artStyles.length}種類)
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          <Sparkles className="w-4 h-4" />
+          すべて見る
+          <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+            {artStyles.length}種類
+          </span>
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
 
       {/* 横スクロールコンテナ */}
-      <div className="relative">
+      <div className="relative group/scroll">
         {/* 左フェードグラデーション */}
         {showLeftFade && (
           <div className="absolute left-0 top-0 bottom-4 w-12 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none transition-opacity duration-300" />
         )}
 
-        <div ref={scrollRef} onScroll={handleScroll} className="flex gap-5 overflow-x-auto pb-4 px-1 scrollbar-thin scrollbar-thumb-muted/20 scrollbar-track-transparent -mx-1">
-        {artStyles.slice(0, 6).map((style, index) => (
+        {/* 左矢印ボタン */}
+        {showLeftFade && (
+          <button
+            onClick={() => scrollBy('left')}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-border/50 shadow-lg flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/scroll:opacity-100 hover:scale-110 cursor-pointer"
+            aria-label="左にスクロール"
+          >
+            <ChevronLeft className="w-5 h-5 text-foreground" />
+          </button>
+        )}
+
+        <div ref={scrollRef} onScroll={updateScrollState} className="flex gap-5 overflow-x-auto pb-4 px-1 scrollbar-thin scrollbar-thumb-muted/20 scrollbar-track-transparent -mx-1">
+        {visibleStyles.map((style, index) => (
           <StyleCardMini
             key={style.id}
             style={style}
@@ -222,10 +265,35 @@ export function StyleSection() {
         </button>
       </div>
 
+        {/* 右矢印ボタン */}
+        {showRightFade && (
+          <button
+            onClick={() => scrollBy('right')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm border border-border/50 shadow-lg flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover/scroll:opacity-100 hover:scale-110 cursor-pointer"
+            aria-label="右にスクロール"
+          >
+            <ChevronRight className="w-5 h-5 text-foreground" />
+          </button>
+        )}
+
         {/* 右フェードグラデーション */}
         {showRightFade && (
           <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none transition-opacity duration-300" />
         )}
+      </div>
+
+      {/* スクロールポジションドット */}
+      <div className="flex justify-center gap-2 mt-3">
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => scrollToPage(i)}
+            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+              i === currentPage ? 'w-8 bg-primary' : 'w-2 bg-border hover:bg-muted/50'
+            }`}
+            aria-label={`ページ${i + 1}に移動`}
+          />
+        ))}
       </div>
     </section>
   );

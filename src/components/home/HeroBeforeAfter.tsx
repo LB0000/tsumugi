@@ -147,9 +147,9 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
     return () => clearTimeout(timer);
   }, [sample.revealDelay]);
 
-  // アニメーションエフェクト
+  // アニメーションエフェクト（revealing/hiding フェーズ）
   useEffect(() => {
-    if (phase === 'waiting') return;
+    if (phase !== 'revealing' && phase !== 'hiding') return;
 
     const interval = setInterval(() => {
       if (phase === 'revealing') {
@@ -160,8 +160,6 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
           }
           return prev + 1.5;
         });
-      } else if (phase === 'showing') {
-        setTimeout(() => setPhase('hiding'), 2000);
       } else if (phase === 'hiding') {
         setRevealProgress((prev) => {
           if (prev <= 15) {
@@ -174,6 +172,13 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
     }, 25);
 
     return () => clearInterval(interval);
+  }, [phase]);
+
+  // showing フェーズ: 2秒待機してから hiding へ
+  useEffect(() => {
+    if (phase !== 'showing') return;
+    const timer = setTimeout(() => setPhase('hiding'), 2000);
+    return () => clearTimeout(timer);
   }, [phase]);
 
   const sizeClasses = sample.size === 'large'
@@ -348,20 +353,20 @@ export function HeroBeforeAfter() {
       <div className="max-w-7xl mx-auto px-4 py-4 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-center">
 
-          {/* 左: パララックス画像エリア */}
+          {/* パララックス画像エリア — モバイルではコピーの後に表示 */}
           <div
             key={`visual-${displayCategory}`}
-            className="relative h-[420px] sm:h-[480px] lg:h-[540px] order-1 lg:order-1 animate-fadeIn"
+            className="relative h-[300px] sm:h-[400px] lg:h-[540px] order-2 lg:order-1 animate-fadeIn"
           >
             {samples.map((sample, index) => (
               <ParallaxCard key={`${displayCategory}-${sample.id}`} sample={sample} index={index} />
             ))}
           </div>
 
-          {/* 右: コピー */}
+          {/* コピー+CTA — モバイルではファーストビュー内に表示 */}
           <div
             key={`copy-${displayCategory}`}
-            className="text-center lg:text-left space-y-6 lg:space-y-8 order-2 lg:order-2 animate-fadeIn"
+            className="text-center lg:text-left space-y-5 lg:space-y-8 order-1 lg:order-2 animate-fadeIn"
           >
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
@@ -379,44 +384,49 @@ export function HeroBeforeAfter() {
             </h1>
 
             <p className="text-muted text-base sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 animate-fadeIn" style={{ animationDelay: '0.7s' }}>
-              AIが描く、あなただけの肖像画。
+              AIが描く、世界にひとつの肖像画。
               <br className="hidden sm:block" />
-              {currentCategory?.subheadline || '大切な写真を、美しい芸術作品に変えます。'}
+              自分へのご褒美にも、大切な人への贈り物にも。
             </p>
 
+            {/* 無料プレビュー・登録不要バッジ */}
+            <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.8s' }}>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-sage/15 text-accent-sage text-sm font-medium rounded-full">
+                <span className="w-1.5 h-1.5 bg-accent-sage rounded-full" />
+                無料プレビュー
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary/10 text-secondary text-sm font-medium rounded-full">
+                登録不要
+              </span>
+            </div>
+
             {/* CTA ボタン */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 animate-fadeIn" style={{ animationDelay: '0.9s' }}>
+            <div className="flex flex-col items-center lg:items-start gap-3 animate-fadeIn" style={{ animationDelay: '0.9s' }}>
               <button
                 onClick={scrollToUpload}
-                className="group px-8 py-4 bg-gradient-to-r from-secondary to-secondary/90 text-white font-semibold rounded-full shadow-xl shadow-secondary/25 hover:shadow-secondary/40 hover:scale-[1.02] transition-all duration-300 flex items-center gap-2 cursor-pointer"
+                className="group relative px-10 py-5 text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
               >
-                今すぐ作成する
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <span className="relative flex items-center gap-3">
+                  無料でプレビューを見る
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                </span>
               </button>
               <span className="text-sm text-muted">
-                無料でお試し・登録不要
+                ¥{(currentCategory?.basePrice || 2900).toLocaleString()}〜 · プレビューで仕上がりを確認できます
               </span>
             </div>
 
             {/* 信頼指標 */}
-            <div className="space-y-3 animate-fadeIn pt-2" style={{ animationDelay: '1.1s' }}>
-              <div className="flex items-center justify-center lg:justify-start gap-6 text-sm">
+            <div className="animate-fadeIn pt-1" style={{ animationDelay: '1.1s' }}>
+              <div className="flex items-center justify-center lg:justify-start gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-secondary fill-secondary" />
+                    <Star key={i} className="w-3.5 h-3.5 text-secondary fill-secondary" />
                   ))}
-                  <span className="ml-2 text-foreground font-bold">4.9</span>
+                  <span className="ml-1.5 text-foreground font-bold">4.9</span>
                   <span className="text-muted">(2,847件)</span>
                 </div>
-                <div className="w-px h-5 bg-border" />
-                <span className="text-muted">
-                  {currentCategory?.trustText || '多くのお客様に選ばれています'}
-                </span>
-              </div>
-              {/* リアルタイム風アクティビティ */}
-              <div className="flex items-center justify-center lg:justify-start gap-2 text-sm text-muted">
-                <span className="w-2 h-2 bg-accent-sage rounded-full animate-pulse" />
-                <span>直近24時間で<strong className="text-foreground">127名</strong>が作成</span>
               </div>
             </div>
           </div>

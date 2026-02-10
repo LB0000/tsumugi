@@ -47,11 +47,21 @@ export const StyleCard = memo(function StyleCard({
 }: StyleCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showBounce, setShowBounce] = useState(false);
+  const [showParticles, setShowParticles] = useState(false);
   const staggerClass = index < 8 ? `stagger-${index + 1}` : '';
+
+  const handleSelect = () => {
+    setShowBounce(true);
+    setShowParticles(true);
+    setTimeout(() => setShowBounce(false), 400);
+    setTimeout(() => setShowParticles(false), 700);
+    onSelect(style);
+  };
 
   return (
     <button
-      onClick={() => onSelect(style)}
+      onClick={handleSelect}
       aria-pressed={isSelected}
       aria-label={`${style.name}スタイルを選択${isSelected ? '（選択中）' : ''}`}
       className={`
@@ -61,8 +71,26 @@ export const StyleCard = memo(function StyleCard({
         active:scale-[0.98] active:transition-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background
         ${isSelected ? 'glass-card-selected' : 'glass-card'}
+        ${showBounce ? 'animate-selectBounce' : ''}
       `}
     >
+      {/* パーティクルバースト */}
+      {showParticles && (
+        <div className="absolute inset-0 pointer-events-none z-20">
+          {[...Array(10)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute left-1/2 top-1/2 w-1.5 h-1.5 rounded-full animate-particleBurst"
+              style={{
+                backgroundColor: i % 2 === 0 ? '#B8860B' : '#8B4513',
+                '--particle-angle': `${i * 36}deg`,
+                animationDelay: `${i * 0.03}s`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
+
       {/* 選択チェックマーク */}
       {isSelected && (
         <div className={`absolute z-10 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg ${compact ? 'top-2 right-2 w-6 h-6' : 'top-3 right-3 w-8 h-8'}`}>

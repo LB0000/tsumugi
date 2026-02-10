@@ -1,5 +1,5 @@
 import { useCallback, useRef, useMemo, useState } from 'react';
-import { Upload, FileImage, HardDrive } from 'lucide-react';
+import { Upload, FileImage, HardDrive, Info, ImageIcon } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
@@ -122,6 +122,32 @@ export function ImageUploader() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* アップロード要件パネル（2.3: ファイル制限の明確化） */}
+      {uploadState.status !== 'complete' && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border border-border/50">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-foreground mb-2">アップロード要件</p>
+              <ul className="space-y-1.5 text-muted">
+                <li className="flex items-center gap-2">
+                  <FileImage className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <span><strong>ファイル形式:</strong> JPG, PNG, WEBP</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <span><strong>最大サイズ:</strong> 10MB</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-secondary flex-shrink-0" />
+                  <span><strong>推奨解像度:</strong> 1024×1024 px以上</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Upload Area */}
       <div
         role="button"
@@ -176,14 +202,22 @@ export function ImageUploader() {
           </div>
         ) : uploadState.status === 'uploading' ? (
           <div className="flex flex-col items-center gap-4 animate-fadeIn">
-            <div className="relative w-16 h-16">
-              <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
-              <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="relative w-24 h-24">
+              <svg className="w-24 h-24 -rotate-90" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="6" fill="none" className="text-border" />
+                <circle
+                  cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="6" fill="none"
+                  strokeDasharray={`${2 * Math.PI * 40}`}
+                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - (uploadState.progress || 0) / 100)}`}
+                  className="text-primary transition-all duration-300"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xl font-bold text-primary">{uploadState.progress}%</span>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-foreground font-medium mb-1">アップロード中...</p>
-              <p className="text-2xl font-bold text-primary">{uploadState.progress}%</p>
-            </div>
+            <p className="text-foreground font-medium">アップロード中...</p>
           </div>
         ) : (
           <>
