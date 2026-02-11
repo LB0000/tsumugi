@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Palette } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
@@ -9,9 +9,10 @@ type ProductOption = (typeof products)[number];
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, addToCart } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, setGeneratedImage, addToCart } = useAppStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
+  const beforeImage = uploadState.previewUrl;
 
   useEffect(() => {
     if (!generatedImage || !selectedStyle) {
@@ -47,41 +48,120 @@ export function ResultPage() {
     navigate('/cart');
   };
 
+  const handleRetryWithNewStyle = () => {
+    setGeneratedImage(null);
+    navigate('/');
+    // スタイルセクションへスクロール（遷移後に実行）
+    setTimeout(() => {
+      document.getElementById('style-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Hero: Before/After */}
       <div className="bg-primary/5 pt-8 pb-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="mb-6 inline-flex items-center text-sm text-muted hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            トップに戻る
-          </button>
+        <div className="max-w-5xl mx-auto">
+          {/* Navigation */}
+          <div className="text-center mb-6">
+            <button
+              onClick={() => navigate('/')}
+              className="inline-flex items-center text-sm text-muted hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              トップに戻る
+            </button>
+          </div>
 
-          <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-4">
-            傑作が完成しました
-          </h1>
-          <p className="text-muted mb-8">
-            この美しい肖像画を、どのアイテムで残しますか？
-          </p>
+          <div className="text-center mb-8">
+            <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-2">
+              傑作が完成しました
+            </h1>
+            <p className="text-muted">
+              {selectedStyle.name} スタイルで変換しました
+            </p>
+          </div>
 
-          <div className="relative max-w-sm mx-auto aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
-            <img
-              src={generatedImage}
-              alt="Generated Portrait"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-              <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-medium text-white border border-white/30">
-                {selectedStyle.name} Style
-              </span>
+          {/* Before / After comparison */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 max-w-4xl mx-auto items-center">
+            {/* Before */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-muted/40" />
+                <p className="text-sm font-medium text-muted tracking-wide">Before</p>
+              </div>
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
+                {beforeImage ? (
+                  <img
+                    src={beforeImage}
+                    alt="元の写真"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted text-sm">
+                    元の写真
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Arrow connector (desktop only) */}
+            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+              {/* Rendered via the gap between grid items */}
+            </div>
+
+            {/* After */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <p className="text-sm font-medium text-primary tracking-wide">After</p>
+              </div>
+              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative">
+                <img
+                  src={generatedImage}
+                  alt="生成された肖像画"
+                  className="w-full h-full object-cover"
+                />
+                {/* Watermark */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
+                    <p className="text-foreground/30 text-xl font-serif tracking-wider">
+                      PREVIEW
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile arrow between images */}
+          <div className="flex md:hidden justify-center -mt-3 -mb-3 relative z-10">
+            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <ArrowRight className="w-4 h-4 text-primary rotate-90" />
+            </div>
+          </div>
+
+          {/* Retry with different style */}
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleRetryWithNewStyle}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-full transition-colors"
+            >
+              <Palette className="w-4 h-4" />
+              別のスタイルで試す
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 -mt-8">
+      {/* Product options */}
+      <div className="max-w-6xl mx-auto px-4 -mt-4">
+        <div className="text-center mb-8 pt-8">
+          <p className="text-muted text-sm">
+            この美しい肖像画を、どのアイテムで残しますか？
+          </p>
+        </div>
+
         {postcard && (
           <label className="max-w-2xl mx-auto mb-8 p-4 bg-card rounded-2xl border border-border flex items-start gap-3 cursor-pointer">
             <div
