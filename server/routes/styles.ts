@@ -92,6 +92,60 @@ const artStyles = [
     colorPalette: ['#FF1493', '#FFD700', '#00CED1', '#FF4500'],
     isIntelligent: false,
     tier: 'starter'
+  },
+  {
+    id: 'hand-drawn',
+    name: '手描きスケッチ',
+    description: '鉛筆や木炭で描いたような温かみのあるスケッチ風',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#2C3E50', '#7F8C8D', '#BDC3C7', '#ECF0F1'],
+    isIntelligent: false,
+    tier: 'starter'
+  },
+  {
+    id: 'stained-glass',
+    name: 'ステンドグラス',
+    description: '教会の荘厳なステンドグラスのように光を透過する装飾的な肖像画',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1520697830682-bbb6e85e2b0b?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#E74C3C', '#3498DB', '#F39C12', '#2ECC71'],
+    isIntelligent: false,
+    tier: 'studio'
+  },
+  {
+    id: 'art-nouveau',
+    name: 'アールヌーヴォー',
+    description: 'ミュシャのような優雅な曲線と花の装飾で彩る肖像画',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#C9A96E', '#8B6914', '#5D4E37', '#E8D5B7'],
+    isIntelligent: false,
+    tier: 'starter'
+  },
+  {
+    id: 'pixel-art',
+    name: 'ピクセルアート',
+    description: 'レトロゲーム風のドット絵で描く懐かしくも新しい肖像画',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
+    isIntelligent: false,
+    tier: 'free'
+  },
+  {
+    id: '3d-illustration',
+    name: '3Dイラスト',
+    description: 'Pixar風の温かみのある3DCGレンダリングスタイル',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#667EEA', '#764BA2', '#F093FB', '#4FACFE'],
+    isIntelligent: false,
+    tier: 'studio'
+  },
+  {
+    id: 'vector',
+    name: 'ベクター風',
+    description: 'クリーンでフラットなベクターイラストレーション',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#6C5CE7', '#00CECE', '#FD79A8', '#FDCB6E'],
+    isIntelligent: false,
+    tier: 'starter'
   }
 ];
 

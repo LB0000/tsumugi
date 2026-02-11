@@ -1,10 +1,14 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, Search, Info, ChevronDown } from 'lucide-react';
+import { X, Check, Search, Info, ChevronDown, Grid3X3, Crown, Leaf, Sparkles, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
 import { StyledButton } from '../common/StyledButton';
 import { StyleCategoryCarousel } from './style-selector/StyleCategoryCarousel';
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Grid3X3, Crown, Leaf, Sparkles, Monitor
+};
 
 export function StyleModal() {
   const {
@@ -237,7 +241,7 @@ export function StyleModal() {
             </div>
 
             {/* Tier フィルター */}
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 items-center">
               {tierOptions.map((tier) => (
                 <button
                   key={tier.key}
@@ -254,6 +258,9 @@ export function StyleModal() {
                   {tier.label}
                 </button>
               ))}
+              <span className="text-xs text-muted ml-2 whitespace-nowrap">
+                {filteredStyles.length}件
+              </span>
             </div>
           </div>
 
@@ -302,6 +309,7 @@ export function StyleModal() {
             {styleCategories.filter(c => c.id !== 'all').map((category) => {
               const isActive = activeCategory === category.id;
               const count = styleCounts[category.id] || 0;
+              const CatIcon = iconMap[category.icon] || Grid3X3;
 
               return (
                 <button
@@ -316,6 +324,7 @@ export function StyleModal() {
                     }
                   `}
                 >
+                  <CatIcon className={`w-4 h-4 ${isActive ? '' : 'text-muted'}`} />
                   {category.name}
                   <span className={`px-1.5 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-muted/10'}`}>
                     {count}

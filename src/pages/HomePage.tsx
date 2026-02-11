@@ -1,10 +1,9 @@
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
-import { StepProgress } from '../components/common/StepProgress';
 
 export function HomePage() {
-  const { selectedCategory, uploadState, selectedStyle, generatedImage } = useAppStore();
+  const { selectedCategory } = useAppStore();
   const currentCategory = categories.find(c => c.id === selectedCategory);
 
   if (!currentCategory) return null;
@@ -17,19 +16,16 @@ export function HomePage() {
       {/* 信頼メトリクス — Hero直後にシームレスに接続 */}
       <TrustedBy />
 
-      {/* ステップ進捗インジケーター */}
-      <StepProgress
-        hasUpload={uploadState.status === 'complete'}
-        hasStyle={selectedStyle !== null}
-        hasGenerated={generatedImage !== null}
-      />
-
       {/* Upload Section */}
       <section id="upload-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <p className="text-secondary text-sm tracking-[0.2em] uppercase mb-3">Step 1</p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground ornament-line pb-4">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="w-8 h-px bg-secondary" />
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">01</span>
+              <span className="w-8 h-px bg-secondary" />
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
               写真をアップロード
             </h2>
           </div>
@@ -47,8 +43,12 @@ export function HomePage() {
       <section id="style-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
-            <p className="text-secondary text-sm tracking-[0.2em] uppercase mb-3">Step 2</p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground ornament-line pb-4">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="w-8 h-px bg-secondary" />
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">02</span>
+              <span className="w-8 h-px bg-secondary" />
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
               スタイルを選択
             </h2>
           </div>

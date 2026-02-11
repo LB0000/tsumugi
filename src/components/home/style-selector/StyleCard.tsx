@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Flame } from 'lucide-react';
 import type { ArtStyle } from '../../../types';
 
 interface StyleCardProps {
@@ -91,6 +91,13 @@ export const StyleCard = memo(function StyleCard({
         </div>
       )}
 
+      {/* NEWバッジ */}
+      {style.isNew && !isSelected && (
+        <span className={`absolute z-10 rounded-full bg-accent-sage text-white tracking-wider shadow-sm animate-newBadgePulse font-bold ${compact ? 'top-2 left-2 px-1.5 py-0.5 text-[7px]' : 'top-3 left-3 px-2 py-0.5 text-[8px]'}`}>
+          NEW
+        </span>
+      )}
+
       {/* 選択チェックマーク */}
       {isSelected && (
         <div className={`absolute z-10 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg ${compact ? 'top-2 right-2 w-6 h-6' : 'top-3 right-3 w-8 h-8'}`}>
@@ -152,8 +159,11 @@ export const StyleCard = memo(function StyleCard({
       {/* 情報エリア */}
       <div className={compact ? 'p-2.5' : 'p-4'}>
         {/* スタイル名 */}
-        <h3 className={`font-serif font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300 ${compact ? 'text-sm mb-1' : 'text-base mb-1.5'}`}>
+        <h3 className={`font-serif font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300 flex items-center gap-1 ${compact ? 'text-sm mb-1' : 'text-base mb-1.5'}`}>
           {style.name}
+          {style.popularity && style.popularity >= 80 && (
+            <Flame className="w-3 h-3 text-secondary flex-shrink-0" />
+          )}
         </h3>
 
         {/* 説明（compactモードでは非表示） */}
@@ -166,6 +176,20 @@ export const StyleCard = memo(function StyleCard({
         {/* カラーパレット */}
         <ColorPaletteStrip colors={style.colorPalette} compact={compact} />
       </div>
+
+      {/* ホバー拡大プレビュー（デスクトップ・compact時のみ） */}
+      {compact && !style.isIntelligent && style.thumbnailUrl && (
+        <div className="hidden md:block absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30
+          opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-300">
+          <div className="w-56 rounded-xl overflow-hidden shadow-2xl border border-border/50 bg-background">
+            <img src={style.thumbnailUrl} alt="" className="w-full aspect-[4/5] object-cover" />
+            <div className="p-3">
+              <p className="font-serif font-semibold text-sm">{style.name}</p>
+              <p className="text-xs text-muted mt-1 line-clamp-2">{style.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 選択時のボーダーグロー */}
       {isSelected && (

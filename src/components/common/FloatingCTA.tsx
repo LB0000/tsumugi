@@ -1,66 +1,111 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, X } from 'lucide-react';
-import { StyledButton } from './StyledButton';
+import { useLocation } from 'react-router-dom';
 
-interface FloatingCTAProps {
-  targetId?: string;
-  showAfterScroll?: number;
-}
-
-export function FloatingCTA({
-  targetId = 'upload-section',
-  showAfterScroll = 400,
-}: FloatingCTAProps) {
+export function FloatingCTA() {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { pathname } = useLocation();
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (isDismissed) return;
+    setIsDismissed(false);
+    setIsVisible(false);
+  }, [pathname]);
 
-      const scrollY = window.scrollY;
-      setIsVisible(scrollY > showAfterScroll);
-    };
+  useEffect(() => {
+    if (!isHomePage || isDismissed) {
+      setIsVisible(false);
+      return;
+    }
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [showAfterScroll, isDismissed]);
+    // ヒーローCTAボタンの可視性を監視
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    const heroCTA = document.getElementById('hero-cta');
+    if (heroCTA) {
+      observer.observe(heroCTA);
+      heroRef.current = heroCTA;
+    } else {
+      // フォールバック: スクロール量で判定
+      const handleScroll = () => {
+        setIsVisible(window.scrollY > 600);
+      };
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+
+    return () => observer.disconnect();
+  }, [isDismissed, isHomePage]);
 
   const handleClick = () => {
-    const element = document.getElementById(targetId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsDismissed(true);
-    setIsVisible(false);
   };
 
-  if (!isVisible) return null;
+  if (!isHomePage) return null;
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
       }`}
     >
-      <div className="relative flex items-center gap-2 p-1 bg-card/95 backdrop-blur-sm border border-border rounded-full shadow-lg">
-        <button onClick={handleClick} className="flex-1">
-          <StyledButton size="md" className="rounded-full">
-            <Sparkles className="w-4 h-4" />
-            今すぐ作品を作る
-          </StyledButton>
-        </button>
-        <button
-          onClick={handleDismiss}
-          className="p-2 text-muted hover:text-foreground transition-colors"
-          aria-label="閉じる"
-        >
-          <X className="w-4 h-4" />
-        </button>
+      {/* モバイル: 画面下部バー */}
+      <div className="md:hidden pointer-events-auto">
+        <div className="bg-background/95 backdrop-blur-md border-t border-border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleClick}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25"
+            >
+              <Sparkles className="w-4 h-4" />
+              無料でプレビューを見る
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="p-2 text-muted hover:text-foreground transition-colors flex-shrink-0"
+              aria-label="閉じる"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-muted mt-1">
+            ¥2,900〜 · 登録不要
+          </p>
+        </div>
+      </div>
+
+      {/* デスクトップ: 右下フローティング */}
+      <div className="hidden md:block pointer-events-auto">
+        <div className="fixed bottom-6 right-6">
+          <div className="relative flex items-center gap-2 p-1.5 bg-card/95 backdrop-blur-md border border-border rounded-full shadow-xl">
+            <button
+              onClick={handleClick}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              無料でプレビューを見る
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="p-1.5 text-muted hover:text-foreground transition-colors"
+              aria-label="閉じる"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

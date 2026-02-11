@@ -517,6 +517,16 @@ textarea:focus-visible {
   animation-play-state: paused;
 }
 
+/* NEWバッジパルス */
+@keyframes newBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-newBadgePulse {
+  animation: newBadgePulse 2s ease-in-out infinite;
+}
+
 /* prefers-reduced-motion対応 */
 @media (prefers-reduced-motion: reduce) {
   .glass-card,
@@ -531,7 +541,8 @@ textarea:focus-visible {
   .animate-subtlePulse,
   .animate-selectBounce,
   .animate-particleBurst,
-  .animate-tickerScroll {
+  .animate-tickerScroll,
+  .animate-newBadgePulse {
     animation: none;
     transition: none;
   }

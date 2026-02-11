@@ -24,5 +24,11 @@ export const styleCategories: StyleCategory[] = [
     name: 'ポップ・イラスト',
     description: 'アニメ・現代イラスト系',
     icon: 'Sparkles'
+  },
+  {
+    id: 'digital',
+    name: 'モダン・デジタル',
+    description: 'ピクセルアートや3Dなどデジタルアート系',
+    icon: 'Monitor'
   }
 ];

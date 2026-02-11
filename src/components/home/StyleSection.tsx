@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Check, Sparkles, ChevronRight, ChevronLeft, Crown, Leaf, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import type { ArtStyle } from '../../types';
@@ -63,6 +63,13 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
       `}
       style={{ animationDelay: `${index * 50}ms` }}
     >
+      {/* NEWバッジ */}
+      {style.isNew && !isSelected && (
+        <span className="absolute top-3 left-3 z-10 px-1.5 py-0.5 text-[7px] font-bold rounded-full bg-accent-sage text-white tracking-wider shadow-sm animate-newBadgePulse">
+          NEW
+        </span>
+      )}
+
       {/* 選択チェックマーク */}
       {isSelected && (
         <div className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg">
@@ -148,7 +155,7 @@ export function StyleSection() {
   const [showRightFade, setShowRightFade] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const visibleStyles = artStyles.slice(0, 6);
+  const visibleStyles = artStyles.slice(0, 8);
   const cardWidth = 192 + 20; // w-48 (192px) + gap-5 (20px)
   const totalPages = Math.max(1, Math.ceil((visibleStyles.length + 1) / 3)); // +1 for "View All"
 
@@ -244,7 +251,7 @@ export function StyleSection() {
         <button
           onClick={openStyleModal}
           className="
-            flex-shrink-0 w-36 rounded-2xl glass-card
+            flex-shrink-0 w-40 rounded-2xl glass-card
             border-2 border-dashed border-primary/30
             flex flex-col items-center justify-center gap-3
             hover:border-primary/50 hover:bg-primary/5
@@ -253,14 +260,17 @@ export function StyleSection() {
             transition-all duration-300 group cursor-pointer
           "
         >
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
-            <span className="text-2xl text-primary">+</span>
+          <div className="flex gap-1 mb-1">
+            <Crown className="w-4 h-4 text-muted/50" />
+            <Leaf className="w-4 h-4 text-muted/50" />
+            <Sparkles className="w-4 h-4 text-muted/50" />
+            <Monitor className="w-4 h-4 text-muted/50" />
           </div>
-          <span className="text-sm font-medium text-primary">
-            もっと見る
+          <span className="text-lg font-bold text-primary">
+            {artStyles.length}
           </span>
-          <span className="text-xs text-muted">
-            {artStyles.length}種類
+          <span className="text-sm font-medium text-primary">
+            種類から選ぶ
           </span>
         </button>
       </div>

@@ -10,7 +10,7 @@ export interface Category {
   sampleImages: string[];
 }
 
-export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop';
+export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop' | 'digital';
 
 export interface ArtStyle {
   id: string;
@@ -22,6 +22,8 @@ export interface ArtStyle {
   tier: 'free' | 'starter' | 'studio';
   category: Exclude<StyleCategoryId, 'all'>;
   tags?: string[];
+  isNew?: boolean;
+  popularity?: number;
 }
 
 export interface StyleCategory {

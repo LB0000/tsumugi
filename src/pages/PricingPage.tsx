@@ -164,11 +164,11 @@ export function PricingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {printSizes.map((size, index) => (
               <div
                 key={size.id}
-                className={`group p-6 rounded-2xl bg-background border-2 text-center transition-all duration-300 hover:shadow-lg ${
+                className={`group p-5 sm:p-6 rounded-2xl bg-background border-2 text-center transition-all duration-300 hover:shadow-lg ${
                   index === 2 ? 'border-primary/50 ring-2 ring-primary/10' : 'border-border hover:border-primary/30'
                 }`}
               >

@@ -79,7 +79,13 @@ const stylePrompts: Record<string, string> = {
   'sumi-e': 'Transform this photo into a traditional East Asian ink wash painting (sumi-e). Use only black ink with varying shades of gray, bold expressive brush strokes, minimalist composition, and abundant white space. Capture the essence of the subject with elegant simplicity.',
   'anime': 'Transform this photo into vibrant Japanese anime illustration style. Apply bold cel-shading, clean lines, large expressive eyes, vibrant saturated colors, and dynamic composition. Use flat color areas with sharp highlights.',
   'ghibli': 'Transform this photo into a Studio Ghibli-inspired hand-drawn animation style. Use warm, nostalgic colors, soft watercolor-like backgrounds, gentle lighting, rounded friendly features, and a whimsical fairy-tale atmosphere. The style should feel cozy and magical.',
-  'pop-art': 'Transform this photo into bold Pop Art style like Andy Warhol. Use high contrast, bright saturated colors (hot pink, electric blue, vivid yellow), halftone dot patterns, thick black outlines, and flat graphic areas. Make it look like a screen-printed poster.'
+  'pop-art': 'Transform this photo into bold Pop Art style like Andy Warhol. Use high contrast, bright saturated colors (hot pink, electric blue, vivid yellow), halftone dot patterns, thick black outlines, and flat graphic areas. Make it look like a screen-printed poster.',
+  'hand-drawn': 'Transform this photo into a hand-drawn pencil or charcoal sketch. Use varying line weights, cross-hatching for shading, visible pencil strokes, and a natural hand-drawn quality. Keep it monochromatic or with minimal color, emphasizing texture and artistic imperfection.',
+  'stained-glass': 'Transform this photo into a stained glass art style resembling medieval church windows. Use bold black lead lines separating areas of vibrant translucent color, geometric patterns, rich jewel tones (deep red, blue, gold, green), and a luminous quality as if light is shining through colored glass.',
+  'art-nouveau': 'Transform this photo into Art Nouveau style like Alphonse Mucha. Use elegant flowing organic curves, ornamental borders with floral and botanical motifs, muted gold and earth tones, decorative haloes, and sinuous lines. The composition should feel like a vintage poster.',
+  'pixel-art': 'Transform this photo into retro pixel art style with visible square pixels, limited color palette like classic 8-bit and 16-bit video games. Use distinct pixel blocks, clean edges, and a nostalgic retro gaming aesthetic while maintaining the subject recognizable.',
+  '3d-illustration': 'Transform this photo into a modern 3D rendered illustration style like Pixar or Disney animation. Use smooth, rounded shapes, subsurface scattering skin, volumetric lighting, vibrant colors, and a warm, friendly aesthetic. The result should look like a high-quality 3D character render.',
+  'vector': 'Transform this photo into clean flat vector illustration style. Use bold solid colors, clean geometric shapes, minimal gradients, sharp edges, and simplified features. The style should be modern, professional, and graphic-design inspired.'
 };
 
 // Category-specific prompt additions
@@ -288,6 +294,12 @@ function getStyleColors(styleId: string): Record<string, string> {
     'anime': { bg1: '#FF6B9D', bg2: '#C44569', frame1: '#F8B500', frame2: '#00D9FF', accent: '#FF6B9D', text: '#FFFFFF' },
     'ghibli': { bg1: '#E8F5E9', bg2: '#A5D6A7', frame1: '#4CAF50', frame2: '#FF9800', accent: '#87CEEB', text: '#2E7D32' },
     'pop-art': { bg1: '#FF1493', bg2: '#FF4500', frame1: '#FFD700', frame2: '#00CED1', accent: '#FF1493', text: '#FFFFFF' },
+    'hand-drawn': { bg1: '#ECF0F1', bg2: '#BDC3C7', frame1: '#2C3E50', frame2: '#7F8C8D', accent: '#2C3E50', text: '#1a1a1a' },
+    'stained-glass': { bg1: '#1a1a2e', bg2: '#0a0a1a', frame1: '#E74C3C', frame2: '#3498DB', accent: '#F39C12', text: '#E8D5B7' },
+    'art-nouveau': { bg1: '#5D4E37', bg2: '#3d3224', frame1: '#C9A96E', frame2: '#8B6914', accent: '#C9A96E', text: '#E8D5B7' },
+    'pixel-art': { bg1: '#1a1a2e', bg2: '#16213e', frame1: '#4ECDC4', frame2: '#FF6B6B', accent: '#45B7D1', text: '#96CEB4' },
+    '3d-illustration': { bg1: '#667EEA', bg2: '#764BA2', frame1: '#F093FB', frame2: '#4FACFE', accent: '#667EEA', text: '#FFFFFF' },
+    'vector': { bg1: '#6C5CE7', bg2: '#4834d4', frame1: '#00CECE', frame2: '#FD79A8', accent: '#FDCB6E', text: '#FFFFFF' },
     'default': { bg1: '#262626', bg2: '#1a1a1a', frame1: '#1ABC9C', frame2: '#16a085', accent: '#1ABC9C', text: '#FFFFFF' }
   };
 

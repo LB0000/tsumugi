@@ -399,7 +399,7 @@ export function HeroBeforeAfter() {
             </div>
 
             {/* CTA ボタン */}
-            <div className="flex flex-col items-center lg:items-start gap-3 animate-fadeIn" style={{ animationDelay: '0.9s' }}>
+            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 animate-fadeIn" style={{ animationDelay: '0.9s' }}>
               <button
                 onClick={scrollToUpload}
                 className="group relative px-10 py-5 text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"

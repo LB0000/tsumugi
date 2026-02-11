@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary } from './components/common';
+import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary, FloatingCTA } from './components/common';
 
 // Code Splitting: ページコンポーネントを遅延読み込み
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -52,6 +52,7 @@ function App() {
           </ErrorBoundary>
         </main>
         <Footer />
+        <FloatingCTA />
       </div>
     </BrowserRouter>
   );

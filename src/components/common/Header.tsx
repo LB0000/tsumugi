@@ -1,10 +1,12 @@
 import { Menu, ShoppingCart, User } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 
 export function Header() {
   const { selectedCategory, setSelectedCategory, toggleSidebar } = useAppStore();
+  const { pathname } = useLocation();
+  const isHomePage = pathname === '/';
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
@@ -72,26 +74,27 @@ export function Header() {
         </div>
       </div>
 
-      {/* Category Navigation */}
-      <nav className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-center gap-2 overflow-x-auto py-3 scrollbar-thin">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-6 py-2 text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${selectedCategory === category.id
-                  ? 'text-white bg-primary shadow-sm'
-                  : 'text-foreground hover:text-primary hover:bg-primary/5'
-                  }`}
-              >
-                {category.name}
-              </button>
-            ))}
-
+      {/* Category Navigation — ホームページのみ */}
+      {isHomePage && (
+        <nav className="bg-card border-b border-border">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-center gap-2 overflow-x-auto py-3 scrollbar-thin">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-6 py-2 text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${selectedCategory === category.id
+                    ? 'text-white bg-primary shadow-sm'
+                    : 'text-foreground hover:text-primary hover:bg-primary/5'
+                    }`}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
     </header>
   );
 }

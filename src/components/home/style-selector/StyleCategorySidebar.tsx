@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Grid3X3, Palette, Crown, Sparkles, Leaf, Layers } from 'lucide-react';
+import { Grid3X3, Palette, Crown, Sparkles, Leaf, Layers, Monitor } from 'lucide-react';
 import { styleCategories } from '../../../data/styleCategories';
 import { artStyles } from '../../../data/artStyles';
 import type { StyleCategoryId } from '../../../types';
@@ -15,7 +15,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Crown,
   Sparkles,
   Leaf,
-  Layers
+  Layers,
+  Monitor
 };
 
 export const StyleCategorySidebar = memo(function StyleCategorySidebar({
