@@ -3,6 +3,7 @@ export interface Category {
   name: string;
   headline: string;
   subheadline: string;
+  heroDescription: string;
   uploadHint: string;
   trustText: string;
   basePrice: number;
@@ -51,6 +52,9 @@ export interface PricingPlan {
   badge?: 'popular' | 'best-value' | 'limited';
   pricePerCredit: number;
   pointsEarned?: number;
+  tagline?: string;
+  popularPercent?: number;
+  savingsNote?: string;
 }
 
 export interface LegalInfo {

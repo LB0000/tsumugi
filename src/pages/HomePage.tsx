@@ -81,6 +81,9 @@ export function HomePage() {
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground ornament-line pb-4">
               作品サンプル
             </h2>
+            <p className="text-muted text-sm sm:text-base mt-3">
+              写真がどう変わるか、スタイル別にご覧ください
+            </p>
           </div>
 
           <div className="animate-fadeInUp" style={{ animationDelay: '0.3s' }}>

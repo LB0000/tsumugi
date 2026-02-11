@@ -371,7 +371,7 @@ export function HeroBeforeAfter() {
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
               <span className="text-secondary text-xs sm:text-sm tracking-[0.3em] uppercase font-semibold">
-                AI Portrait Art
+                Portrait Art
               </span>
               <div className="w-10 h-px bg-gradient-to-l from-transparent to-secondary" />
             </div>
@@ -384,9 +384,7 @@ export function HeroBeforeAfter() {
             </h1>
 
             <p className="text-muted text-base sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 animate-fadeIn" style={{ animationDelay: '0.7s' }}>
-              AIが描く、世界にひとつの肖像画。
-              <br className="hidden sm:block" />
-              自分へのご褒美にも、大切な人への贈り物にも。
+              {currentCategory?.heroDescription}
             </p>
 
             {/* 無料プレビュー・登録不要バッジ */}

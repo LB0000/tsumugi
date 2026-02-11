@@ -4,6 +4,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'digital',
     name: 'デジタルパック',
+    tagline: 'まずはお試しに',
     price: 2900,
     priceExcludingTax: 2636,
     credits: 5,
@@ -13,21 +14,21 @@ export const pricingPlans: PricingPlan[] = [
     hasRetryTools: true,
     hasPrecisionEditor: 'none',
     features: [
-      '5回の作品生成で傑作を完成',
-      '高解像度ポートレート2点をダウンロード',
-      'マスターピーススタイル1種類',
+      '5回の生成',
+      'ダウンロード2点',
+      'スタイル1種類',
+      '透かし入り',
       'リトライツール付き',
-      'プロジェクトへの永久アクセス',
       '商用利用権',
-      '即時アクセス'
     ],
-    badge: 'popular',
     pricePerCredit: 580,
-    pointsEarned: 29
+    pointsEarned: 29,
+    savingsNote: '単品購入と同じ単価',
   },
   {
     id: 'starter',
     name: 'スターターパック',
+    tagline: 'はじめての方に一番人気',
     price: 4900,
     priceExcludingTax: 4454,
     credits: 10,
@@ -37,21 +38,23 @@ export const pricingPlans: PricingPlan[] = [
     hasRetryTools: true,
     hasPrecisionEditor: 'simple',
     features: [
-      '10回の作品生成でスタイルを探索',
-      '高解像度ポートレート10点をダウンロード',
-      '厳選された6つのアートスタイル',
-      'リトライツール付き',
-      '精密エディター（シンプルモード）',
-      '永久アクセス',
+      '10回の生成',
+      'ダウンロード10点',
+      '厳選6スタイル',
+      '透かしなし',
+      '精密エディター付き',
       '商用利用権',
-      '即時ダウンロード'
     ],
+    badge: 'popular',
     pricePerCredit: 490,
-    pointsEarned: 49
+    pointsEarned: 49,
+    popularPercent: 68,
+    savingsNote: '単品より15%お得',
   },
   {
     id: 'studio',
     name: 'スタジオパック',
+    tagline: '本格派のための最高コスパ',
     price: 19900,
     priceExcludingTax: 18090,
     credits: 60,
@@ -61,17 +64,17 @@ export const pricingPlans: PricingPlan[] = [
     hasRetryTools: true,
     hasPrecisionEditor: 'advanced',
     features: [
-      '60回の作品生成で無限の創造性',
-      '60点すべての高解像度作品をダウンロード',
-      '全19種類のアートスタイル',
+      '60回の生成',
+      '全作品ダウンロード',
+      '全19スタイル',
       '無制限リトライ',
-      '高度な精密エディター（無制限）',
-      '1作品あたり¥332の最高コスパ',
-      '商用利用権'
+      '高度な精密エディター',
+      '1作品あたり¥332',
     ],
     badge: 'best-value',
     pricePerCredit: 332,
-    pointsEarned: 199
+    pointsEarned: 199,
+    savingsNote: '単品より43%お得',
   }
 ];
 
