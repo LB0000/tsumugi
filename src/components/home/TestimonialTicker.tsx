@@ -90,9 +90,9 @@ const testimonials: Testimonial[] = [
 
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
-    <div className="flex-shrink-0 w-64 sm:w-80 glass-card rounded-2xl overflow-hidden hover:shadow-lg hover:shadow-secondary/5 transition-all duration-300 hover:-translate-y-0.5">
+    <div className="flex-shrink-0 w-[80vw] sm:w-80 snap-center glass-card rounded-2xl overflow-hidden hover:shadow-lg hover:shadow-secondary/5 transition-all duration-300 hover:-translate-y-0.5">
       {/* ビフォーアフター サムネイル */}
-      <div className="flex items-center gap-0 h-24 sm:h-32 bg-gradient-to-r from-card to-card/80">
+      <div className="flex items-center gap-0 h-36 sm:h-32 bg-gradient-to-r from-card to-card/80">
         <div className="flex-1 h-full overflow-hidden">
           <img
             src={testimonial.beforeImage}
@@ -114,7 +114,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         </div>
       </div>
 
-      <div className="p-3.5 sm:p-5">
+      <div className="p-4 sm:p-5">
         {/* 顧客情報 */}
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center text-sm font-bold text-primary">
@@ -141,7 +141,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         </div>
 
         {/* コメント */}
-        <p className="text-sm text-muted leading-relaxed mb-3 line-clamp-3">
+        <p className="text-sm text-muted leading-relaxed mb-3 sm:line-clamp-3">
           「{testimonial.comment}」
         </p>
 
@@ -179,10 +179,10 @@ export function TestimonialTicker() {
       </div>
 
       <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
 
-        <div className={`flex gap-5 ${prefersReducedMotion ? 'overflow-x-auto' : 'animate-tickerScroll'}`}>
+        <div className={`flex gap-5 overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:snap-none ${prefersReducedMotion ? '' : 'sm:animate-tickerScroll'} scrollbar-hide`}>
           {items.map((testimonial, index) => (
             <TestimonialCard
               key={`${testimonial.id}-${index}`}
