@@ -92,9 +92,8 @@ export function GeneratePreview() {
     resetUpload();
   };
 
-  if (uploadState.status !== 'complete' || !uploadState.previewUrl) {
-    return null;
-  }
+  const hasPhoto = uploadState.status === 'complete' && uploadState.previewUrl;
+  const canGenerate = hasPhoto && selectedStyle;
 
   const estimatedSeconds = 15 - (generationStage * 3);
   const dynamicMessage = generationStage === generationStages.length - 1
@@ -102,23 +101,11 @@ export function GeneratePreview() {
     : `あと約${estimatedSeconds}秒...`;
 
   return (
-    <div className="mt-10 animate-fadeInUp">
+    <div className="animate-fadeInUp">
       {/* Generate Button */}
       {!generatedImage && (
         <div className="text-center">
           <div className="inline-flex flex-col items-center p-8 rounded-3xl bg-gradient-to-br from-primary/5 via-card to-secondary/5 border border-border/50">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
-
-            <h3 className="font-serif text-xl font-semibold text-foreground mb-2">
-              準備完了
-            </h3>
-            <p className="text-sm text-muted mb-6 max-w-xs">
-              写真とスタイルが選択されました。<br />
-              ボタンをクリックして肖像画を生成してください。
-            </p>
-
             {isGenerating ? (
               <div className="w-full max-w-sm space-y-5">
                 {/* プログレスバー */}
@@ -164,10 +151,16 @@ export function GeneratePreview() {
             ) : (
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating}
-                className="group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.05] transition-all duration-300 cursor-pointer overflow-hidden animate-subtlePulse flex items-center justify-center gap-2"
+                disabled={!canGenerate || isGenerating}
+                className={`group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 ${
+                  canGenerate
+                    ? 'hover:shadow-primary/40 hover:scale-[1.05] cursor-pointer animate-subtlePulse'
+                    : 'opacity-40 cursor-not-allowed'
+                }`}
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                {canGenerate && (
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                )}
                 <span className="relative flex items-center gap-2">
                   <Sparkles className="w-5 h-5" />
                   肖像画を生成
@@ -182,10 +175,22 @@ export function GeneratePreview() {
               </div>
             )}
 
-            <div className="mt-6 flex items-center gap-3 text-sm text-muted">
-              <span className="w-2 h-2 rounded-full bg-secondary" />
-              <span>スタイル: {selectedStyle?.name || 'インテリジェント'}</span>
-            </div>
+            {!canGenerate && (
+              <p className="mt-4 text-sm text-muted">
+                {!hasPhoto && !selectedStyle
+                  ? '写真のアップロードとスタイル選択が必要です'
+                  : !hasPhoto
+                    ? '写真をアップロードしてください'
+                    : 'スタイルを選択してください'}
+              </p>
+            )}
+
+            {canGenerate && (
+              <div className="mt-6 flex items-center gap-3 text-sm text-muted">
+                <span className="w-2 h-2 rounded-full bg-secondary" />
+                <span>スタイル: {selectedStyle?.name || 'インテリジェント'}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -215,7 +220,7 @@ export function GeneratePreview() {
               </div>
               <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
                 <img
-                  src={uploadState.previewUrl}
+                  src={uploadState.previewUrl!}
                   alt="元の写真"
                   className="w-full h-full object-cover"
                 />

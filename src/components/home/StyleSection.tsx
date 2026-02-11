@@ -203,6 +203,30 @@ export function StyleSection() {
 
   return (
     <section className="mb-12">
+      {/* 選択中スタイルサマリー */}
+      {selectedStyle && (
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-primary/5 border border-primary/15">
+          {selectedStyle.thumbnailUrl ? (
+            <img src={selectedStyle.thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted">選択中のスタイル</p>
+            <p className="text-sm font-semibold text-foreground truncate">{selectedStyle.name}</p>
+          </div>
+          <button
+            onClick={openStyleModal}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
+          >
+            変更
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {/* すべて見るボタン（2.4改善版） */}
       <div className="flex justify-end mb-4">
         <button

@@ -56,9 +56,27 @@ export function HomePage() {
           <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
             <StyleSection />
           </div>
+        </div>
+      </section>
 
-          {/* 準備完了セクション */}
-          <div id="generate-section" className="scroll-mt-20">
+      {/* 区切り線 */}
+      <div className="divider-japanese max-w-3xl mx-auto" />
+
+      {/* Generate Section */}
+      <section id="generate-section" className="py-16 sm:py-20 scroll-mt-20">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <span className="w-8 h-px bg-secondary" />
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">03</span>
+              <span className="w-8 h-px bg-secondary" />
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
+              肖像画を生成
+            </h2>
+          </div>
+
+          <div className="animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
             <GeneratePreview />
           </div>
         </div>
