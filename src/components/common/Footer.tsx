@@ -16,32 +16,32 @@ export function Footer() {
             <div className="w-12 h-px bg-secondary/50" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="flex items-center gap-4 justify-center group">
-              <div className="w-12 h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors">
-                <Truck className="w-5 h-5 text-secondary" />
+          <div className="grid grid-cols-3 gap-3 sm:gap-6">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors mb-2 sm:mb-0">
+                <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-sm">全国送料無料</p>
-                <p className="text-xs text-background/70">5,000円以上のご注文で</p>
+                <p className="font-medium text-background text-xs sm:text-sm">送料無料</p>
+                <p className="hidden sm:block text-xs text-background/70">5,000円以上のご注文で</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 justify-center group">
-              <div className="w-12 h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors">
-                <Shield className="w-5 h-5 text-secondary" />
+            <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors mb-2 sm:mb-0">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-sm">品質保証</p>
-                <p className="text-xs text-background/70">ご満足いただけない場合は全額返金</p>
+                <p className="font-medium text-background text-xs sm:text-sm">品質保証</p>
+                <p className="hidden sm:block text-xs text-background/70">ご満足いただけない場合は全額返金</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 justify-center group">
-              <div className="w-12 h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors">
-                <CreditCard className="w-5 h-5 text-secondary" />
+            <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-background/10 flex items-center justify-center group-hover:bg-background/20 transition-colors mb-2 sm:mb-0">
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-sm">安全な決済</p>
-                <p className="text-xs text-background/70">SSL暗号化通信で安心</p>
+                <p className="font-medium text-background text-xs sm:text-sm">安全な決済</p>
+                <p className="hidden sm:block text-xs text-background/70">SSL暗号化通信で安心</p>
               </div>
             </div>
           </div>

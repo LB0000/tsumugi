@@ -170,9 +170,9 @@ export function StyleModal() {
 
   const tierOptions = [
     { key: 'all' as const, label: 'すべて' },
-    { key: 'free' as const, label: '無料' },
-    { key: 'starter' as const, label: 'スターター' },
-    { key: 'studio' as const, label: 'スタジオ' }
+    { key: 'free' as const, label: 'お試し' },
+    { key: 'starter' as const, label: 'スタンダード' },
+    { key: 'studio' as const, label: 'プレミアム' }
   ];
 
   return (
@@ -191,13 +191,13 @@ export function StyleModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="style-modal-title"
-        className="fixed inset-4 md:inset-6 lg:inset-10 bg-background rounded-3xl z-50 flex flex-col overflow-hidden animate-slideUp shadow-2xl"
+        className="fixed inset-0 sm:inset-4 md:inset-6 lg:inset-10 bg-background rounded-none sm:rounded-3xl z-50 flex flex-col overflow-hidden animate-slideUp shadow-2xl"
       >
         {/* ヘッダー */}
-        <header className="px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
+        <header className="px-4 py-2.5 sm:px-6 sm:py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent flex-shrink-0">
+          <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="hidden sm:flex items-center gap-2 mb-1">
                 <span className="w-6 h-px bg-secondary" />
                 <span className="text-xs text-secondary tracking-[0.2em] font-medium">
                   SELECT STYLE
@@ -205,14 +205,14 @@ export function StyleModal() {
               </div>
               <h2
                 id="style-modal-title"
-                className="font-serif text-2xl font-semibold text-foreground"
+                className="font-serif text-lg sm:text-2xl font-semibold text-foreground"
               >
                 スタイルを選んでください
               </h2>
             </div>
             <button
               onClick={closeStyleModal}
-              className="p-4 min-h-[48px] min-w-[48px] rounded-xl hover:bg-card-hover transition-colors group cursor-pointer flex items-center justify-center"
+              className="p-2 sm:p-4 min-h-[40px] min-w-[40px] sm:min-h-[48px] sm:min-w-[48px] rounded-xl hover:bg-card-hover transition-colors group cursor-pointer flex items-center justify-center"
               aria-label="モーダルを閉じる"
             >
               <X className="w-5 h-5 text-muted group-hover:text-foreground transition-colors" />
@@ -230,7 +230,7 @@ export function StyleModal() {
                 value={styleFilterState.searchQuery}
                 onChange={(e) => setStyleSearchQuery(e.target.value)}
                 className="
-                  w-full pl-10 pr-4 py-3.5 min-h-[48px] rounded-xl
+                  w-full pl-10 pr-4 py-2 min-h-[40px] sm:py-3.5 sm:min-h-[48px] rounded-xl
                   bg-white/80 backdrop-blur-sm
                   border border-border/50
                   focus:border-primary/50 focus:ring-2 focus:ring-primary/20
@@ -247,7 +247,7 @@ export function StyleModal() {
                   key={tier.key}
                   onClick={() => setStyleTierFilter(tier.key)}
                   className={`
-                    px-5 py-3.5 rounded-xl text-sm font-medium min-h-[48px]
+                    px-3 py-1.5 rounded-lg text-xs min-h-0 sm:px-5 sm:py-3.5 sm:rounded-xl sm:text-sm sm:min-h-[48px] font-medium
                     transition-all duration-200 cursor-pointer whitespace-nowrap
                     ${styleFilterState.selectedTier === tier.key
                       ? 'bg-primary text-white shadow-sm'
@@ -267,10 +267,10 @@ export function StyleModal() {
           {/* Tier説明（展開式） */}
           <button
             onClick={() => setShowTierComparison(!showTierComparison)}
-            className="flex items-center gap-1.5 text-xs text-muted mt-2 hover:text-foreground transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs text-muted mt-1 sm:mt-2 hover:text-foreground transition-colors cursor-pointer"
           >
             <Info className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Tierプランの違いを確認</span>
+            <span>プランの違いを確認</span>
             <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showTierComparison ? 'rotate-180' : ''}`} />
           </button>
 
@@ -278,14 +278,14 @@ export function StyleModal() {
             <div className="mt-3 p-4 bg-card/50 rounded-xl border border-border/50 animate-slideUp">
               <div className="grid grid-cols-3 gap-3 text-xs">
                 <div className="p-3 bg-white/80 rounded-lg">
-                  <div className="font-bold text-accent-sage mb-2">無料</div>
+                  <div className="font-bold text-accent-sage mb-2">お試し</div>
                   <ul className="space-y-1 text-muted">
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-accent-sage" />プレビュー生成</li>
                     <li className="flex items-center gap-1 opacity-50"><X className="w-3 h-3" />ダウンロード</li>
                   </ul>
                 </div>
                 <div className="p-3 bg-white/80 rounded-lg ring-2 ring-primary/30">
-                  <div className="font-bold text-primary mb-2">スターター</div>
+                  <div className="font-bold text-primary mb-2">スタンダード</div>
                   <ul className="space-y-1 text-muted">
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />プレビュー生成</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />HD ダウンロード</li>
@@ -293,7 +293,7 @@ export function StyleModal() {
                   </ul>
                 </div>
                 <div className="p-3 bg-white/80 rounded-lg">
-                  <div className="font-bold text-secondary mb-2">スタジオ</div>
+                  <div className="font-bold text-secondary mb-2">プレミアム</div>
                   <ul className="space-y-1 text-muted">
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />全機能</li>
                     <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />優先生成</li>
@@ -305,7 +305,7 @@ export function StyleModal() {
           )}
 
           {/* モバイルカテゴリナビ（アクティブ状態＋カウント付き） */}
-          <div className="flex gap-2 overflow-x-auto pb-1 mt-3 scrollbar-thin scrollbar-thumb-muted/20 -mx-1 px-1">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 mt-2 sm:mt-3 scrollbar-thin scrollbar-thumb-muted/20 -mx-1 px-1">
             {styleCategories.filter(c => c.id !== 'all').map((category) => {
               const isActive = activeCategory === category.id;
               const count = styleCounts[category.id] || 0;
@@ -316,15 +316,15 @@ export function StyleModal() {
                   key={category.id}
                   onClick={() => handleCategoryClick(category.id)}
                   className={`
-                    flex-shrink-0 px-5 py-3 min-h-[48px] rounded-full text-sm font-medium transition-all whitespace-nowrap
-                    border cursor-pointer flex items-center gap-2
+                    flex-shrink-0 px-3 py-1.5 min-h-0 rounded-full text-xs sm:px-5 sm:py-3 sm:min-h-[48px] sm:text-sm font-medium transition-all whitespace-nowrap
+                    border cursor-pointer flex items-center gap-1.5 sm:gap-2
                     ${isActive
                       ? 'bg-primary text-white border-primary shadow-sm'
                       : 'border-border/50 bg-white/60 text-muted hover:text-foreground hover:border-primary/30'
                     }
                   `}
                 >
-                  <CatIcon className={`w-4 h-4 ${isActive ? '' : 'text-muted'}`} />
+                  <CatIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isActive ? '' : 'text-muted'}`} />
                   {category.name}
                   <span className={`px-1.5 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-muted/10'}`}>
                     {count}
@@ -336,7 +336,7 @@ export function StyleModal() {
         </header>
 
         {/* メインコンテンツ（カテゴリ別カルーセル） */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+        <main ref={mainRef} className="flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 space-y-4 sm:space-y-6">
           {stylesByCategory.length === 0 ? (
             <div className="flex-1 flex items-center justify-center p-8 min-h-[300px]">
               <div className="text-center animate-fadeIn">
@@ -365,20 +365,25 @@ export function StyleModal() {
         </main>
 
         {/* フッター */}
-        <footer className="px-6 py-5 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
-          <p className="text-sm text-muted">
-            {selectedStyle ? (
-              <>
-                選択中:{' '}
-                <span className="font-medium text-foreground">
-                  {selectedStyle.name}
-                </span>
-              </>
-            ) : (
-              'スタイルを選択してください'
+        <footer className="px-4 py-3 sm:px-6 sm:py-5 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {selectedStyle && selectedStyle.thumbnailUrl && (
+              <img src={selectedStyle.thumbnailUrl} alt="" className="hidden sm:block w-10 h-10 rounded-lg object-cover border border-border/50" />
             )}
-          </p>
-          <div className="flex gap-3">
+            <p className="text-xs sm:text-sm text-muted truncate">
+              {selectedStyle ? (
+                <>
+                  選択中:{' '}
+                  <span className="font-medium text-foreground">
+                    {selectedStyle.name}
+                  </span>
+                </>
+              ) : (
+                'スタイルを選択してください'
+              )}
+            </p>
+          </div>
+          <div className="flex gap-2 sm:gap-3 flex-shrink-0">
             <StyledButton variant="ghost" onClick={closeStyleModal}>
               キャンセル
             </StyledButton>

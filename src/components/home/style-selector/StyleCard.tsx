@@ -23,7 +23,7 @@ function ColorPaletteStrip({ colors, compact = false }: { colors: string[]; comp
 
   return (
     <div
-      className={`w-full rounded-full overflow-hidden ${compact ? 'h-1.5' : 'h-2'}`}
+      className={`w-full rounded-full overflow-hidden ${compact ? 'h-1 sm:h-1.5' : 'h-2'}`}
       style={{ background: `linear-gradient(90deg, ${gradient})` }}
       aria-label="カラーパレット"
     />
@@ -93,15 +93,15 @@ export const StyleCard = memo(function StyleCard({
 
       {/* NEWバッジ */}
       {style.isNew && !isSelected && (
-        <span className={`absolute z-10 rounded-full bg-accent-sage text-white tracking-wider shadow-sm animate-newBadgePulse font-bold ${compact ? 'top-2 left-2 px-1.5 py-0.5 text-[7px]' : 'top-3 left-3 px-2 py-0.5 text-[8px]'}`}>
+        <span className={`absolute z-10 rounded-full bg-accent-sage text-white tracking-wider shadow-sm animate-newBadgePulse font-bold ${compact ? 'top-1 left-1 px-1 py-0.5 text-[6px] sm:top-2 sm:left-2 sm:px-1.5 sm:text-[7px]' : 'top-3 left-3 px-2 py-0.5 text-[8px]'}`}>
           NEW
         </span>
       )}
 
       {/* 選択チェックマーク */}
       {isSelected && (
-        <div className={`absolute z-10 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg ${compact ? 'top-2 right-2 w-6 h-6' : 'top-3 right-3 w-8 h-8'}`}>
-          <Check className={compact ? 'w-3 h-3 text-white' : 'w-4 h-4 text-white'} strokeWidth={3} />
+        <div className={`absolute z-10 rounded-full selection-check flex items-center justify-center animate-scaleIn shadow-lg ${compact ? 'top-1 right-1 w-5 h-5 sm:top-2 sm:right-2 sm:w-6 sm:h-6' : 'top-3 right-3 w-8 h-8'}`}>
+          <Check className={compact ? 'w-2.5 h-2.5 sm:w-3 sm:h-3 text-white' : 'w-4 h-4 text-white'} strokeWidth={3} />
         </div>
       )}
 
@@ -144,22 +144,22 @@ export const StyleCard = memo(function StyleCard({
           <span
             className={`
               absolute rounded-full tracking-wider shadow-lg font-bold
-              ${compact ? 'bottom-2 left-2 px-2 py-1 text-[8px]' : 'bottom-3 left-3 px-3 py-1.5 text-[10px]'}
+              ${compact ? 'bottom-1 left-1 px-1.5 py-0.5 text-[7px] sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-[8px]' : 'bottom-3 left-3 px-3 py-1.5 text-[10px]'}
               ${style.tier === 'studio'
                 ? 'bg-gradient-to-r from-amber-500/90 to-yellow-500/90 text-white'
                 : 'bg-gradient-to-r from-primary/90 to-primary/80 text-white'
               }
             `}
           >
-            {style.tier === 'studio' ? 'STUDIO' : 'STARTER'}
+            {style.tier === 'studio' ? 'プレミアム' : '人気'}
           </span>
         )}
       </div>
 
       {/* 情報エリア */}
-      <div className={compact ? 'p-2.5' : 'p-4'}>
+      <div className={compact ? 'p-1.5 sm:p-2.5' : 'p-4'}>
         {/* スタイル名 */}
-        <h3 className={`font-serif font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300 flex items-center gap-1 ${compact ? 'text-sm mb-1' : 'text-base mb-1.5'}`}>
+        <h3 className={`font-serif font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-300 flex items-center gap-1 ${compact ? 'text-xs sm:text-sm mb-0.5 sm:mb-1' : 'text-base mb-1.5'}`}>
           {style.name}
           {style.popularity && style.popularity >= 80 && (
             <Flame className="w-3 h-3 text-secondary flex-shrink-0" />

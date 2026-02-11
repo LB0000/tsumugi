@@ -122,7 +122,7 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
               }
             `}
           >
-            {style.tier === 'studio' ? 'STUDIO' : 'STARTER'}
+            {style.tier === 'studio' ? 'プレミアム' : '人気'}
           </span>
         )}
       </div>

@@ -27,21 +27,21 @@ export const StyleCategoryCarousel = memo(function StyleCategoryCarousel({
   return (
     <section id={`style-category-${category.id}`}>
       {/* カテゴリヘッダー */}
-      <div className="flex items-center gap-3 mb-4 px-1">
-        <Icon className="w-5 h-5 text-primary" />
+      <div className="flex items-center gap-2 sm:gap-3 mb-2.5 sm:mb-4 px-1">
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
         <div>
-          <h3 className="font-serif font-semibold text-foreground text-lg">
+          <h3 className="font-serif font-semibold text-foreground text-base sm:text-lg">
             {category.name}
           </h3>
-          <p className="text-xs text-muted mt-0.5">{category.description}</p>
+          <p className="text-[10px] sm:text-xs text-muted mt-0.5 hidden sm:block">{category.description}</p>
         </div>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/10 text-muted ml-auto">
+        <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-muted/10 text-muted ml-auto">
           {styles.length}
         </span>
       </div>
 
       {/* グリッドで均等配置 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
         {styles.map((style) => (
           <StyleCard
             key={style.id}

@@ -135,62 +135,65 @@ function GalleryCard({ item, index, onOpenLightbox }: {
 
   return (
     <div
-      className="relative aspect-[4/5] rounded-2xl overflow-hidden group cursor-pointer border-2 border-border/50 hover:border-secondary/40 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/10 hover:-translate-y-1"
+      className="rounded-2xl overflow-hidden group cursor-pointer border-2 border-border/50 hover:border-secondary/40 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/10 hover:-translate-y-1"
       style={{ animation: `galleryFadeIn 0.4s ease-out ${index * 60}ms both` }}
       onMouseEnter={() => setShowAfter(true)}
       onMouseLeave={() => setShowAfter(false)}
-      onClick={() => onOpenLightbox(item)}
     >
-      {/* Before Image */}
-      <img
-        loading="lazy"
-        src={item.beforeImage}
-        alt={`${item.label} - 元の写真`}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${showAfter ? 'opacity-0' : 'opacity-100'}`}
-      />
+      {/* 画像エリア */}
+      <div
+        className="relative aspect-square sm:aspect-[4/5] overflow-hidden"
+        onClick={() => onOpenLightbox(item)}
+      >
+        {/* Before Image */}
+        <img
+          loading="lazy"
+          src={item.beforeImage}
+          alt={`${item.label} - 元の写真`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${showAfter ? 'opacity-0' : 'opacity-100'}`}
+        />
 
-      {/* After Image */}
-      <img
-        loading="lazy"
-        src={item.afterImage}
-        alt={`${item.label} - ${item.styleName}`}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${showAfter ? 'opacity-100' : 'opacity-0'}`}
-      />
+        {/* After Image */}
+        <img
+          loading="lazy"
+          src={item.afterImage}
+          alt={`${item.label} - ${item.styleName}`}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${showAfter ? 'opacity-100' : 'opacity-0'}`}
+        />
 
-      {/* Before/After インジケーター */}
-      <div className="absolute top-3 left-3 z-10">
-        <span className={`
-          inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide shadow-lg backdrop-blur-sm transition-all duration-300
-          ${showAfter
-            ? 'bg-secondary/90 text-white'
-            : 'bg-white/90 text-foreground'
-          }
-        `}>
-          {showAfter ? 'After' : 'Before'}
-        </span>
-      </div>
-
-      {/* 下部グラデーション */}
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
-
-      {/* 情報 + CTA オーバーレイ */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/80 text-white text-[10px] font-semibold mb-1.5 backdrop-blur-sm">
-              <Sparkles className="w-2.5 h-2.5" />
-              {item.styleName}
-            </span>
-            <p className="text-white text-sm font-medium leading-tight">
-              {item.label}
-            </p>
-          </div>
+        {/* Before/After インジケーター */}
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
+          <span className={`
+            inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide shadow-lg backdrop-blur-sm transition-all duration-300
+            ${showAfter
+              ? 'bg-secondary/90 text-white'
+              : 'bg-white/90 text-foreground'
+            }
+          `}>
+            {showAfter ? 'After' : 'Before'}
+          </span>
         </div>
 
-        {/* CTA — モバイルは常時表示、デスクトップはホバー時 */}
+        {/* 下部グラデーション（控えめに） */}
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+
+        {/* スタイル名バッジ（オーバーレイ内に残す） */}
+        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/80 text-white text-[10px] font-semibold backdrop-blur-sm">
+            <Sparkles className="w-2.5 h-2.5" />
+            {item.styleName}
+          </span>
+        </div>
+      </div>
+
+      {/* 情報 + CTA エリア（画像の外） */}
+      <div className="p-2.5 sm:p-3 bg-card">
+        <p className="text-foreground text-xs sm:text-sm font-medium leading-tight mb-2 line-clamp-1">
+          {item.label}
+        </p>
         <button
           onClick={handleStyleSelect}
-          className="mt-2.5 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/95 text-foreground text-xs font-semibold opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 transition-all duration-300 hover:bg-white cursor-pointer shadow-lg"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-lg bg-primary/10 text-primary text-[11px] sm:text-xs font-semibold hover:bg-primary/20 transition-all duration-300 cursor-pointer"
         >
           このスタイルで作る
           <ArrowRight className="w-3 h-3" />

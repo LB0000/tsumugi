@@ -12,9 +12,9 @@ interface StyleSearchHeaderProps {
 
 const tierOptions: { key: StyleFilterState['selectedTier']; label: string }[] = [
   { key: 'all', label: 'すべて' },
-  { key: 'free', label: '無料' },
-  { key: 'starter', label: 'スターター' },
-  { key: 'studio', label: 'スタジオ' }
+  { key: 'free', label: 'お試し' },
+  { key: 'starter', label: 'スタンダード' },
+  { key: 'studio', label: 'プレミアム' }
 ];
 
 export const StyleSearchHeader = memo(function StyleSearchHeader({

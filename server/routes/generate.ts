@@ -68,31 +68,82 @@ interface GenerateImageResponse {
   creditsRemaining: number;
 }
 
-// Style prompts for each art style
+// Style prompts for each art style (improved with technique-specific details and negative instructions)
 const stylePrompts: Record<string, string> = {
-  'intelligent': 'Transform this photo into a stunning classical oil painting portrait. Apply visible brushstrokes, rich oil paint textures, and dramatic Renaissance lighting. The subject must remain recognizable but rendered as a masterpiece painting.',
-  'baroque': 'Transform this photo into a dramatic Baroque masterpiece like Rubens or Velázquez. Use deep crimson red velvet drapes as background, golden ornate decorations, intense chiaroscuro lighting with dark shadows and bright highlights. Render with thick oil paint brushstrokes and rich saturated colors.',
-  'renaissance': 'Transform this photo into a Florentine Renaissance painting like Leonardo da Vinci or Raphael. Apply sfumato technique, warm earthy browns and ochres, soft gradients, classical composition with architectural elements in background. Use visible oil paint texture.',
-  'impressionist': 'Transform this photo into a French Impressionist painting like Claude Monet or Pierre-Auguste Renoir. Apply loose, visible brushstrokes, soft dappled light, vibrant pastel colors, and an outdoor atmospheric quality. Capture the fleeting impression of light and color.',
-  'watercolor': 'Transform this photo into a delicate Japanese watercolor painting. Apply soft wet-on-wet brushstrokes, subtle color bleeding, transparent washes, and ethereal atmosphere. Use muted pastels with occasional vibrant accents.',
-  'ukiyo-e': 'Transform this photo into traditional Japanese Ukiyo-e woodblock print style like Hokusai or Hiroshige. Apply bold black outlines, flat areas of color, decorative patterns, dramatic compositions, and distinctive Eastern artistic perspective.',
-  'sumi-e': 'Transform this photo into a traditional East Asian ink wash painting (sumi-e). Use only black ink with varying shades of gray, bold expressive brush strokes, minimalist composition, and abundant white space. Capture the essence of the subject with elegant simplicity.',
-  'anime': 'Transform this photo into vibrant Japanese anime illustration style. Apply bold cel-shading, clean lines, large expressive eyes, vibrant saturated colors, and dynamic composition. Use flat color areas with sharp highlights.',
-  'ghibli': 'Transform this photo into a Studio Ghibli-inspired hand-drawn animation style. Use warm, nostalgic colors, soft watercolor-like backgrounds, gentle lighting, rounded friendly features, and a whimsical fairy-tale atmosphere. The style should feel cozy and magical.',
-  'pop-art': 'Transform this photo into bold Pop Art style like Andy Warhol. Use high contrast, bright saturated colors (hot pink, electric blue, vivid yellow), halftone dot patterns, thick black outlines, and flat graphic areas. Make it look like a screen-printed poster.',
-  'hand-drawn': 'Transform this photo into a hand-drawn pencil or charcoal sketch. Use varying line weights, cross-hatching for shading, visible pencil strokes, and a natural hand-drawn quality. Keep it monochromatic or with minimal color, emphasizing texture and artistic imperfection.',
-  'stained-glass': 'Transform this photo into a stained glass art style resembling medieval church windows. Use bold black lead lines separating areas of vibrant translucent color, geometric patterns, rich jewel tones (deep red, blue, gold, green), and a luminous quality as if light is shining through colored glass.',
-  'art-nouveau': 'Transform this photo into Art Nouveau style like Alphonse Mucha. Use elegant flowing organic curves, ornamental borders with floral and botanical motifs, muted gold and earth tones, decorative haloes, and sinuous lines. The composition should feel like a vintage poster.',
-  'pixel-art': 'Transform this photo into retro pixel art style with visible square pixels, limited color palette like classic 8-bit and 16-bit video games. Use distinct pixel blocks, clean edges, and a nostalgic retro gaming aesthetic while maintaining the subject recognizable.',
-  '3d-illustration': 'Transform this photo into a modern 3D rendered illustration style like Pixar or Disney animation. Use smooth, rounded shapes, subsurface scattering skin, volumetric lighting, vibrant colors, and a warm, friendly aesthetic. The result should look like a high-quality 3D character render.',
-  'vector': 'Transform this photo into clean flat vector illustration style. Use bold solid colors, clean geometric shapes, minimal gradients, sharp edges, and simplified features. The style should be modern, professional, and graphic-design inspired.'
+  // 西洋絵画
+  'baroque': 'Transform this photo into a dramatic 17th-century Baroque masterpiece in the style of Peter Paul Rubens or Diego Velázquez. Apply multiple glazing layers of rich oil paint with visible impasto brushwork in highlights. Use deep crimson red velvet drapes and golden ornate gilded frames as background elements. Create intense chiaroscuro lighting — deep dramatic shadows contrasting with warm golden highlights illuminating the face. Render skin with luminous warmth using layered translucent oils. AVOID: flat or digital-looking colors; the paint texture must feel thick and physical.',
+  'renaissance': 'Transform this photo into a Florentine High Renaissance painting in the tradition of Leonardo da Vinci\'s sfumato or Raphael\'s classical harmony. Apply the sfumato technique: soft, smoky transitions between tones with no harsh edges, especially around eyes and mouth. Use warm earthy palette — raw sienna, burnt umber, yellow ochre — with a warm amber color temperature reminiscent of Uffizi Gallery masterpieces. Place subtle classical architecture (columns, arches) in the background with atmospheric perspective. AVOID: bright saturated colors; maintain the muted, aged warmth of genuine Renaissance oils.',
+  'impressionist': 'Transform this photo into a French Impressionist painting capturing the essence of Claude Monet\'s light or Pierre-Auguste Renoir\'s warmth. Apply broken brushstrokes (touches of pure color placed side by side, not blended — the technique of divisionism). Create an en plein air atmosphere with dappled sunlight filtering through foliage. Use a luminous pastel palette: soft lavender, pale gold, rose pink, sky blue. Suggest texture through palette knife strokes in thicker areas. The light should feel fleeting and alive. AVOID: dark shadows or sharp outlines; everything should dissolve into soft color.',
+  'stained-glass': 'Transform this photo into a medieval Gothic stained glass window artwork. Use bold black lead came lines (2-3mm thick appearance) to separate distinct areas of vibrant translucent color. Apply rich jewel tones: deep ruby red, sapphire blue, emerald green, amber gold. Each color section should appear to glow as if backlit by sunlight streaming through colored glass. Add subtle geometric and floral patterns within the glass sections. Include decorative borders reminiscent of cathedral rosette windows. AVOID: photorealistic shading; keep the flat, luminous quality of real stained glass.',
+  'art-nouveau': 'Transform this photo into an Art Nouveau poster in the style of Alphonse Mucha\'s lithographic masterpieces. Frame the subject within a circular halo or decorative arch. Surround with elegant organic curves and flowing botanical motifs: lilies, irises, wisteria, and stylized leaves. Use muted gold, warm earth tones, and soft pastels with flat lithographic color areas. Apply sinuous, whiplash-curve outlines characteristic of the movement. The composition should feel like a vintage Parisian poster with decorative ornamental borders. AVOID: photorealistic depth; maintain the flat, decorative poster quality.',
+
+  // 和風・東洋
+  'watercolor': 'Transform this photo into a delicate Japanese watercolor painting (suisaiga). Apply wet-on-wet technique with soft bleeding edges where colors gently diffuse into each other. Use transparent washes that reveal the texture of Japanese washi paper beneath. Embrace the beauty of "ma" (negative space) — leave areas of white to create breathing room. Layer colors from light to dark with subtle gradations. Use muted pastels — soft indigo, pale peach, sage green — with occasional vibrant accents. AVOID: harsh edges, opaque fills, or heavy saturation; the feeling should be ethereal and airy.',
+  'ukiyo-e': 'Transform this photo into a traditional Japanese Ukiyo-e woodblock print (mokuhanga) in the style of Katsushika Hokusai or Utagawa Hiroshige. Apply bold sumi ink outlines with confident, varied line weight. Use flat areas of color applied in the layered printing technique — each color a distinct, separate impression (like successive woodblock passes). Include subtle baren printing texture (faint wood grain patterns). Use the classic ukiyo-e palette: Prussian blue (imported ai), vermillion red, ochre yellow, and soft gray-green. AVOID: smooth gradients or photorealistic shading; colors should be flat with crisp boundaries.',
+  'sumi-e': 'Transform this photo into a traditional East Asian ink wash painting (sumi-e / suibokuga). Use ONLY black sumi ink in three tonal values: rich dark (nō), medium gray (chū), and pale dry-brush (katsu). Apply bold, expressive single-stroke brushwork — some strokes fast and energetic, others slow and deliberate. Leave abundant white space (yohaku) that is as important as the painted areas. Capture the essence (ki) of the subject with elegant minimalist simplicity. Add a small red seal-like accent (rakkan) in one corner for authenticity. STRICTLY AVOID: any color whatsoever. This must be purely monochromatic black ink on white.',
+
+  // ポップ・イラスト
+  'anime': 'Transform this photo into a vibrant Japanese anime illustration in modern cel-shading style. Apply clean, bold outlines with consistent line weight. Render with flat base colors and sharp two-tone cel-shading (light and shadow with crisp edges). Create large, expressive eyes with detailed iris highlights (multiple white reflection points). Add glossy hair with flowing strands and bright specular highlights. Use vibrant saturated colors: vivid pinks, electric blues, warm oranges. The background should have a soft bokeh or speed-line effect. AVOID: painterly textures or soft blending; keep the clean, digital anime aesthetic.',
+  'ghibli': 'Transform this photo into a Studio Ghibli-inspired hand-drawn animation style reminiscent of Hayao Miyazaki\'s films. Use warm, nostalgic earth tones with Ghibli\'s signature palette: lush greens, warm sky blues, golden sunset oranges. Apply soft watercolor-like background textures with slightly imperfect, hand-drawn outlines that wobble naturally. Create gentle, diffused lighting that feels like a warm afternoon. Give the subject rounded, friendly features with a sense of warmth and wonder. The atmosphere should feel cozy, magical, and deeply nostalgic — like a scene from Totoro or Kiki\'s Delivery Service. AVOID: harsh shadows or overly clean digital lines.',
+  'pop-art': 'Transform this photo into bold Pop Art in the style of Andy Warhol\'s screen prints or Roy Lichtenstein\'s comic panels. Apply high contrast with dramatically flattened tones. Use loud, saturated colors: hot pink (#FF1493), electric cyan (#00CED1), vivid yellow (#FFD700), and bright orange (#FF4500). Add visible Ben-Day dot patterns (halftone dots) in mid-tone areas as a key visual element. Apply thick black outlines and flat graphic color areas. The result should look like a screen-printed poster or newspaper comic panel with slight CMYK registration offset. AVOID: muted, pastel, or earthy colors; everything must be loud and vibrant.',
+  'hand-drawn': 'Transform this photo into a hand-drawn pencil and charcoal sketch on textured cream paper. Use soft graphite pencils (2B-6B range) with varying pressure — light sketchy construction lines visible beneath darker finished strokes. Apply cross-hatching and stippling for shading, with visible directional pencil strokes following the form. Include subtle artistic imperfections: slightly uneven lines, faint eraser marks, and smudged charcoal areas. Keep the palette monochromatic (graphite grays) or with minimal sepia/sanguine tinting. The paper texture should be visible throughout. AVOID: digital perfection, clean vector lines, or photorealistic smoothness.',
+
+  // モダン・デジタル
+  'pixel-art': 'Transform this photo into retro pixel art in the style of classic 16-bit era video games (SNES/Mega Drive). Render at an equivalent resolution of approximately 128x160 pixels, then scale up — every element must be constructed from visible, distinct square pixels. Use a limited palette of no more than 32 colors. Apply ordered dithering patterns to create gradients and mid-tones between pixel colors. Keep crisp pixel edges with no anti-aliasing or sub-pixel smoothing. The result should evoke nostalgic 90s gaming charm while keeping the subject clearly recognizable. AVOID: smooth gradients, anti-aliased edges, or high-resolution detail.',
+  '3d-illustration': 'Transform this photo into a modern 3D rendered character illustration in the style of Pixar or Disney animation. Apply smooth, rounded, slightly exaggerated proportions with a warm, appealing character design. Render skin with subsurface scattering (soft translucent glow). Use three-point lighting: warm key light, cool blue fill, and a bright rim/back light to separate the character from the background. Apply vibrant, saturated colors with gentle volumetric ambient occlusion in crevices. The aesthetic should be polished, friendly, and toylike — as if the subject is a beloved animated character. AVOID: uncanny valley realism; keep the stylized, approachable Pixar aesthetic.',
+  'vector': 'Transform this photo into a clean, modern flat vector illustration. Use bold solid color fills with minimal (or no) gradients — limit the palette to 6-8 harmonious colors maximum. Simplify features into clean geometric shapes with smooth Bézier-curve edges. Remove all texture and photographic detail, replacing them with flat, graphic shapes. Apply a contemporary, professional graphic-design aesthetic with clear visual hierarchy. AVOID: complex textures, photorealistic detail, or more than 2-3 tonal values per color area.'
 };
 
-// Category-specific prompt additions
+// Dynamic prompts for pet-specific styles (adapts based on subject category)
+const petStylePrompts: Record<string, (isPet: boolean) => string> = {
+  'pet-royalty': (isPet) => isPet
+    ? 'Transform this pet photo into a majestic royal portrait painting. Dress the pet in regal attire: a golden royal crown, velvet ermine-trimmed cape, and ornate golden jewelry befitting royalty. Seat them on an ornate throne or pose against a grand palace backdrop with rich crimson velvet drapes and gilded Baroque columns. Use classical oil painting technique with visible impasto brushstrokes, dramatic Rembrandt-style side lighting, and a rich, saturated color palette of deep burgundy, gold, and royal purple. The pet should exude dignity and noble grandeur. AVOID: cartoonish treatment; this should look like a genuine 17th-century royal court painting.'
+    : 'Transform this portrait into a majestic royal court painting. Dress the subject in regal Renaissance attire: a golden crown, velvet ermine-trimmed cape, and ornate royal jewelry. Place them before a grand palace backdrop with rich crimson drapes and gilded columns. Use classical oil painting technique with dramatic chiaroscuro lighting and rich saturated colors. The subject should look dignified and noble, like European royalty. AVOID: cartoonish treatment; this should feel like a genuine historical royal portrait.',
+  'pet-samurai': (isPet) => isPet
+    ? 'Transform this pet photo into a dramatic Japanese samurai warrior portrait. Dress the pet in full samurai armor (yoroi) with an elaborate kabuto helmet featuring a bold maedate crest, a fearsome menpo face guard, and layered shoulder guards (sode). Place them before a backdrop of a Japanese castle (tenshu) at sunset, with falling cherry blossom petals and fluttering war banners (nobori). Blend traditional Japanese painting techniques (bold outlines, gold leaf accents) with dramatic cinematic lighting. The pet should look fierce, honorable, and legendary. AVOID: cute or comedic treatment; this is a serious warrior portrait.'
+    : 'Transform this portrait into a dramatic Japanese samurai warrior painting. Dress the subject in full samurai armor (yoroi) with an elaborate kabuto helmet, fearsome menpo face guard, and bold maedate crest. Place them before a Japanese castle at sunset with cherry blossoms and war banners. Blend traditional Japanese painting with dramatic cinematic lighting. The subject should look fierce and honorable. AVOID: cute or comedic treatment; this is a serious warrior portrait.',
+  'pet-fairy': (isPet) => isPet
+    ? 'Transform this pet photo into an enchanting fairy tale illustration. Give the pet delicate, translucent iridescent fairy wings that shimmer with rainbow light. Crown them with a dainty flower wreath of tiny roses and baby\'s breath. Surround them with magical sparkles, floating petals, luminous butterflies, and soft bokeh light orbs. Place them in a dreamy enchanted meadow or forest glade bathed in golden hour light with soft pastel colors: lavender, blush pink, mint green, and warm gold. Use a soft, whimsical watercolor illustration style. The pet should look magical and utterly adorable. AVOID: dark or realistic tones; keep everything light, dreamy, and magical.'
+    : 'Transform this portrait into an enchanting fairy tale illustration. Give the subject delicate translucent fairy wings shimmering with iridescent light. Crown them with a flower wreath of tiny roses and baby\'s breath. Surround with magical sparkles, floating petals, and luminous butterflies in a dreamy meadow bathed in golden hour light. Use soft pastel colors and whimsical watercolor style. AVOID: dark or realistic tones; keep everything light, dreamy, and magical.'
+};
+
+// Intelligent mode: category-aware art direction
+function getIntelligentPrompt(category: string): string {
+  const categoryHints: Record<string, string> = {
+    'pets': 'The subject is a pet animal. Consider the animal\'s breed, fur texture, and personality to choose the most flattering artistic style. Bold, characterful styles often work well for confident pets, while soft styles suit gentle, calm animals.',
+    'family': 'The subject is a family portrait or couple. Choose a style that enhances the warmth and emotional connection between the subjects. Classical and warm-toned styles tend to create timeless, elegant family portraits.',
+    'kids': 'The subject is a child. Choose a style that captures their youthful energy and innocence. Bright, cheerful, or whimsical styles tend to work beautifully for children\'s portraits.'
+  };
+
+  return `You are an expert art director specializing in portrait art. ${categoryHints[category] || ''}
+
+Carefully analyze this image — its lighting, mood, color palette, composition, and the subject's character. Based on your analysis, select and apply the SINGLE most suitable artistic style from these options:
+- Classical oil painting (rich brushstrokes, dramatic lighting)
+- Impressionist painting (soft light, broken brushstrokes, pastel colors)
+- Watercolor illustration (delicate washes, soft bleeding edges)
+- Anime/illustration (clean lines, vibrant cel-shading)
+- 3D character illustration (rounded, Pixar-like, warm lighting)
+
+Apply your chosen style with FULL artistic commitment — the result must look like genuine artwork in that style, not a photo filter. Do not mix styles; commit fully to one.`;
+}
+
+// Get the appropriate style prompt based on styleId and category
+function getStylePrompt(styleId: string, category: string): string {
+  if (styleId === 'intelligent') {
+    return getIntelligentPrompt(category);
+  }
+  if (styleId.startsWith('pet-') && petStylePrompts[styleId]) {
+    const isPet = category === 'pets';
+    return petStylePrompts[styleId](isPet);
+  }
+  return stylePrompts[styleId] || getIntelligentPrompt(category);
+}
+
+// Category-specific prompt additions (enhanced with preservation details)
 const categoryPrompts: Record<string, string> = {
-  'pets': 'The subject is a beloved pet, capture their personality and charm with dignity and elegance',
-  'family': 'The subject is a family member, capture their warmth and character with timeless elegance',
-  'kids': 'The subject is a child, capture their innocence and joy with gentle, warm artistry'
+  'pets': 'SUBJECT: The subject is a beloved pet animal. Preserve the animal\'s unique markings, fur color and pattern, breed characteristics, and individual personality. Treat the pet with the same dignity and artistry as a human portrait subject.',
+  'family': 'SUBJECT: The subject is a family portrait or couple. Preserve each person\'s facial features, skin tone, hair color and style, and the emotional connection between family members. Render with warmth and timeless elegance.',
+  'kids': 'SUBJECT: The subject is a child. Preserve their innocent expression, youthful features, and natural energy. Use gentle, warm treatment appropriate for a child\'s portrait. Do not make the child look older or significantly different.'
 };
 
 generateRouter.post('/', async (req: Request<object, object, GenerateImageRequest>, res: Response) => {
@@ -116,8 +167,8 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
       return;
     }
 
-    // Build the prompt
-    const stylePrompt = stylePrompts[styleId] || stylePrompts['intelligent'];
+    // Build the prompt using dynamic style selection
+    const stylePrompt = getStylePrompt(styleId, category);
     const categoryPrompt = categoryPrompts[category] || '';
     const customPrompt = options?.customPrompt || '';
 
@@ -127,11 +178,13 @@ ${categoryPrompt}
 
 ${customPrompt}
 
-REQUIREMENTS:
-- Apply the artistic style STRONGLY - the result should look like a real painting, not a photo filter
-- Keep the same subject and pose from the input image
-- The subject should be recognizable but fully rendered in the new art style
-- Output a high-quality artistic portrait with visible artistic techniques (brushstrokes, textures, etc.)`;
+CRITICAL REQUIREMENTS:
+- PORTRAIT COMPOSITION: This is a portrait art service. Keep the subject centered and prominently featured. Maintain the original face/head position and expression.
+- ARTISTIC TRANSFORMATION: Apply the style STRONGLY. The result must look like genuine artwork, NOT a photo filter or overlay.
+- SUBJECT FIDELITY: The subject must remain clearly recognizable — same features, same pose, same expression.
+- ARTISTIC QUALITY: Render with visible artistic techniques appropriate to the style (brushstrokes, textures, line work, etc.)
+- BACKGROUND: Create an appropriate artistic background that complements the chosen style. Do NOT keep the original photo background.
+- AVOID: Do not produce photorealistic results. Do not add text or watermarks. Do not crop or change the framing significantly.`;
 
     // Extract base64 image data
     const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
@@ -300,6 +353,9 @@ function getStyleColors(styleId: string): Record<string, string> {
     'pixel-art': { bg1: '#1a1a2e', bg2: '#16213e', frame1: '#4ECDC4', frame2: '#FF6B6B', accent: '#45B7D1', text: '#96CEB4' },
     '3d-illustration': { bg1: '#667EEA', bg2: '#764BA2', frame1: '#F093FB', frame2: '#4FACFE', accent: '#667EEA', text: '#FFFFFF' },
     'vector': { bg1: '#6C5CE7', bg2: '#4834d4', frame1: '#00CECE', frame2: '#FD79A8', accent: '#FDCB6E', text: '#FFFFFF' },
+    'pet-royalty': { bg1: '#4B0082', bg2: '#2d004d', frame1: '#DAA520', frame2: '#722F37', accent: '#DAA520', text: '#FFFACD' },
+    'pet-samurai': { bg1: '#2C2C2C', bg2: '#1a1a1a', frame1: '#C9B037', frame2: '#8B0000', accent: '#C9B037', text: '#E8D5B7' },
+    'pet-fairy': { bg1: '#E6E6FA', bg2: '#D8BFD8', frame1: '#FFB6C1', frame2: '#98FB98', accent: '#FFD700', text: '#4B0082' },
     'default': { bg1: '#262626', bg2: '#1a1a1a', frame1: '#1ABC9C', frame2: '#16a085', accent: '#1ABC9C', text: '#FFFFFF' }
   };
 

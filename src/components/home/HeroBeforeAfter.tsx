@@ -49,7 +49,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
       customerName: '佐藤様の猫',
       size: 'medium',
       position: { x: '48%', y: '42%' },
-      mobilePosition: { x: '30%', y: '45%' },
+      mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
     }
@@ -59,7 +59,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
       id: 'family1',
       beforeImage: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&h=600&fit=crop&q=80',
       afterImage: 'https://images.unsplash.com/photo-1606567595334-d39972c85dfd?w=500&h=600&fit=crop&q=80',
-      style: 'ルネサンス',
+      style: 'ダヴィンチ風クラシック',
       customerName: '山田家の肖像',
       size: 'large',
       position: { x: '8%', y: '8%' },
@@ -71,11 +71,11 @@ const categorySamples: Record<string, TransformationSample[]> = {
       id: 'family2',
       beforeImage: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=500&h=600&fit=crop&q=80',
       afterImage: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=500&h=600&fit=crop&q=80',
-      style: 'バロック',
+      style: '王室の豪華肖像画',
       customerName: '鈴木家の思い出',
       size: 'medium',
       position: { x: '48%', y: '42%' },
-      mobilePosition: { x: '30%', y: '45%' },
+      mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
     }
@@ -101,7 +101,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
       customerName: 'けんたくんの冒険',
       size: 'medium',
       position: { x: '48%', y: '42%' },
-      mobilePosition: { x: '30%', y: '45%' },
+      mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
     }
@@ -110,8 +110,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
 
 // 個別のカードコンポーネント
 function ParallaxCard({ sample, index }: { sample: TransformationSample; index: number }) {
-  const [revealProgress, setRevealProgress] = useState(0);
-  const [phase, setPhase] = useState<'waiting' | 'revealing' | 'showing' | 'hiding'>('waiting');
+  const [showAfter, setShowAfter] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -139,50 +138,20 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
     return () => clearTimeout(timer);
   }, [index]);
 
-  // 遅延開始のためのエフェクト
+  // Before/After 切り替え（CSS transition で描画）
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPhase('revealing');
+    const startTimer = setTimeout(() => {
+      setShowAfter(true);
+      const interval = setInterval(() => {
+        setShowAfter(prev => !prev);
+      }, 3500);
+      return () => clearInterval(interval);
     }, sample.revealDelay + 800);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(startTimer);
   }, [sample.revealDelay]);
 
-  // アニメーションエフェクト（revealing/hiding フェーズ）
-  useEffect(() => {
-    if (phase !== 'revealing' && phase !== 'hiding') return;
-
-    const interval = setInterval(() => {
-      if (phase === 'revealing') {
-        setRevealProgress((prev) => {
-          if (prev >= 100) {
-            setPhase('showing');
-            return 100;
-          }
-          return prev + 1.5;
-        });
-      } else if (phase === 'hiding') {
-        setRevealProgress((prev) => {
-          if (prev <= 15) {
-            setPhase('revealing');
-            return 15;
-          }
-          return prev - 2;
-        });
-      }
-    }, 25);
-
-    return () => clearInterval(interval);
-  }, [phase]);
-
-  // showing フェーズ: 2秒待機してから hiding へ
-  useEffect(() => {
-    if (phase !== 'showing') return;
-    const timer = setTimeout(() => setPhase('hiding'), 2000);
-    return () => clearTimeout(timer);
-  }, [phase]);
-
   const sizeClasses = sample.size === 'large'
-    ? 'w-44 h-44 sm:w-72 sm:h-72 lg:w-80 lg:h-80'
+    ? 'w-40 h-40 sm:w-72 sm:h-72 lg:w-80 lg:h-80'
     : 'w-40 h-40 sm:w-64 sm:h-64 lg:w-72 lg:h-72';
 
   const zIndex = sample.size === 'large' ? 'z-20' : 'z-10';
@@ -198,16 +167,8 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
         transform: `rotate(${sample.rotation}deg)`,
       }}
     >
-      {/* 多重グロー効果 */}
-      <div className="absolute -inset-8 bg-gradient-to-br from-secondary/40 via-transparent to-primary/30 rounded-[2rem] blur-3xl opacity-70 animate-pulse-slow" />
-      <div className="absolute -inset-4 bg-gradient-radial from-secondary/20 to-transparent rounded-3xl blur-2xl" />
-
-      {/* 装飾フレーム - ゴールドアクセント */}
-      <div className="absolute -inset-2 border-2 border-secondary/30 rounded-2xl" />
-      <div className="absolute -inset-4 border border-secondary/10 rounded-3xl" />
-
       {/* メイン画像コンテナ */}
-      <div className="relative w-full h-full rounded-xl overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/10">
+      <div className="relative w-full h-full rounded-xl overflow-hidden">
         {/* Before Image */}
         {hasBeforeError ? (
           <div className="absolute inset-0">
@@ -222,11 +183,11 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
           />
         )}
 
-        {/* After Image (円形リビール) */}
+        {/* After Image (水平ワイプ) */}
         <div
-          className="absolute inset-0 overflow-hidden transition-all duration-75 ease-out"
+          className="absolute inset-0 transition-[clip-path] duration-[1.2s] ease-in-out"
           style={{
-            clipPath: `circle(${revealProgress * 1.5}% at 50% 50%)`
+            clipPath: showAfter ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)'
           }}
         >
           {hasAfterError ? (
@@ -241,22 +202,7 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
               onError={() => handleImageError('after')}
             />
           )}
-
-          {/* ゴールドシマー */}
-          <div
-            className="absolute inset-0 bg-gradient-to-tr from-secondary/50 via-transparent to-secondary/40 mix-blend-overlay transition-opacity duration-300"
-            style={{ opacity: revealProgress < 100 ? 0.8 : 0 }}
-          />
         </div>
-
-        {/* 内側グロー */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-white/5 pointer-events-none" />
-
-        {/* コーナーアクセント - 金箔風 */}
-        <div className="absolute top-2 left-2 w-8 h-8 border-l-2 border-t-2 border-secondary/60 rounded-tl" />
-        <div className="absolute top-2 right-2 w-8 h-8 border-r-2 border-t-2 border-secondary/60 rounded-tr" />
-        <div className="absolute bottom-2 left-2 w-8 h-8 border-l-2 border-b-2 border-secondary/60 rounded-bl" />
-        <div className="absolute bottom-2 right-2 w-8 h-8 border-r-2 border-b-2 border-secondary/60 rounded-br" />
 
         {/* スタイルラベル */}
         <div className={`
@@ -264,7 +210,7 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
           bg-gradient-to-r from-secondary via-secondary to-secondary/90
           text-white text-xs font-semibold rounded-full shadow-xl whitespace-nowrap
           transition-all duration-500 backdrop-blur-sm
-          ${revealProgress > 60 ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}
+          ${showAfter ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}
         `}>
           <span className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" />
@@ -353,20 +299,10 @@ export function HeroBeforeAfter() {
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-4 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-16 items-center">
 
-          {/* パララックス画像エリア — モバイルではコピーの後に表示 */}
+          {/* Part A: ラベル + ヘッドライン — モバイルで最初に表示 */}
           <div
-            key={`visual-${displayCategory}`}
-            className="relative h-[240px] sm:h-[400px] lg:h-[540px] order-2 lg:order-1 animate-fadeIn"
-          >
-            {samples.map((sample, index) => (
-              <ParallaxCard key={`${displayCategory}-${sample.id}`} sample={sample} index={index} />
-            ))}
-          </div>
-
-          {/* コピー+CTA — モバイルではファーストビュー内に表示 */}
-          <div
-            key={`copy-${displayCategory}`}
-            className="text-center lg:text-left space-y-3 sm:space-y-5 lg:space-y-8 order-1 lg:order-2 animate-fadeIn"
+            key={`headline-${displayCategory}`}
+            className="order-1 lg:col-start-2 lg:row-start-1 text-center lg:text-left space-y-3 animate-fadeIn"
           >
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
@@ -382,7 +318,23 @@ export function HeroBeforeAfter() {
                 {currentCategory?.headline.split('、')[1] || '世界に一つのアートに'}
               </span>
             </h1>
+          </div>
 
+          {/* パララックス画像エリア — モバイルではヘッドライン直後 */}
+          <div
+            key={`visual-${displayCategory}`}
+            className="relative h-[240px] sm:h-[400px] lg:h-[540px] overflow-hidden order-2 lg:col-start-1 lg:row-start-1 lg:row-end-3 animate-fadeIn"
+          >
+            {samples.map((sample, index) => (
+              <ParallaxCard key={`${displayCategory}-${sample.id}`} sample={sample} index={index} />
+            ))}
+          </div>
+
+          {/* Part B: 説明 + バッジ + CTA + 評価 — モバイルでは画像の後 */}
+          <div
+            key={`cta-${displayCategory}`}
+            className="order-3 lg:col-start-2 lg:row-start-2 text-center lg:text-left space-y-3 sm:space-y-5 lg:space-y-8 animate-fadeIn"
+          >
             <p className="text-muted text-sm sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 animate-fadeIn" style={{ animationDelay: '0.7s' }}>
               {currentCategory?.heroDescription}
             </p>

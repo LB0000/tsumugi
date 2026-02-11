@@ -16,8 +16,8 @@ export const artStyles: ArtStyle[] = [
   // 西洋絵画
   {
     id: 'baroque',
-    name: 'バロック',
-    description: '赤ベルベットと金の額縁で彩る豪華な王室肖像画',
+    name: '王室の豪華肖像画',
+    description: '赤ベルベットと金の額縁で彩る、まるで王様みたいな豪華肖像画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#8B0000', '#DAA520', '#2F1810', '#F5DEB3'],
     isIntelligent: false,
@@ -26,9 +26,22 @@ export const artStyles: ArtStyle[] = [
     tags: ['豪華', '王室', '古典', '金']
   },
   {
+    id: 'pet-royalty',
+    name: 'うちの子 王族風',
+    description: '王冠とマントをまとった、うちの子の威厳あふれるロイヤル肖像画',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#722F37', '#DAA520', '#4B0082', '#FFFACD'],
+    isIntelligent: false,
+    tier: 'starter',
+    category: 'western',
+    tags: ['ペット', '王族', 'ロイヤル', '豪華', 'うちの子'],
+    isNew: true,
+    popularity: 92
+  },
+  {
     id: 'renaissance',
-    name: 'ルネサンス',
-    description: 'ダヴィンチやラファエロのような洗練された古典肖像画',
+    name: 'ダヴィンチ風クラシック',
+    description: 'ダヴィンチが描いたような、格調高い古典名画スタイル',
     thumbnailUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#8B4513', '#D2691E', '#2F2F2F', '#F5F5DC'],
     isIntelligent: false,
@@ -38,8 +51,8 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: 'impressionist',
-    name: '印象派',
-    description: 'モネやルノワールのような柔らかな光と色彩の絵画',
+    name: '光のやわらか絵画',
+    description: 'モネやルノワールのような、光あふれるやわらかタッチの絵画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#87CEEB', '#F0E68C', '#DDA0DD', '#98FB98'],
     isIntelligent: false,
@@ -81,6 +94,19 @@ export const artStyles: ArtStyle[] = [
     category: 'japanese',
     tags: ['墨', '東洋', '伝統', 'モノクロ']
   },
+  {
+    id: 'pet-samurai',
+    name: 'うちの子 武将',
+    description: '鎧兜に身を包んだ、うちの子の勇ましい武将肖像画',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#2C2C2C', '#8B0000', '#C9B037', '#4A4A4A'],
+    isIntelligent: false,
+    tier: 'studio',
+    category: 'japanese',
+    tags: ['ペット', '武将', '鎧', '和風', 'うちの子'],
+    isNew: true,
+    popularity: 88
+  },
   // ポップ・イラスト
   {
     id: 'anime',
@@ -105,9 +131,22 @@ export const artStyles: ArtStyle[] = [
     tags: ['ジブリ', '手描き', '温かみ', 'ファンタジー']
   },
   {
+    id: 'pet-fairy',
+    name: 'うちの子 妖精',
+    description: '花と光に囲まれた、うちの子のメルヘン妖精イラスト',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1490750967868-88aa4f44baee?w=400&h=500&fit=crop&q=80',
+    colorPalette: ['#FFB6C1', '#E6E6FA', '#98FB98', '#FFD700'],
+    isIntelligent: false,
+    tier: 'starter',
+    category: 'pop',
+    tags: ['ペット', '妖精', 'ファンタジー', 'メルヘン', 'うちの子'],
+    isNew: true,
+    popularity: 90
+  },
+  {
     id: 'pop-art',
-    name: 'ポップアート',
-    description: 'ウォーホル風のカラフルでインパクトのあるアート',
+    name: 'カラフルポップ',
+    description: 'ビビッドな色でインパクト大！ウォーホル風ポップアート',
     thumbnailUrl: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#FF1493', '#FFD700', '#00CED1', '#FF4500'],
     isIntelligent: false,
@@ -131,8 +170,8 @@ export const artStyles: ArtStyle[] = [
   // 西洋絵画（追加）
   {
     id: 'stained-glass',
-    name: 'ステンドグラス',
-    description: '教会の荘厳なステンドグラスのように光を透過する装飾的な肖像画',
+    name: '教会のステンドグラス',
+    description: '教会のステンドグラスのように、光が透ける美しい装飾画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1520697830682-bbb6e85e2b0b?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#E74C3C', '#3498DB', '#F39C12', '#2ECC71'],
     isIntelligent: false,
@@ -144,8 +183,8 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: 'art-nouveau',
-    name: 'アールヌーヴォー',
-    description: 'ミュシャのような優雅な曲線と花の装飾で彩る肖像画',
+    name: '花と曲線のエレガント',
+    description: 'ミュシャのような花と優雅な曲線で彩るエレガントなポスター風',
     thumbnailUrl: 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#C9A96E', '#8B6914', '#5D4E37', '#E8D5B7'],
     isIntelligent: false,
@@ -158,8 +197,8 @@ export const artStyles: ArtStyle[] = [
   // モダン・デジタル
   {
     id: 'pixel-art',
-    name: 'ピクセルアート',
-    description: 'レトロゲーム風のドット絵で描く懐かしくも新しい肖像画',
+    name: 'レトロドット絵',
+    description: 'なつかしのゲーム風！レトロかわいいドット絵肖像画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
     isIntelligent: false,
@@ -171,8 +210,8 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: '3d-illustration',
-    name: '3Dイラスト',
-    description: 'Pixar風の温かみのある3DCGレンダリングスタイル',
+    name: 'ぷっくり3D',
+    description: 'ピクサーみたいな、ぷっくりかわいい3Dキャラクター風',
     thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#667EEA', '#764BA2', '#F093FB', '#4FACFE'],
     isIntelligent: false,
@@ -184,8 +223,8 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: 'vector',
-    name: 'ベクター風',
-    description: 'クリーンでフラットなベクターイラストレーション',
+    name: 'フラットイラスト',
+    description: 'すっきりおしゃれなフラットデザインイラスト',
     thumbnailUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#6C5CE7', '#00CECE', '#FD79A8', '#FDCB6E'],
     isIntelligent: false,

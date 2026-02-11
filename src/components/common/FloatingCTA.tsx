@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useAppStore } from '../../stores/appStore';
 
 export function FloatingCTA() {
   const [isVisible, setIsVisible] = useState(false);
@@ -8,6 +9,7 @@ export function FloatingCTA() {
   const heroRef = useRef<HTMLElement | null>(null);
   const { pathname } = useLocation();
   const isHomePage = pathname === '/';
+  const isStyleModalOpen = useAppStore((s) => s.isStyleModalOpen);
 
   useEffect(() => {
     setIsDismissed(false);
@@ -53,7 +55,7 @@ export function FloatingCTA() {
     setIsDismissed(true);
   };
 
-  if (!isHomePage) return null;
+  if (!isHomePage || isStyleModalOpen) return null;
 
   return (
     <div
