@@ -187,10 +187,10 @@ function GalleryCard({ item, index, onOpenLightbox }: {
           </div>
         </div>
 
-        {/* CTA — ホバー時に表示 */}
+        {/* CTA — モバイルは常時表示、デスクトップはホバー時 */}
         <button
           onClick={handleStyleSelect}
-          className="mt-2.5 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/95 text-foreground text-xs font-semibold opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-white cursor-pointer shadow-lg"
+          className="mt-2.5 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/95 text-foreground text-xs font-semibold opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-2 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 transition-all duration-300 hover:bg-white cursor-pointer shadow-lg"
         >
           このスタイルで作る
           <ArrowRight className="w-3 h-3" />

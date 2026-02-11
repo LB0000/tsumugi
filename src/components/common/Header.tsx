@@ -12,7 +12,7 @@ export function Header() {
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
       {/* Announcement Bar - 和モダン金色グラデーション */}
       <div className="bg-gradient-to-r from-primary via-secondary to-primary">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center gap-6 text-sm">
+        <div className="max-w-7xl mx-auto px-4 py-1.5 sm:py-2.5 flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
           <span className="font-medium text-white tracking-wide">期間限定 送料無料キャンペーン</span>
           <span className="hidden sm:block w-px h-4 bg-white/30" />
           <span className="hidden sm:inline text-white/90 tracking-wide">初回ご注文 10%OFF</span>
@@ -22,14 +22,14 @@ export function Header() {
       {/* Main Header */}
       <div className="border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20 gap-6">
+          <div className="flex items-center justify-between h-14 sm:h-20 gap-4 sm:gap-6">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
               <div className="flex flex-col">
-                <span className="font-serif text-3xl font-bold text-primary tracking-widest transition-colors group-hover:text-primary-hover">
+                <span className="font-serif text-2xl sm:text-3xl font-bold text-primary tracking-widest transition-colors group-hover:text-primary-hover">
                   紡
                 </span>
-                <span className="text-[10px] text-secondary tracking-[0.4em] uppercase">
+                <span className="text-[9px] sm:text-[10px] text-secondary tracking-[0.4em] uppercase">
                   TSUMUGI
                 </span>
               </div>
@@ -78,12 +78,12 @@ export function Header() {
       {isHomePage && (
         <nav className="bg-card border-b border-border">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-center gap-2 overflow-x-auto py-3 scrollbar-thin">
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-x-auto py-2 sm:py-3 scrollbar-thin">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
-                  className={`px-6 py-2 text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${selectedCategory === category.id
+                  className={`px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${selectedCategory === category.id
                     ? 'text-white bg-primary shadow-sm'
                     : 'text-foreground hover:text-primary hover:bg-primary/5'
                     }`}

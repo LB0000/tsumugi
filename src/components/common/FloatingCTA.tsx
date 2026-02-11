@@ -63,11 +63,11 @@ export function FloatingCTA() {
     >
       {/* モバイル: 画面下部バー */}
       <div className="md:hidden pointer-events-auto">
-        <div className="bg-background/95 backdrop-blur-md border-t border-border px-4 py-3">
+        <div className="bg-background/95 backdrop-blur-md border-t border-border px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-3">
             <button
               onClick={handleClick}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25"
             >
               <Sparkles className="w-4 h-4" />
               無料でプレビューを見る
@@ -80,9 +80,6 @@ export function FloatingCTA() {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-center text-[10px] text-muted mt-1">
-            ¥2,900〜 · 登録不要
-          </p>
         </div>
       </div>
 

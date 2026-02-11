@@ -182,8 +182,8 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
   }, [phase]);
 
   const sizeClasses = sample.size === 'large'
-    ? 'w-56 h-56 sm:w-72 sm:h-72 lg:w-80 lg:h-80'
-    : 'w-54 h-54 sm:w-64 sm:h-64 lg:w-72 lg:h-72';
+    ? 'w-44 h-44 sm:w-72 sm:h-72 lg:w-80 lg:h-80'
+    : 'w-40 h-40 sm:w-64 sm:h-64 lg:w-72 lg:h-72';
 
   const zIndex = sample.size === 'large' ? 'z-20' : 'z-10';
 
@@ -315,7 +315,7 @@ export function HeroBeforeAfter() {
   };
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden bg-gradient-to-b from-background via-card/20 to-background">
+    <section className="relative sm:min-h-[85vh] flex items-center overflow-hidden bg-gradient-to-b from-background via-card/20 to-background">
       {/* 背景装飾 - 強化版 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* メイングラデーション */}
@@ -328,35 +328,35 @@ export function HeroBeforeAfter() {
         {/* 浮遊するぼかし円 - 強化 */}
         <div className="absolute top-16 left-[5%] w-80 h-80 rounded-full bg-secondary/8 blur-[100px] animate-float" />
         <div className="absolute bottom-16 right-[5%] w-[30rem] h-[30rem] rounded-full bg-primary/6 blur-[120px] animate-float-delayed" />
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-secondary/5 blur-[80px] animate-float-slow" />
+        <div className="hidden sm:block absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-secondary/5 blur-[80px] animate-float-slow" />
 
-        {/* 装飾線 - より洗練されたデザイン */}
-        <svg className="absolute top-16 right-[8%] w-40 h-40 text-secondary/15" viewBox="0 0 100 100">
+        {/* 装飾線 — デスクトップのみ */}
+        <svg className="hidden sm:block absolute top-16 right-[8%] w-40 h-40 text-secondary/15" viewBox="0 0 100 100">
           <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="3 6" className="animate-spin-slow" />
           <circle cx="50" cy="50" r="35" fill="none" stroke="currentColor" strokeWidth="0.3" />
           <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="0.3" strokeDasharray="2 4" />
         </svg>
 
-        <svg className="absolute bottom-20 left-[8%] w-32 h-32 text-primary/15" viewBox="0 0 100 100">
+        <svg className="hidden sm:block absolute bottom-20 left-[8%] w-32 h-32 text-primary/15" viewBox="0 0 100 100">
           <path d="M10 50 L50 10 L90 50 L50 90 Z" fill="none" stroke="currentColor" strokeWidth="0.4" className="animate-pulse-slow" />
           <path d="M25 50 L50 25 L75 50 L50 75 Z" fill="none" stroke="currentColor" strokeWidth="0.4" />
           <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" strokeWidth="0.3" />
         </svg>
 
-        {/* 追加装飾 */}
-        <div className="absolute top-1/2 left-[15%] w-px h-32 bg-gradient-to-b from-transparent via-secondary/20 to-transparent" />
-        <div className="absolute top-1/4 right-[20%] w-px h-24 bg-gradient-to-b from-transparent via-secondary/15 to-transparent" />
+        {/* 追加装飾 — デスクトップのみ */}
+        <div className="hidden sm:block absolute top-1/2 left-[15%] w-px h-32 bg-gradient-to-b from-transparent via-secondary/20 to-transparent" />
+        <div className="hidden sm:block absolute top-1/4 right-[20%] w-px h-24 bg-gradient-to-b from-transparent via-secondary/15 to-transparent" />
 
         <FloatingParticles />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-16 items-center">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-4 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-16 items-center">
 
           {/* パララックス画像エリア — モバイルではコピーの後に表示 */}
           <div
             key={`visual-${displayCategory}`}
-            className="relative h-[300px] sm:h-[400px] lg:h-[540px] order-2 lg:order-1 animate-fadeIn"
+            className="relative h-[240px] sm:h-[400px] lg:h-[540px] order-2 lg:order-1 animate-fadeIn"
           >
             {samples.map((sample, index) => (
               <ParallaxCard key={`${displayCategory}-${sample.id}`} sample={sample} index={index} />
@@ -366,7 +366,7 @@ export function HeroBeforeAfter() {
           {/* コピー+CTA — モバイルではファーストビュー内に表示 */}
           <div
             key={`copy-${displayCategory}`}
-            className="text-center lg:text-left space-y-5 lg:space-y-8 order-1 lg:order-2 animate-fadeIn"
+            className="text-center lg:text-left space-y-3 sm:space-y-5 lg:space-y-8 order-1 lg:order-2 animate-fadeIn"
           >
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
@@ -376,24 +376,24 @@ export function HeroBeforeAfter() {
               <div className="w-10 h-px bg-gradient-to-l from-transparent to-secondary" />
             </div>
 
-            <h1 className="font-serif text-[2rem] sm:text-[2.8rem] lg:text-[3.4rem] font-bold text-foreground leading-[1.15] tracking-wide animate-fadeIn" style={{ animationDelay: '0.5s' }}>
+            <h1 className="font-serif text-[1.6rem] sm:text-[2.8rem] lg:text-[3.4rem] font-bold text-foreground leading-[1.15] tracking-wide animate-fadeIn" style={{ animationDelay: '0.5s' }}>
               <span className="block">{currentCategory?.headline.split('、')[0] || '1枚の写真が'}、</span>
               <span className="block mt-1 lg:mt-2 bg-gradient-to-r from-foreground via-foreground to-secondary bg-clip-text">
                 {currentCategory?.headline.split('、')[1] || '世界に一つのアートに'}
               </span>
             </h1>
 
-            <p className="text-muted text-base sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 animate-fadeIn" style={{ animationDelay: '0.7s' }}>
+            <p className="text-muted text-sm sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 animate-fadeIn" style={{ animationDelay: '0.7s' }}>
               {currentCategory?.heroDescription}
             </p>
 
             {/* 無料プレビュー・登録不要バッジ */}
             <div className="flex items-center justify-center lg:justify-start gap-3 animate-fadeIn" style={{ animationDelay: '0.8s' }}>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-sage/15 text-accent-sage text-sm font-medium rounded-full">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-accent-sage/15 text-accent-sage text-xs sm:text-sm font-medium rounded-full">
                 <span className="w-1.5 h-1.5 bg-accent-sage rounded-full" />
                 無料プレビュー
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary/10 text-secondary text-sm font-medium rounded-full">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary/10 text-secondary text-xs sm:text-sm font-medium rounded-full">
                 登録不要
               </span>
             </div>
@@ -402,7 +402,7 @@ export function HeroBeforeAfter() {
             <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 animate-fadeIn" style={{ animationDelay: '0.9s' }}>
               <button
                 onClick={scrollToUpload}
-                className="group relative px-10 py-5 text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
+                className="group relative px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 <span className="relative flex items-center gap-3">
@@ -431,8 +431,8 @@ export function HeroBeforeAfter() {
         </div>
       </div>
 
-      {/* スクロールインジケーター */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted/40 animate-bounce">
+      {/* スクロールインジケーター — デスクトップのみ */}
+      <div className="hidden sm:flex absolute bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-muted/40 animate-bounce">
         <span className="text-[10px] tracking-[0.2em] uppercase">Scroll</span>
         <div className="w-px h-6 bg-gradient-to-b from-muted/40 to-transparent" />
       </div>
