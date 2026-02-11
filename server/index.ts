@@ -4,6 +4,7 @@ import cors from 'cors';
 import { generateRouter } from './routes/generate';
 import { stylesRouter } from './routes/styles';
 import { pricingRouter } from './routes/pricing';
+import { checkoutRouter } from './routes/checkout';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +25,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use('/api/generate-image', generateRouter);
 app.use('/api/styles', stylesRouter);
 app.use('/api/pricing', pricingRouter);
+app.use('/api/checkout', checkoutRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

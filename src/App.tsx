@@ -15,6 +15,8 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage').then(
 const TermsPage = lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
 const ResultPage = lazy(() => import('./pages/ResultPage').then(m => ({ default: m.ResultPage })));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
+const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage').then(m => ({ default: m.OrderConfirmationPage })));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -47,6 +49,8 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
               </Routes>
             </Suspense>
           </ErrorBoundary>

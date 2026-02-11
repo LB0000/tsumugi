@@ -147,3 +147,21 @@ export interface CartItem {
   price: number;
   options?: Record<string, unknown>;
 }
+
+export interface ShippingAddress {
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  addressLine: string;
+}
+
+export interface OrderResult {
+  orderId: string;
+  paymentId: string;
+  totalAmount: number;
+  receiptUrl?: string;
+}

@@ -1,4 +1,4 @@
-import type { GenerateImageRequest, GenerateImageResponse, ArtStyle, PricingPlan, PrintSize } from '../types';
+import type { GenerateImageRequest, GenerateImageResponse, ArtStyle, PricingPlan, PrintSize, ShippingAddress } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -146,20 +146,62 @@ export async function getPricing(): Promise<PricingResponse> {
   return data;
 }
 
-export async function initiateCheckout(planId: string, email: string) {
-  const response = await fetch(`${API_BASE}/pricing/checkout`, {
+interface CreateOrderRequest {
+  items: Array<{ name: string; quantity: number; price: number }>;
+  shippingAddress: ShippingAddress;
+}
+
+interface CreateOrderResponse {
+  success: true;
+  orderId: string;
+  totalAmount: number;
+}
+
+interface ProcessPaymentRequest {
+  sourceId: string;
+  orderId: string;
+  buyerEmail: string;
+  totalAmount: number;
+}
+
+interface ProcessPaymentResponse {
+  success: true;
+  paymentId: string;
+  orderId: string;
+  status: string;
+  receiptUrl?: string;
+}
+
+export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
+  const response = await fetch(`${API_BASE}/checkout/create-order`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ planId, email }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
   });
 
-  const data = await response.json();
+  const data: unknown = await response.json();
 
-  if (!response.ok || !data.success) {
-    throw new Error('Failed to initiate checkout');
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '注文の作成に失敗しました';
+    throw new Error(errorMessage);
   }
 
-  return data;
+  return data as CreateOrderResponse;
+}
+
+export async function processPayment(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
+  const response = await fetch(`${API_BASE}/checkout/process-payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '決済処理に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  return data as ProcessPaymentResponse;
 }

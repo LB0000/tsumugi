@@ -100,23 +100,3 @@ pricingRouter.get('/plans/:id', (req, res) => {
   res.json({ success: true, plan });
 });
 
-// Checkout endpoint stub
-pricingRouter.post('/checkout', (req, res) => {
-  const { planId, email } = req.body;
-
-  if (!planId || !email) {
-    res.status(400).json({
-      success: false,
-      error: { code: 'INVALID_REQUEST', message: 'Missing planId or email' }
-    });
-    return;
-  }
-
-  // In production, this would integrate with Stripe
-  res.json({
-    success: true,
-    message: 'Checkout initiated',
-    checkoutUrl: `https://checkout.stripe.com/mock/${planId}`,
-    sessionId: `cs_${Date.now()}`
-  });
-});

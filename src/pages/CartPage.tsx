@@ -1,10 +1,11 @@
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
 import { useAppStore } from '../stores/appStore';
 
 export function CartPage() {
+  const navigate = useNavigate();
   const { cartItems, removeFromCart, updateCartItemQuantity } = useAppStore();
   const isEmpty = cartItems.length === 0;
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -137,7 +138,7 @@ export function CartPage() {
                   <span className="text-xl font-bold text-primary">¥{total.toLocaleString()}</span>
                 </div>
 
-                <StyledButton className="w-full mb-4" size="lg">
+                <StyledButton className="w-full mb-4" size="lg" onClick={() => navigate('/checkout')}>
                   レジに進む
                   <ArrowRight className="w-5 h-5" />
                 </StyledButton>
