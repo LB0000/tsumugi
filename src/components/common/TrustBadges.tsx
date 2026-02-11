@@ -52,8 +52,8 @@ const trustItems = [
   },
   {
     icon: Truck,
-    label: '送料無料',
-    description: '5,000円以上',
+    label: '迅速配送',
+    description: '全国対応',
     color: 'text-secondary',
     bgColor: 'bg-secondary/10',
   },

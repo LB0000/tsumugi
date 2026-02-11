@@ -1,4 +1,4 @@
-import type { GenerateImageRequest, GenerateImageResponse, ArtStyle, PricingPlan, PrintSize, ShippingAddress } from '../types';
+import type { GenerateImageRequest, GenerateImageResponse, ArtStyle, PricingPlan, PrintSize, ShippingAddress, AuthUser } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -147,8 +147,9 @@ export async function getPricing(): Promise<PricingResponse> {
 }
 
 interface CreateOrderRequest {
-  items: Array<{ name: string; quantity: number; price: number }>;
+  items: Array<{ productId: string; quantity: number }>;
   shippingAddress: ShippingAddress;
+  clientRequestId?: string;
 }
 
 interface CreateOrderResponse {
@@ -161,7 +162,7 @@ interface ProcessPaymentRequest {
   sourceId: string;
   orderId: string;
   buyerEmail: string;
-  totalAmount: number;
+  clientRequestId?: string;
 }
 
 interface ProcessPaymentResponse {
@@ -170,6 +171,125 @@ interface ProcessPaymentResponse {
   orderId: string;
   status: string;
   receiptUrl?: string;
+}
+
+interface ContactRequest {
+  reason: 'order' | 'product' | 'other';
+  name: string;
+  email: string;
+  orderNumber?: string;
+  message: string;
+}
+
+interface ContactResponse {
+  success: true;
+  inquiryId: string;
+  estimatedReplyBusinessDays: number;
+}
+
+interface SupportChatRequest {
+  message?: string;
+  actionId?: string;
+}
+
+interface SupportChatResponse {
+  success: true;
+  reply: string;
+  suggestedNextActions: string[];
+}
+
+interface AuthResponse {
+  success: true;
+  user: AuthUser;
+}
+
+interface ForgotPasswordResponse {
+  success: true;
+  message: string;
+  resetToken?: string | null;
+}
+
+interface CurrentUserResponse {
+  success: true;
+  user: AuthUser;
+}
+
+function isCreateOrderResponse(data: unknown): data is CreateOrderResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.orderId === 'string' &&
+    typeof obj.totalAmount === 'number'
+  );
+}
+
+function isProcessPaymentResponse(data: unknown): data is ProcessPaymentResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.paymentId === 'string' &&
+    typeof obj.orderId === 'string' &&
+    typeof obj.status === 'string'
+  );
+}
+
+function isContactResponse(data: unknown): data is ContactResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.inquiryId === 'string' &&
+    typeof obj.estimatedReplyBusinessDays === 'number'
+  );
+}
+
+function isSupportChatResponse(data: unknown): data is SupportChatResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.reply === 'string' &&
+    Array.isArray(obj.suggestedNextActions)
+  );
+}
+
+function isAuthResponse(data: unknown): data is AuthResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  const user = obj.user as Record<string, unknown> | undefined;
+  return (
+    obj.success === true &&
+    !!user &&
+    typeof user.id === 'string' &&
+    typeof user.name === 'string' &&
+    typeof user.email === 'string'
+  );
+}
+
+function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  const resetToken = obj.resetToken;
+  return (
+    obj.success === true &&
+    typeof obj.message === 'string' &&
+    (resetToken === undefined || resetToken === null || typeof resetToken === 'string')
+  );
+}
+
+function isCurrentUserResponse(data: unknown): data is CurrentUserResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  const user = obj.user as Record<string, unknown> | undefined;
+  return (
+    obj.success === true &&
+    !!user &&
+    typeof user.id === 'string' &&
+    typeof user.name === 'string' &&
+    typeof user.email === 'string'
+  );
 }
 
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
@@ -186,7 +306,11 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
     throw new Error(errorMessage);
   }
 
-  return data as CreateOrderResponse;
+  if (!isCreateOrderResponse(data)) {
+    throw new Error('Invalid create-order response format');
+  }
+
+  return data;
 }
 
 export async function processPayment(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
@@ -203,5 +327,172 @@ export async function processPayment(request: ProcessPaymentRequest): Promise<Pr
     throw new Error(errorMessage);
   }
 
-  return data as ProcessPaymentResponse;
+  if (!isProcessPaymentResponse(data)) {
+    throw new Error('Invalid payment response format');
+  }
+
+  return data;
+}
+
+export async function submitContact(request: ContactRequest): Promise<ContactResponse> {
+  const response = await fetch(`${API_BASE}/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'お問い合わせの送信に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isContactResponse(data)) {
+    throw new Error('Invalid contact response format');
+  }
+
+  return data;
+}
+
+export async function sendSupportChat(request: SupportChatRequest): Promise<SupportChatResponse> {
+  const response = await fetch(`${API_BASE}/support/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'サポートへの送信に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isSupportChatResponse(data)) {
+    throw new Error('Invalid support response format');
+  }
+
+  return data;
+}
+
+export async function loginAuth(request: { email: string; password: string }): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'ログインに失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid login response format');
+  }
+
+  return data;
+}
+
+export async function registerAuth(request: { name: string; email: string; password: string }): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '登録に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid register response format');
+  }
+
+  return data;
+}
+
+export async function forgotPassword(request: { email: string }): Promise<ForgotPasswordResponse> {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'パスワード再設定の送信に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isForgotPasswordResponse(data)) {
+    throw new Error('Invalid forgot-password response format');
+  }
+
+  return data;
+}
+
+export async function resetPassword(request: { token: string; newPassword: string }): Promise<AuthResponse> {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'パスワード再設定に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid reset-password response format');
+  }
+
+  return data;
+}
+
+export async function getCurrentUser(): Promise<AuthUser> {
+  const response = await fetch(`${API_BASE}/auth/me`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'セッション確認に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isCurrentUserResponse(data)) {
+    throw new Error('Invalid current-user response format');
+  }
+
+  return data.user;
+}
+
+export async function logoutAuth(): Promise<void> {
+  const response = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'ログアウトに失敗しました';
+    throw new Error(errorMessage);
+  }
 }

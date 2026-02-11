@@ -22,8 +22,8 @@ export function Footer() {
                 <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-xs sm:text-sm">送料無料</p>
-                <p className="hidden sm:block text-xs text-background/70">5,000円以上のご注文で</p>
+                <p className="font-medium text-background text-xs sm:text-sm">迅速配送</p>
+                <p className="hidden sm:block text-xs text-background/70">全国どこでもお届け</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">

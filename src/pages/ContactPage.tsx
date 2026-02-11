@@ -2,21 +2,26 @@ import { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HelpCircle, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StyledButton, Breadcrumb } from '../components/common';
+import { submitContact } from '../api';
+import { legalInfo } from '../data/legal';
 
-const contactReasons = [
+type ContactReason = 'order' | 'product' | 'other';
+
+const contactReasons: Array<{ id: ContactReason; label: string; icon: typeof Package }> = [
   { id: 'order', label: '注文について', icon: Package },
   { id: 'product', label: '商品について', icon: HelpCircle },
   { id: 'other', label: 'その他', icon: MessageSquare },
 ];
 
 export function ContactPage() {
-  const [selectedReason, setSelectedReason] = useState('');
+  const [selectedReason, setSelectedReason] = useState<ContactReason | ''>('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [inquiryId, setInquiryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,12 +29,24 @@ export function ContactPage() {
     setIsSubmitting(true);
     setError(null);
 
+    if (!selectedReason) {
+      setError('お問い合わせ種別を選択してください');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      // TODO: 実際のフォーム送信処理
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await submitContact({
+        reason: selectedReason,
+        name,
+        email,
+        orderNumber: selectedReason === 'order' ? orderNumber : undefined,
+        message,
+      });
+      setInquiryId(response.inquiryId);
       setIsSubmitted(true);
-    } catch {
-      setError('送信に失敗しました。しばらく経ってからもう一度お試しください。');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '送信に失敗しました。しばらく経ってからもう一度お試しください。');
     } finally {
       setIsSubmitting(false);
     }
@@ -49,6 +66,11 @@ export function ContactPage() {
             内容を確認の上、2営業日以内にご登録のメールアドレスへ返信いたします。
             しばらくお待ちください。
           </p>
+          {inquiryId && (
+            <p className="text-sm text-muted mb-6">
+              お問い合わせ番号: <span className="font-mono text-foreground">{inquiryId}</span>
+            </p>
+          )}
           <Link to="/">
             <StyledButton>トップページに戻る</StyledButton>
           </Link>
@@ -131,11 +153,7 @@ export function ContactPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">所在地</p>
-                    <p className="text-sm text-muted">
-                      〒150-0000<br />
-                      東京都渋谷区XXX-XX-XX<br />
-                      XXXビル 5F
-                    </p>
+                    <p className="text-sm text-muted">{legalInfo.所在地}</p>
                   </div>
                 </div>
               </div>

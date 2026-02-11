@@ -48,6 +48,8 @@ const model = genAI.getGenerativeModel({
   },
 });
 
+const allowMockGeneration = process.env.ALLOW_MOCK_GENERATION === 'true' && process.env.NODE_ENV !== 'production';
+
 interface GenerateImageRequest {
   baseImage: string;
   styleId: string;
@@ -190,10 +192,17 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
 
     // Check if API key is configured
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-      // Fall back to mock generation if no API key
-      console.log('No Gemini API key configured, using mock generation');
-      const response = await generateMockResponse(styleId);
-      res.json(response);
+      if (allowMockGeneration) {
+        console.log('No Gemini API key configured, using mock generation');
+        const response = await generateMockResponse(styleId);
+        res.json(response);
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        error: { code: 'SERVICE_NOT_CONFIGURED', message: 'Image generation service is not configured' }
+      });
       return;
     }
 
@@ -287,11 +296,7 @@ CRITICAL REQUIREMENTS:
     }
 
     if (!generatedImage) {
-      // If no image in response, fall back to mock
-      console.log('No image in Gemini response, using mock. Text response:', textResponse);
-      const mockResponse = await generateMockResponse(styleId);
-      res.json(mockResponse);
-      return;
+      throw new Error(`Gemini returned no image output. Text response: ${textResponse.slice(0, 300)}`);
     }
 
     console.log('Image generation successful!');
@@ -313,17 +318,21 @@ CRITICAL REQUIREMENTS:
   } catch (error) {
     console.error('Error generating image:', error);
 
-    // Fall back to mock on error
-    try {
-      const { styleId } = req.body;
-      const mockResponse = await generateMockResponse(styleId || 'intelligent');
-      res.json(mockResponse);
-    } catch {
-      res.status(500).json({
-        success: false,
-        error: { code: 'GENERATION_FAILED', message: 'Failed to generate image' }
-      });
+    if (allowMockGeneration) {
+      try {
+        const { styleId } = req.body;
+        const mockResponse = await generateMockResponse(styleId || 'intelligent');
+        res.json(mockResponse);
+        return;
+      } catch {
+        // Continue to standard error response
+      }
     }
+
+    res.status(502).json({
+      success: false,
+      error: { code: 'GENERATION_UPSTREAM_FAILED', message: 'Failed to generate image' }
+    });
   }
 });
 

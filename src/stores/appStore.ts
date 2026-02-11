@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId, CartItem } from '../types';
+import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId, CartItem, AuthUser } from '../types';
 import { artStyles } from '../data/artStyles';
 
 const initialStyleFilterState: StyleFilterState = {
@@ -52,6 +52,11 @@ interface AppState {
   removeFromCart: (id: string) => void;
   updateCartItemQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+
+  // Auth
+  authUser: AuthUser | null;
+  setAuthSession: (user: AuthUser) => void;
+  clearAuthSession: () => void;
 }
 
 const initialUploadState: UploadState = {
@@ -62,6 +67,7 @@ const initialUploadState: UploadState = {
 };
 
 export const useAppStore = create<AppState>((set) => ({
+
   // Category
   selectedCategory: 'pets',
   setSelectedCategory: (category) => set({ selectedCategory: category }),
@@ -145,5 +151,14 @@ export const useAppStore = create<AppState>((set) => ({
       )
     };
   }),
-  clearCart: () => set({ cartItems: [] })
+  clearCart: () => set({ cartItems: [] }),
+
+  // Auth
+  authUser: null,
+  setAuthSession: (user) => {
+    set({ authUser: user });
+  },
+  clearAuthSession: () => {
+    set({ authUser: null });
+  }
 }));

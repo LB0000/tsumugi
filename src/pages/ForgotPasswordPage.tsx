@@ -2,21 +2,31 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import { StyledButton } from '../components/common/StyledButton';
+import { forgotPassword } from '../api';
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [submittedMessage, setSubmittedMessage] = useState('メールを送信しました');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     setIsSubmitting(true);
 
-    // TODO: 実際のパスワードリセット処理
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    try {
+      const response = await forgotPassword({ email: email.trim() });
+      setSubmittedMessage(response.message);
+      setResetToken(response.resetToken ?? null);
+      setIsSubmitted(true);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '送信に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -27,12 +37,25 @@ export function ForgotPasswordPage() {
             <CheckCircle className="w-10 h-10 text-accent-sage" />
           </div>
           <h1 className="font-serif text-2xl font-semibold text-foreground mb-3">
-            メールを送信しました
+            {submittedMessage}
           </h1>
           <p className="text-muted mb-6">
             {email} 宛にパスワードリセット用のリンクを送信しました。
             メールをご確認ください。
           </p>
+          {resetToken && (
+            <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-left">
+              <p className="text-xs text-muted mb-2">
+                開発環境用: メール送信の代わりにリセットリンクを表示しています。
+              </p>
+              <Link
+                to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
+                className="text-sm text-primary hover:underline break-all"
+              >
+                /reset-password?token={resetToken}
+              </Link>
+            </div>
+          )}
           <Link to="/login">
             <StyledButton>ログインページに戻る</StyledButton>
           </Link>
@@ -98,6 +121,12 @@ export function ForgotPasswordPage() {
                 </>
               )}
             </StyledButton>
+
+            {errorMessage && (
+              <p className="text-sm text-sale text-center" role="alert">
+                {errorMessage}
+              </p>
+            )}
           </form>
 
           <div className="mt-6 text-center">

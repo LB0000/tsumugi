@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 
 interface Testimonial {
@@ -155,14 +155,26 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 }
 
 export function TestimonialTicker() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => (typeof window !== 'undefined')
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
+  const [showHint, setShowHint] = useState(true);
+  const hasScrolledRef = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(mq.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (!hasScrolledRef.current) {
+      hasScrolledRef.current = true;
+      setShowHint(false);
+    }
   }, []);
 
   const items = prefersReducedMotion ? testimonials : [...testimonials, ...testimonials];
@@ -182,7 +194,10 @@ export function TestimonialTicker() {
         <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
 
-        <div className={`flex gap-5 overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:snap-none ${prefersReducedMotion ? '' : 'sm:animate-tickerScroll'} scrollbar-hide`}>
+        <div
+          onScroll={handleScroll}
+          className={`flex gap-5 overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:snap-none ${prefersReducedMotion ? '' : 'sm:animate-tickerScroll'} scrollbar-hide`}
+        >
           {items.map((testimonial, index) => (
             <TestimonialCard
               key={`${testimonial.id}-${index}`}
@@ -191,6 +206,13 @@ export function TestimonialTicker() {
           ))}
         </div>
       </div>
+
+      <p
+        className="sm:hidden text-center text-xs text-muted mt-3 transition-opacity duration-500"
+        style={{ opacity: showHint ? 1 : 0 }}
+      >
+        ← スワイプで表示 →
+      </p>
     </section>
   );
 }

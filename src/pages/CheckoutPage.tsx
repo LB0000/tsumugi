@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { StyledButton, Breadcrumb } from '../components/common';
@@ -25,6 +25,7 @@ export function CheckoutPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardAttached, setCardAttached] = useState(false);
+  const checkoutAttemptIdRef = useRef<string | null>(null);
 
   const [form, setForm] = useState<ShippingAddress>({
     lastName: '',
@@ -57,6 +58,10 @@ export function CheckoutPage() {
     }
   }, [isReady, cardAttached, attachCard]);
 
+  useEffect(() => {
+    checkoutAttemptIdRef.current = null;
+  }, [cartItems]);
+
   const updateForm = (field: keyof ShippingAddress, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -85,17 +90,20 @@ export function CheckoutPage() {
     setIsProcessing(true);
 
     try {
+      const clientRequestId = checkoutAttemptIdRef.current ?? crypto.randomUUID();
+      checkoutAttemptIdRef.current = clientRequestId;
+
       // 1. Tokenize card
       const sourceId = await tokenize();
 
       // 2. Create order on backend
       const orderResponse = await createOrder({
         items: cartItems.map((item) => ({
-          name: item.name,
+          productId: item.productId,
           quantity: item.quantity,
-          price: item.price,
         })),
         shippingAddress: form,
+        clientRequestId,
       });
 
       // 3. Process payment
@@ -103,11 +111,12 @@ export function CheckoutPage() {
         sourceId,
         orderId: orderResponse.orderId,
         buyerEmail: form.email,
-        totalAmount: orderResponse.totalAmount,
+        clientRequestId,
       });
 
       // 4. Success - navigate to confirmation
       clearCart();
+      checkoutAttemptIdRef.current = null;
       navigate('/order-confirmation', {
         state: {
           orderId: paymentResponse.orderId,

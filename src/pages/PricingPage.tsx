@@ -160,7 +160,7 @@ export function PricingPage() {
               アートプリント
             </h2>
             <p className="text-muted text-sm">
-              美術館品質のプリント。5,000円以上で送料無料
+              美術館品質のプリント。全国配送対応
             </p>
           </div>
 

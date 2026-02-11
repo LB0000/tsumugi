@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
 import { Check, Upload, Palette, Sparkles } from 'lucide-react';
 
 interface StepProgressProps {
@@ -13,28 +12,14 @@ const steps = [
   { label: '肖像画を生成', icon: Sparkles, sectionId: 'generate-section' },
 ];
 
+const confettiParams = Array.from({ length: 16 }, (_, index) => ({
+  x: `${((index * 43) % 200) - 100}px`,
+  r: `${(index * 157) % 720}deg`,
+}));
+
 export function StepProgress({ hasUpload, hasStyle, hasGenerated }: StepProgressProps) {
   const completedCount = [hasUpload, hasStyle, hasGenerated].filter(Boolean).length;
-  const [showCelebration, setShowCelebration] = useState(false);
-  const celebratedRef = useRef(false);
-
-  // コンフェッティのランダム値を一度だけ計算
-  const confettiParams = useMemo(() =>
-    Array.from({ length: 16 }, () => ({
-      x: `${(Math.random() - 0.5) * 200}px`,
-      r: `${Math.random() * 720}deg`,
-    })),
-  []);
-
-  // 3ステップ完了時のセレブレーション（1回のみ）
-  useEffect(() => {
-    if (completedCount === 3 && !celebratedRef.current) {
-      celebratedRef.current = true;
-      setShowCelebration(true);
-      const timer = setTimeout(() => setShowCelebration(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [completedCount]);
+  const showCelebration = completedCount === 3;
 
   const getStepStatus = (index: number): 'completed' | 'current' | 'pending' => {
     if (index === 0) {

@@ -1,21 +1,40 @@
-import { Menu, ShoppingCart, User } from 'lucide-react';
+import { LogOut, Menu, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
+import { logoutAuth } from '../../api';
 
 export function Header() {
-  const { selectedCategory, setSelectedCategory, toggleSidebar } = useAppStore();
+  const {
+    selectedCategory,
+    setSelectedCategory,
+    toggleSidebar,
+    cartItems,
+    authUser,
+    clearAuthSession,
+  } = useAppStore();
   const { pathname } = useLocation();
   const isHomePage = pathname === '/';
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleLogout = async () => {
+    try {
+      await logoutAuth();
+    } catch {
+      // Logout should still clear client session if API call fails
+    } finally {
+      clearAuthSession();
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
       {/* Announcement Bar - 和モダン金色グラデーション */}
       <div className="bg-gradient-to-r from-primary via-secondary to-primary">
         <div className="max-w-7xl mx-auto px-4 py-1.5 sm:py-2.5 flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
-          <span className="font-medium text-white tracking-wide">期間限定 送料無料キャンペーン</span>
+          <span className="font-medium text-white tracking-wide">期間限定 初回ご注文 10%OFF</span>
           <span className="hidden sm:block w-px h-4 bg-white/30" />
-          <span className="hidden sm:inline text-white/90 tracking-wide">初回ご注文 10%OFF</span>
+          <span className="hidden sm:inline text-white/90 tracking-wide">プレビュー無料・登録不要</span>
         </div>
       </div>
 
@@ -37,14 +56,32 @@ export function Header() {
 
             {/* User Actions */}
             <div className="flex items-center gap-1">
-              {/* User Icon */}
-              <Link
-                to="/login"
-                className="hidden sm:flex p-3 hover:bg-card-hover transition-all duration-300 rounded-[var(--radius-button)]"
-                aria-label="ログイン"
-              >
-                <User className="w-5 h-5 text-foreground" />
-              </Link>
+              {/* User Icon / Session */}
+              {authUser ? (
+                <div className="hidden sm:flex items-center gap-1">
+                  <div
+                    className="px-3 py-2 rounded-[var(--radius-button)] bg-card border border-border text-sm text-foreground"
+                    title={`${authUser.name} としてログイン中`}
+                  >
+                    {authUser.name}
+                  </div>
+                  <button
+                    onClick={() => void handleLogout()}
+                    className="p-3 hover:bg-card-hover transition-all duration-300 rounded-[var(--radius-button)]"
+                    aria-label="ログアウト"
+                  >
+                    <LogOut className="w-5 h-5 text-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="hidden sm:flex p-3 hover:bg-card-hover transition-all duration-300 rounded-[var(--radius-button)]"
+                  aria-label="ログイン"
+                >
+                  <User className="w-5 h-5 text-foreground" />
+                </Link>
+              )}
 
               {/* Cart Icon */}
               <Link
@@ -54,7 +91,7 @@ export function Header() {
               >
                 <ShoppingCart className="w-5 h-5 text-foreground" />
                 <span className="absolute top-1 right-1 w-4 h-4 bg-accent-coral text-white text-[10px] rounded-full flex items-center justify-center font-medium">
-                  0
+                  {Math.min(cartCount, 99)}
                 </span>
               </Link>
 

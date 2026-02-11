@@ -126,11 +126,6 @@ export function CartPage() {
                       )}
                     </span>
                   </div>
-                  {shipping > 0 && (
-                    <p className="text-xs text-secondary">
-                      あと¥{(5000 - subtotal).toLocaleString()}で送料無料！
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex justify-between mb-6">

@@ -4,28 +4,29 @@ import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 
 export function FloatingCTA() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [visibilityByPath, setVisibilityByPath] = useState<Record<string, boolean>>({});
+  const [dismissedPath, setDismissedPath] = useState<string | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
   const { pathname } = useLocation();
   const isHomePage = pathname === '/';
   const isStyleModalOpen = useAppStore((s) => s.isStyleModalOpen);
-
-  useEffect(() => {
-    setIsDismissed(false);
-    setIsVisible(false);
-  }, [pathname]);
+  const isDismissed = dismissedPath === pathname;
+  const isVisible = visibilityByPath[pathname] ?? false;
 
   useEffect(() => {
     if (!isHomePage || isDismissed) {
-      setIsVisible(false);
       return;
     }
 
     // ヒーローCTAボタンの可視性を監視
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsVisible(!entry.isIntersecting);
+        const nextVisible = !entry.isIntersecting;
+        setVisibilityByPath((prev) => (
+          prev[pathname] === nextVisible
+            ? prev
+            : { ...prev, [pathname]: nextVisible }
+        ));
       },
       { threshold: 0 }
     );
@@ -37,14 +38,19 @@ export function FloatingCTA() {
     } else {
       // フォールバック: スクロール量で判定
       const handleScroll = () => {
-        setIsVisible(window.scrollY > 600);
+        const nextVisible = window.scrollY > 600;
+        setVisibilityByPath((prev) => (
+          prev[pathname] === nextVisible
+            ? prev
+            : { ...prev, [pathname]: nextVisible }
+        ));
       };
       window.addEventListener('scroll', handleScroll, { passive: true });
       return () => window.removeEventListener('scroll', handleScroll);
     }
 
     return () => observer.disconnect();
-  }, [isDismissed, isHomePage]);
+  }, [isDismissed, isHomePage, pathname]);
 
   const handleClick = () => {
     document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -52,10 +58,10 @@ export function FloatingCTA() {
 
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsDismissed(true);
+    setDismissedPath(pathname);
   };
 
-  if (!isHomePage || isStyleModalOpen) return null;
+  if (!isHomePage || isStyleModalOpen || isDismissed) return null;
 
   return (
     <div

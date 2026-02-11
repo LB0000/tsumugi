@@ -1,20 +1,60 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2 } from 'lucide-react';
 import { StyledButton } from '../components/common/StyledButton';
+import { loginAuth, registerAuth } from '../api';
+import { useAppStore } from '../stores/appStore';
 
 export function LoginPage() {
+  const navigate = useNavigate();
+  const { authUser, setAuthSession } = useAppStore();
+
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (authUser) {
+      navigate('/', { replace: true });
+    }
+  }, [authUser, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 実際の認証処理を実装
-    // 注意: 本番環境ではパスワードをログに出力しないこと
-    console.log(isLogin ? 'Login' : 'Register', { email, name });
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      if (isLogin) {
+        const response = await loginAuth({
+          email: email.trim(),
+          password,
+        });
+        setAuthSession(response.user);
+      } else {
+        const normalizedName = name.trim();
+        if (normalizedName.length === 0) {
+          throw new Error('お名前を入力してください');
+        }
+
+        const response = await registerAuth({
+          name: normalizedName,
+          email: email.trim(),
+          password,
+        });
+        setAuthSession(response.user);
+      }
+
+      navigate('/', { replace: true });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '認証処理に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -37,7 +77,10 @@ export function LoginPage() {
           {/* Tabs */}
           <div className="flex mb-8 border-b border-border">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => {
+                setIsLogin(true);
+                setErrorMessage(null);
+              }}
               className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
                 isLogin ? 'text-primary' : 'text-muted hover:text-foreground'
               }`}
@@ -48,7 +91,10 @@ export function LoginPage() {
               )}
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => {
+                setIsLogin(false);
+                setErrorMessage(null);
+              }}
               className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
                 !isLogin ? 'text-primary' : 'text-muted hover:text-foreground'
               }`}
@@ -141,10 +187,25 @@ export function LoginPage() {
             )}
 
             {/* Submit */}
-            <StyledButton type="submit" className="w-full" size="lg">
-              {isLogin ? 'ログイン' : '新規登録'}
-              <ArrowRight className="w-5 h-5" />
+            <StyledButton type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  処理中...
+                </>
+              ) : (
+                <>
+                  {isLogin ? 'ログイン' : '新規登録'}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
             </StyledButton>
+
+            {errorMessage && (
+              <p className="text-sm text-sale text-center" role="alert">
+                {errorMessage}
+              </p>
+            )}
           </form>
 
           {/* Divider */}

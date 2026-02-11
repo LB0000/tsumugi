@@ -1,13 +1,21 @@
+import { createHash } from 'crypto';
 import { Router } from 'express';
-import { randomUUID } from 'crypto';
-import { squareClient, locationId } from '../lib/square';
+import type { Request } from 'express';
+import { WebhooksHelper } from 'square';
+import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
+import {
+  getOrderPaymentStatus,
+  hasProcessedWebhookEvent,
+  markProcessedWebhookEvent,
+  updateOrderPaymentStatus,
+} from '../lib/checkoutState.js';
+import { locationId, squareClient } from '../lib/square.js';
 
 export const checkoutRouter = Router();
 
 interface CartItemPayload {
-  name: string;
+  productId: string;
   quantity: number;
-  price: number; // JPY integer
 }
 
 interface ShippingAddressPayload {
@@ -21,15 +29,53 @@ interface ShippingAddressPayload {
   addressLine: string;
 }
 
+interface RawBodyRequest extends Request {
+  rawBody?: string;
+}
+
+const MAX_ITEM_QUANTITY = 10;
+
+function makeIdempotencyKey(prefix: string, seed: string): string {
+  const hash = createHash('sha256').update(seed).digest('hex').slice(0, 36);
+  return `${prefix}-${hash}`;
+}
+
+function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): ShippingAddressPayload | null {
+  if (!address) return null;
+
+  const normalized = {
+    lastName: address.lastName?.trim() ?? '',
+    firstName: address.firstName?.trim() ?? '',
+    email: address.email?.trim() ?? '',
+    phone: address.phone?.trim() ?? '',
+    postalCode: address.postalCode?.trim() ?? '',
+    prefecture: address.prefecture?.trim() ?? '',
+    city: address.city?.trim() ?? '',
+    addressLine: address.addressLine?.trim() ?? '',
+  };
+
+  const requiredValues = Object.values(normalized);
+  if (requiredValues.some((value) => value.length === 0)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 // POST /api/checkout/create-order
 checkoutRouter.post('/create-order', async (req, res) => {
   try {
-    const { items, shippingAddress } = req.body as {
+    const { items, shippingAddress, clientRequestId } = req.body as {
       items: CartItemPayload[];
-      shippingAddress: ShippingAddressPayload;
+      shippingAddress?: Partial<ShippingAddressPayload>;
+      clientRequestId?: string;
     };
 
-    if (!items || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({
         success: false,
         error: { code: 'EMPTY_CART', message: 'カートが空です' },
@@ -37,15 +83,78 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shippingCost = subtotal >= 5000 ? 0 : 500;
+    if (items.length > 20) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'TOO_MANY_ITEMS', message: '一度に注文できる商品数を超えています' },
+      });
+      return;
+    }
 
-    const lineItems = items.map((item) => ({
+    let subtotal = 0;
+    let requiresShipping = false;
+    const normalizedItems = items.map((item) => {
+      if (typeof item?.productId !== 'string' || item.productId.trim().length === 0) {
+        throw new Error('INVALID_PRODUCT_ID');
+      }
+
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) {
+        throw new Error('INVALID_QUANTITY');
+      }
+
+      const catalogItem = catalogById.get(item.productId);
+      if (!catalogItem) {
+        throw new Error('UNKNOWN_PRODUCT');
+      }
+
+      subtotal += catalogItem.price * quantity;
+      requiresShipping = requiresShipping || catalogItem.requiresShipping;
+
+      return {
+        productId: catalogItem.id,
+        name: catalogItem.name,
+        quantity,
+        price: catalogItem.price,
+      };
+    });
+
+    if (subtotal <= 0) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TOTAL', message: '不正な注文金額です' },
+      });
+      return;
+    }
+
+    const normalizedAddress = normalizeShippingAddress(shippingAddress);
+    if (requiresShipping && !normalizedAddress) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_SHIPPING_ADDRESS', message: '配送先情報が不足しています' },
+      });
+      return;
+    }
+
+    if (normalizedAddress && !isValidEmail(normalizedAddress.email)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_EMAIL', message: 'メールアドレスの形式が正しくありません' },
+      });
+      return;
+    }
+
+    const shippingCost = requiresShipping && subtotal < SHIPPING_FREE_THRESHOLD ? SHIPPING_FLAT_FEE : 0;
+
+    const lineItems = normalizedItems.map((item) => ({
       name: item.name,
       quantity: String(item.quantity),
       basePriceMoney: {
         amount: BigInt(item.price),
         currency: 'JPY' as const,
+      },
+      metadata: {
+        productId: item.productId,
       },
     }));
 
@@ -58,28 +167,41 @@ checkoutRouter.post('/create-order', async (req, res) => {
           amount: BigInt(shippingCost),
           currency: 'JPY' as const,
         },
+        metadata: {
+          productId: 'shipping',
+        },
       });
     }
+
+    const idempotencySeed = typeof clientRequestId === 'string' && clientRequestId.trim().length > 0
+      ? clientRequestId.trim()
+      : JSON.stringify({
+          items: normalizedItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+          shippingAddress: normalizedAddress,
+        });
 
     const response = await squareClient.orders.create({
       order: {
         locationId,
         lineItems,
-        ...(shippingAddress && {
+        ...(normalizedAddress && {
           fulfillments: [
             {
               type: 'SHIPMENT',
               state: 'PROPOSED',
               shipmentDetails: {
                 recipient: {
-                  displayName: `${shippingAddress.lastName} ${shippingAddress.firstName}`,
-                  emailAddress: shippingAddress.email,
-                  phoneNumber: shippingAddress.phone,
+                  displayName: `${normalizedAddress.lastName} ${normalizedAddress.firstName}`,
+                  emailAddress: normalizedAddress.email,
+                  phoneNumber: normalizedAddress.phone,
                   address: {
-                    postalCode: shippingAddress.postalCode,
-                    administrativeDistrictLevel1: shippingAddress.prefecture,
-                    locality: shippingAddress.city,
-                    addressLine1: shippingAddress.addressLine,
+                    postalCode: normalizedAddress.postalCode,
+                    administrativeDistrictLevel1: normalizedAddress.prefecture,
+                    locality: normalizedAddress.city,
+                    addressLine1: normalizedAddress.addressLine,
                     country: 'JP',
                   },
                 },
@@ -88,7 +210,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
           ],
         }),
       },
-      idempotencyKey: randomUUID(),
+      idempotencyKey: makeIdempotencyKey('order', idempotencySeed),
     });
 
     const order = response.order;
@@ -102,6 +224,30 @@ checkoutRouter.post('/create-order', async (req, res) => {
       totalAmount: Number(order.totalMoney?.amount ?? 0),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_PRODUCT_ID') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PRODUCT_ID', message: '商品情報が不正です' },
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'INVALID_QUANTITY') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_QUANTITY', message: '数量が不正です' },
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'UNKNOWN_PRODUCT') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'UNKNOWN_PRODUCT', message: '存在しない商品が含まれています' },
+      });
+      return;
+    }
+
     console.error('Create order error:', error);
     const message = error instanceof Error ? error.message : '注文の作成に失敗しました';
     res.status(500).json({
@@ -114,14 +260,14 @@ checkoutRouter.post('/create-order', async (req, res) => {
 // POST /api/checkout/process-payment
 checkoutRouter.post('/process-payment', async (req, res) => {
   try {
-    const { sourceId, orderId, buyerEmail, totalAmount } = req.body as {
+    const { sourceId, orderId, buyerEmail, clientRequestId } = req.body as {
       sourceId: string;
       orderId: string;
-      buyerEmail: string;
-      totalAmount: number;
+      buyerEmail?: string;
+      clientRequestId?: string;
     };
 
-    if (!sourceId || !orderId) {
+    if (typeof sourceId !== 'string' || sourceId.trim().length === 0 || typeof orderId !== 'string' || orderId.trim().length === 0) {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: '決済情報が不足しています' },
@@ -129,28 +275,63 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       return;
     }
 
+    const normalizedSourceId = sourceId.trim();
+    const normalizedOrderId = orderId.trim();
+
+    const orderResponse = await squareClient.orders.get({ orderId: normalizedOrderId });
+    const order = orderResponse.order;
+    const orderAmount = order?.totalMoney?.amount ? BigInt(order.totalMoney.amount) : BigInt(0);
+
+    if (!order || orderAmount <= BigInt(0)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ORDER', message: '注文情報の取得に失敗しました' },
+      });
+      return;
+    }
+
+    const idempotencySeed = typeof clientRequestId === 'string' && clientRequestId.trim().length > 0
+      ? `${normalizedOrderId}:${clientRequestId.trim()}`
+      : `${normalizedOrderId}:${normalizedSourceId}`;
+
+    const normalizedBuyerEmail = typeof buyerEmail === 'string' && isValidEmail(buyerEmail.trim())
+      ? buyerEmail.trim()
+      : undefined;
+
     const response = await squareClient.payments.create({
-      sourceId,
-      idempotencyKey: randomUUID(),
+      sourceId: normalizedSourceId,
+      idempotencyKey: makeIdempotencyKey('payment', idempotencySeed),
       amountMoney: {
-        amount: BigInt(totalAmount),
+        amount: orderAmount,
         currency: 'JPY',
       },
-      orderId,
+      orderId: normalizedOrderId,
       locationId,
-      buyerEmailAddress: buyerEmail,
+      buyerEmailAddress: normalizedBuyerEmail,
     });
 
     const payment = response.payment;
     if (!payment) {
       throw new Error('Payment creation failed: no payment returned');
     }
+    const paymentId = payment.id;
+    const paymentStatus = payment.status;
+    if (typeof paymentId !== 'string' || typeof paymentStatus !== 'string') {
+      throw new Error('Payment creation failed: invalid payment fields');
+    }
+
+    updateOrderPaymentStatus({
+      orderId: normalizedOrderId,
+      paymentId,
+      status: paymentStatus,
+      updatedAt: new Date().toISOString(),
+    });
 
     res.json({
       success: true,
-      paymentId: payment.id,
-      orderId,
-      status: payment.status,
+      paymentId,
+      orderId: normalizedOrderId,
+      status: paymentStatus,
       receiptUrl: payment.receiptUrl,
     });
   } catch (error) {
@@ -163,10 +344,133 @@ checkoutRouter.post('/process-payment', async (req, res) => {
   }
 });
 
-// POST /api/checkout/webhook (for future use)
-checkoutRouter.post('/webhook', (req, res) => {
-  // TODO: Validate webhook signature with SQUARE_WEBHOOK_SIGNATURE_KEY
-  // TODO: Handle payment.completed events
-  console.log('Square webhook received:', req.body?.type);
-  res.json({ success: true });
+// POST /api/checkout/webhook
+checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
+  try {
+    const signatureHeaderRaw = req.headers['x-square-hmacsha256-signature'];
+    const signatureHeader = Array.isArray(signatureHeaderRaw) ? signatureHeaderRaw[0] : signatureHeaderRaw;
+
+    if (!signatureHeader) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_SIGNATURE', message: '署名ヘッダーがありません' },
+      });
+      return;
+    }
+
+    const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
+    const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL;
+    if (!signatureKey || !notificationUrl) {
+      res.status(500).json({
+        success: false,
+        error: { code: 'WEBHOOK_NOT_CONFIGURED', message: 'Webhook設定が不足しています' },
+      });
+      return;
+    }
+
+    const requestBody = req.rawBody;
+    if (!requestBody) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_WEBHOOK_PAYLOAD', message: 'Webhookボディの取得に失敗しました' },
+      });
+      return;
+    }
+
+    const isValidSignature = await WebhooksHelper.verifySignature({
+      requestBody,
+      signatureHeader,
+      signatureKey,
+      notificationUrl,
+    });
+
+    if (!isValidSignature) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_SIGNATURE', message: 'Webhook署名が無効です' },
+      });
+      return;
+    }
+
+    const rawEvent = req.body as Record<string, unknown> | undefined;
+    const eventType = typeof rawEvent?.type === 'string' ? rawEvent.type : 'unknown';
+    const eventId = typeof rawEvent?.event_id === 'string'
+      ? rawEvent.event_id
+      : typeof rawEvent?.eventId === 'string'
+        ? rawEvent.eventId
+        : '';
+
+    if (eventId && hasProcessedWebhookEvent(eventId)) {
+      res.json({ success: true, duplicate: true });
+      return;
+    }
+
+    const data = rawEvent?.data as Record<string, unknown> | undefined;
+    const object = data?.object as Record<string, unknown> | undefined;
+    const payment = object?.payment as Record<string, unknown> | undefined;
+
+    const paymentId = typeof payment?.id === 'string' ? payment.id : undefined;
+    const orderId = typeof payment?.orderId === 'string'
+      ? payment.orderId
+      : typeof payment?.order_id === 'string'
+        ? payment.order_id
+        : undefined;
+    const paymentStatus = typeof payment?.status === 'string' ? payment.status : undefined;
+
+    if (orderId && paymentId && paymentStatus) {
+      updateOrderPaymentStatus({
+        orderId,
+        paymentId,
+        status: paymentStatus,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    if (eventId) {
+      markProcessedWebhookEvent({
+        eventId,
+        eventType,
+        receivedAt: new Date().toISOString(),
+        orderId,
+        paymentId,
+        status: paymentStatus,
+      });
+    }
+
+    console.log('Square webhook processed', { eventType, eventId, orderId, paymentStatus });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'WEBHOOK_PROCESSING_FAILED', message: 'Webhook処理に失敗しました' },
+    });
+  }
+});
+
+// GET /api/checkout/payment-status/:orderId
+checkoutRouter.get('/payment-status/:orderId', (req, res) => {
+  const orderId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
+  if (!orderId) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_ORDER_ID', message: '注文IDが必要です' },
+    });
+    return;
+  }
+
+  const paymentStatus = getOrderPaymentStatus(orderId);
+  if (!paymentStatus) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'PAYMENT_STATUS_NOT_FOUND', message: '決済ステータスが見つかりません' },
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    paymentStatus,
+  });
 });
