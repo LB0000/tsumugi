@@ -14,7 +14,7 @@ const artStyles = [
   },
   {
     id: 'baroque',
-    name: '王室の豪華肖像画',
+    name: '豪華油絵',
     description: '赤ベルベットと金の額縁で彩る、まるで王様みたいな豪華肖像画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#8B0000', '#DAA520', '#2F1810', '#F5DEB3'],
@@ -23,7 +23,7 @@ const artStyles = [
   },
   {
     id: 'pet-royalty',
-    name: 'うちの子 王族風',
+    name: 'うちの子 王族',
     description: '王冠とマントをまとった、うちの子の威厳あふれるロイヤル肖像画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1558788353-f76d92427f16?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#722F37', '#DAA520', '#4B0082', '#FFFACD'],
@@ -32,7 +32,7 @@ const artStyles = [
   },
   {
     id: 'renaissance',
-    name: 'ダヴィンチ風クラシック',
+    name: '古典名画',
     description: 'ダヴィンチが描いたような、格調高い古典名画スタイル',
     thumbnailUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#8B4513', '#D2691E', '#2F2F2F', '#F5F5DC'],
@@ -41,7 +41,7 @@ const artStyles = [
   },
   {
     id: 'impressionist',
-    name: '光のやわらか絵画',
+    name: 'やわらか絵画',
     description: 'モネやルノワールのような、光あふれるやわらかタッチの絵画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#87CEEB', '#F0E68C', '#DDA0DD', '#98FB98'],
@@ -113,7 +113,7 @@ const artStyles = [
   },
   {
     id: 'pop-art',
-    name: 'カラフルポップ',
+    name: 'ポップアート',
     description: 'ビビッドな色でインパクト大！ウォーホル風ポップアート',
     thumbnailUrl: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#FF1493', '#FFD700', '#00CED1', '#FF4500'],
@@ -122,7 +122,7 @@ const artStyles = [
   },
   {
     id: 'hand-drawn',
-    name: '手描きスケッチ',
+    name: 'スケッチ',
     description: '鉛筆や木炭で描いたような温かみのあるスケッチ風',
     thumbnailUrl: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#2C3E50', '#7F8C8D', '#BDC3C7', '#ECF0F1'],
@@ -131,7 +131,7 @@ const artStyles = [
   },
   {
     id: 'stained-glass',
-    name: '教会のステンドグラス',
+    name: 'ステンドグラス',
     description: '教会のステンドグラスのように、光が透ける美しい装飾画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1520697830682-bbb6e85e2b0b?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#E74C3C', '#3498DB', '#F39C12', '#2ECC71'],
@@ -140,7 +140,7 @@ const artStyles = [
   },
   {
     id: 'art-nouveau',
-    name: '花と曲線のエレガント',
+    name: '花飾りポスター',
     description: 'ミュシャのような花と優雅な曲線で彩るエレガントなポスター風',
     thumbnailUrl: 'https://images.unsplash.com/photo-1578301978018-3005759f48f7?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#C9A96E', '#8B6914', '#5D4E37', '#E8D5B7'],
@@ -149,7 +149,7 @@ const artStyles = [
   },
   {
     id: 'pixel-art',
-    name: 'レトロドット絵',
+    name: 'ドット絵',
     description: 'なつかしのゲーム風！レトロかわいいドット絵肖像画',
     thumbnailUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=500&fit=crop&q=80',
     colorPalette: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],

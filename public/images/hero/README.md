@@ -1,20 +1,26 @@
 # Hero Before/After Images
 
-このフォルダには、HeroBeforeAfterコンポーネントで使用する画像を配置してください。
+このフォルダには、ヒーロー/ギャラリー/お客様の声で使う before/after 画像を配置します。
 
-## 必要な画像ファイル
+## 現在使用しているファイル
 
-| ファイル名 | 説明 | サイズ推奨 |
-|-----------|------|-----------|
-| `golden-before.jpg` | ゴールデンレトリバーの元写真 | 800x800px |
-| `golden-after.jpg` | ルネサンス貴族風に変換した画像 | 800x800px |
-| `cat-before.jpg` | 猫の元写真 | 800x800px |
-| `cat-after.jpg` | 王宮肖像画風に変換した画像 | 800x800px |
-| `family-before.jpg` | 家族写真の元画像 | 800x800px |
-| `family-after.jpg` | 印象派風に変換した画像 | 800x800px |
+| ファイル名 | 用途 |
+|-----------|------|
+| `dog-before.jpg` | ペット before |
+| `dog-after.jpeg` | ペット after |
+| `cat-before.jpg` | ペット before |
+| `cat-after.jpeg` | ペット after |
+| `family-before.jpeg` | ファミリー before |
+| `family-after.jpeg` | ファミリー after |
+| `family2-before.jpeg` | ファミリー before |
+| `family2-after.jpeg` | ファミリー after |
+| `kids-before.jpeg` | キッズ before |
+| `kids-after.jpeg` | キッズ after |
+| `kids2-before.jpg` | キッズ before |
+| `kids2-after.jpeg` | キッズ after |
 
-## 重要
+## 追加時のルール
 
-- **before/afterは同じ被写体である必要があります**
-- 円形のリビールアニメーションで変換効果を見せるため、同じ構図・アングルの画像ペアを用意してください
-- 画像は正方形（1:1）のアスペクト比が推奨です
+- 可能な限り **before/after は同じ被写体・同じ構図** で用意してください。
+- 推奨アスペクト比は 1:1 または 4:5 です。
+- ファイル名は `*-before` / `*-after` のペア命名にすると管理しやすくなります。

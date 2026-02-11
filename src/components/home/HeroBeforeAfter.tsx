@@ -36,7 +36,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
       style: '浮世絵風',
       customerName: '田中様の愛犬',
       size: 'large',
-      position: { x: '8%', y: '8%' },
+      position: { x: '3%', y: '3%' },
       mobilePosition: { x: '5%', y: '5%' },
       revealDelay: 0,
       rotation: -3
@@ -48,7 +48,7 @@ const categorySamples: Record<string, TransformationSample[]> = {
       style: 'アニメ・イラスト風',
       customerName: '佐藤様の猫',
       size: 'medium',
-      position: { x: '48%', y: '42%' },
+      position: { x: '41%', y: '37%' },
       mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
@@ -57,24 +57,24 @@ const categorySamples: Record<string, TransformationSample[]> = {
   family: [
     {
       id: 'family1',
-      beforeImage: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&h=600&fit=crop&q=80',
-      afterImage: 'https://images.unsplash.com/photo-1606567595334-d39972c85dfd?w=500&h=600&fit=crop&q=80',
-      style: 'ダヴィンチ風クラシック',
+      beforeImage: '/images/hero/family-before.jpeg',
+      afterImage: '/images/hero/family-after.jpeg',
+      style: '古典名画',
       customerName: '山田家の肖像',
       size: 'large',
-      position: { x: '8%', y: '8%' },
+      position: { x: '3%', y: '3%' },
       mobilePosition: { x: '5%', y: '5%' },
       revealDelay: 0,
       rotation: -3
     },
     {
       id: 'family2',
-      beforeImage: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=500&h=600&fit=crop&q=80',
-      afterImage: 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=500&h=600&fit=crop&q=80',
-      style: '王室の豪華肖像画',
+      beforeImage: '/images/hero/family2-before.jpeg',
+      afterImage: '/images/hero/family2-after.jpeg',
+      style: '豪華油絵',
       customerName: '鈴木家の思い出',
       size: 'medium',
-      position: { x: '48%', y: '42%' },
+      position: { x: '41%', y: '37%' },
       mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
@@ -83,24 +83,24 @@ const categorySamples: Record<string, TransformationSample[]> = {
   kids: [
     {
       id: 'kid1',
-      beforeImage: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=500&h=600&fit=crop&q=80',
-      afterImage: 'https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=500&h=600&fit=crop&q=80',
+      beforeImage: '/images/hero/kids-before.jpeg',
+      afterImage: '/images/hero/kids-after.jpeg',
       style: 'ロココ',
       customerName: 'ゆいちゃんの肖像',
       size: 'large',
-      position: { x: '8%', y: '8%' },
+      position: { x: '3%', y: '3%' },
       mobilePosition: { x: '5%', y: '5%' },
       revealDelay: 0,
       rotation: -3
     },
     {
       id: 'kid2',
-      beforeImage: 'https://images.unsplash.com/photo-1595967964979-0a0a3f6f8dbd?w=500&h=600&fit=crop&q=80',
-      afterImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=500&h=600&fit=crop&q=80',
+      beforeImage: '/images/hero/kids2-before.jpg',
+      afterImage: '/images/hero/kids2-after.jpeg',
       style: 'アニメ・イラスト風',
       customerName: 'けんたくんの冒険',
       size: 'medium',
-      position: { x: '48%', y: '42%' },
+      position: { x: '41%', y: '37%' },
       mobilePosition: { x: '44%', y: '25%' },
       revealDelay: 1200,
       rotation: 4
@@ -151,10 +151,11 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
   }, [sample.revealDelay]);
 
   const sizeClasses = sample.size === 'large'
-    ? 'w-40 h-40 sm:w-72 sm:h-72 lg:w-80 lg:h-80'
-    : 'w-40 h-40 sm:w-64 sm:h-64 lg:w-72 lg:h-72';
+    ? 'w-36 h-36 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]'
+    : 'w-36 h-36 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]';
 
   const zIndex = sample.size === 'large' ? 'z-20' : 'z-10';
+  const mobileTranslateX = index === 0 ? '-95%' : '-5%';
 
   return (
     <div
@@ -162,9 +163,11 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{
-        left: isMobile ? sample.mobilePosition.x : sample.position.x,
+        left: isMobile ? '50%' : sample.position.x,
         top: isMobile ? sample.mobilePosition.y : sample.position.y,
-        transform: `rotate(${sample.rotation}deg)`,
+        transform: isMobile
+          ? `translateX(${mobileTranslateX}) rotate(${sample.rotation}deg)`
+          : `rotate(${sample.rotation}deg)`,
       }}
     >
       {/* メイン画像コンテナ */}

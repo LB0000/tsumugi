@@ -84,7 +84,7 @@ const stylePrompts: Record<string, string> = {
 
   // ポップ・イラスト
   'anime': 'Transform this photo into a vibrant Japanese anime illustration in modern cel-shading style. Apply clean, bold outlines with consistent line weight. Render with flat base colors and sharp two-tone cel-shading (light and shadow with crisp edges). Create large, expressive eyes with detailed iris highlights (multiple white reflection points). Add glossy hair with flowing strands and bright specular highlights. Use vibrant saturated colors: vivid pinks, electric blues, warm oranges. The background should have a soft bokeh or speed-line effect. AVOID: painterly textures or soft blending; keep the clean, digital anime aesthetic.',
-  'ghibli': 'Transform this photo into a Studio Ghibli-inspired hand-drawn animation style reminiscent of Hayao Miyazaki\'s films. Use warm, nostalgic earth tones with Ghibli\'s signature palette: lush greens, warm sky blues, golden sunset oranges. Apply soft watercolor-like background textures with slightly imperfect, hand-drawn outlines that wobble naturally. Create gentle, diffused lighting that feels like a warm afternoon. Give the subject rounded, friendly features with a sense of warmth and wonder. The atmosphere should feel cozy, magical, and deeply nostalgic — like a scene from Totoro or Kiki\'s Delivery Service. AVOID: harsh shadows or overly clean digital lines.',
+  'ghibli': 'Transform this photo into a nostalgic hand-drawn Japanese animation film look (late-1980s to 1990s aesthetic). Use warm, natural earth tones: lush greens, soft sky blues, sunlit amber, and muted cream highlights. Paint the background with gentle watercolor/gouache texture and atmospheric depth. Use slightly organic pencil-like outlines with minor hand-drawn wobble, never perfectly rigid vector lines. Give the subject friendly, rounded stylization while preserving their recognizable identity. The mood should feel cozy, hopeful, and quietly magical. AVOID: harsh shadows, glossy CGI rendering, photoreal skin texture, and sterile digital linework.',
   'pop-art': 'Transform this photo into bold Pop Art in the style of Andy Warhol\'s screen prints or Roy Lichtenstein\'s comic panels. Apply high contrast with dramatically flattened tones. Use loud, saturated colors: hot pink (#FF1493), electric cyan (#00CED1), vivid yellow (#FFD700), and bright orange (#FF4500). Add visible Ben-Day dot patterns (halftone dots) in mid-tone areas as a key visual element. Apply thick black outlines and flat graphic color areas. The result should look like a screen-printed poster or newspaper comic panel with slight CMYK registration offset. AVOID: muted, pastel, or earthy colors; everything must be loud and vibrant.',
   'hand-drawn': 'Transform this photo into a hand-drawn pencil and charcoal sketch on textured cream paper. Use soft graphite pencils (2B-6B range) with varying pressure — light sketchy construction lines visible beneath darker finished strokes. Apply cross-hatching and stippling for shading, with visible directional pencil strokes following the form. Include subtle artistic imperfections: slightly uneven lines, faint eraser marks, and smudged charcoal areas. Keep the palette monochromatic (graphite grays) or with minimal sepia/sanguine tinting. The paper texture should be visible throughout. AVOID: digital perfection, clean vector lines, or photorealistic smoothness.',
 
@@ -139,12 +139,42 @@ function getStylePrompt(styleId: string, category: string): string {
   return stylePrompts[styleId] || getIntelligentPrompt(category);
 }
 
+// Style-specific guidance to reinforce transformations that are often under-stylized
+const styleFocusPrompts: Record<string, string> = {
+  'ghibli': `STYLE LOCK (NOSTALGIC HAND-DRAWN ANIMATION):
+- Convert all photographic texture (skin pores, camera sharpness, lens artifacts) into hand-painted cel animation surfaces.
+- Keep proportions softly stylized: simplified nose bridge, gentler jawline, slightly larger eyes, and softer shading transitions.
+- Use diffuse ambient light only; avoid hard key light and hard-edged cast shadows.
+- Paint a storybook-like environment that complements the subject and feels naturally integrated, not a flat backdrop.
+- Keep linework organic and imperfect, as if drawn with colored pencil or ink over painted cels.
+- Do not reference copyrighted characters, logos, or exact scenes.`,
+};
+
+function getStyleFocusPrompt(styleId: string): string {
+  return styleFocusPrompts[styleId] || '';
+}
+
 // Category-specific prompt additions (enhanced with preservation details)
 const categoryPrompts: Record<string, string> = {
   'pets': 'SUBJECT: The subject is a beloved pet animal. Preserve the animal\'s unique markings, fur color and pattern, breed characteristics, and individual personality. Treat the pet with the same dignity and artistry as a human portrait subject.',
   'family': 'SUBJECT: The subject is a family portrait or couple. Preserve each person\'s facial features, skin tone, hair color and style, and the emotional connection between family members. Render with warmth and timeless elegance.',
   'kids': 'SUBJECT: The subject is a child. Preserve their innocent expression, youthful features, and natural energy. Use gentle, warm treatment appropriate for a child\'s portrait. Do not make the child look older or significantly different.'
 };
+
+function parseImageDataUrl(baseImage: string): { mimeType: string; data: string } {
+  const dataUrlMatch = baseImage.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!dataUrlMatch) {
+    throw new Error('Invalid image data URL');
+  }
+
+  const mimeType = dataUrlMatch[1];
+  const data = dataUrlMatch[2].replace(/[\s\n\r]/g, '');
+  if (!data || !/^[A-Za-z0-9+/=]+$/.test(data)) {
+    throw new Error('Invalid base64 image data');
+  }
+
+  return { mimeType, data };
+}
 
 generateRouter.post('/', async (req: Request<object, object, GenerateImageRequest>, res: Response) => {
   try {
@@ -169,10 +199,13 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
 
     // Build the prompt using dynamic style selection
     const stylePrompt = getStylePrompt(styleId, category);
+    const styleFocusPrompt = getStyleFocusPrompt(styleId);
     const categoryPrompt = categoryPrompts[category] || '';
     const customPrompt = options?.customPrompt || '';
 
     const fullPrompt = `${stylePrompt}
+
+${styleFocusPrompt}
 
 ${categoryPrompt}
 
@@ -181,13 +214,22 @@ ${customPrompt}
 CRITICAL REQUIREMENTS:
 - PORTRAIT COMPOSITION: This is a portrait art service. Keep the subject centered and prominently featured. Maintain the original face/head position and expression.
 - ARTISTIC TRANSFORMATION: Apply the style STRONGLY. The result must look like genuine artwork, NOT a photo filter or overlay.
-- SUBJECT FIDELITY: The subject must remain clearly recognizable — same features, same pose, same expression.
+- SUBJECT FIDELITY: The subject must remain clearly recognizable. Stylization is allowed, but identity cues must stay intact.
 - ARTISTIC QUALITY: Render with visible artistic techniques appropriate to the style (brushstrokes, textures, line work, etc.)
 - BACKGROUND: Create an appropriate artistic background that complements the chosen style. Do NOT keep the original photo background.
 - AVOID: Do not produce photorealistic results. Do not add text or watermarks. Do not crop or change the framing significantly.`;
 
     // Extract base64 image data
-    const base64Data = baseImage.replace(/^data:image\/\w+;base64,/, '');
+    let parsedImage: { mimeType: string; data: string };
+    try {
+      parsedImage = parseImageDataUrl(baseImage);
+    } catch {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_IMAGE', message: 'Invalid base64 image format' }
+      });
+      return;
+    }
 
     console.log('Generating image with Gemini 3 Pro Image...', { styleId, category });
 
@@ -196,8 +238,8 @@ CRITICAL REQUIREMENTS:
       model.generateContent([
         {
           inlineData: {
-            mimeType: 'image/jpeg',
-            data: base64Data
+            mimeType: parsedImage.mimeType,
+            data: parsedImage.data
           }
         },
         { text: fullPrompt }
@@ -308,6 +350,7 @@ async function generateMockResponse(styleId: string): Promise<GenerateImageRespo
 function generateMockPortrait(styleId: string): string {
   const safeStyleId = styleId.replace(/[^a-zA-Z0-9-_]/g, '').substring(0, 50);
   const colors = getStyleColors(styleId);
+  const title = getMockPortraitTitle(styleId);
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">
@@ -325,7 +368,7 @@ function generateMockPortrait(styleId: string): string {
       <rect x="20" y="20" width="360" height="460" rx="10" fill="url(#frame)" opacity="0.3"/>
       <ellipse cx="200" cy="220" rx="100" ry="120" fill="${colors.accent}" opacity="0.5"/>
       <text x="200" y="420" font-family="serif" font-size="24" fill="${colors.text}" text-anchor="middle" font-style="italic">
-        Renaissance Portrait
+        ${title}
       </text>
       <text x="200" y="450" font-family="sans-serif" font-size="14" fill="${colors.text}" text-anchor="middle" opacity="0.7">
         Style: ${safeStyleId}
@@ -334,6 +377,22 @@ function generateMockPortrait(styleId: string): string {
   `;
 
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+}
+
+function getMockPortraitTitle(styleId: string): string {
+  const titles: Record<string, string> = {
+    'ghibli': 'Nostalgic Animation Portrait',
+    'anime': 'Anime Portrait',
+    'watercolor': 'Watercolor Portrait',
+    'ukiyo-e': 'Ukiyo-e Portrait',
+    'sumi-e': 'Ink Wash Portrait',
+    'baroque': 'Baroque Portrait',
+    'renaissance': 'Renaissance Portrait',
+    'impressionist': 'Impressionist Portrait',
+    'pop-art': 'Pop Art Portrait'
+  };
+
+  return titles[styleId] || 'Stylized Portrait';
 }
 
 function getStyleColors(styleId: string): Record<string, string> {
