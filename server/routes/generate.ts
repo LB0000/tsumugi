@@ -293,6 +293,52 @@ CRITICAL REQUIREMENTS:
       }
     } else {
       console.log('No candidates or parts in response');
+      // Log safety feedback for debugging
+      const feedback = response.promptFeedback;
+      if (feedback) {
+        console.log('Prompt feedback:', JSON.stringify(feedback));
+      }
+      const candidate = response.candidates?.[0];
+      if (candidate) {
+        console.log('Candidate finishReason:', candidate.finishReason);
+        console.log('Candidate safetyRatings:', JSON.stringify(candidate.safetyRatings));
+      }
+    }
+
+    if (!generatedImage) {
+      // Retry once with simplified prompt when Gemini returns no image (often a transient safety filter issue)
+      console.log('No image in first attempt, retrying with simplified prompt...');
+      const retryPrompt = `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`;
+      const retryResult = await generateWithRetry(() =>
+        model.generateContent([
+          {
+            inlineData: {
+              mimeType: parsedImage.mimeType,
+              data: parsedImage.data
+            }
+          },
+          { text: retryPrompt }
+        ])
+      );
+
+      const retryResponse = await retryResult.response;
+      if (retryResponse.candidates?.[0]?.content?.parts) {
+        for (const part of retryResponse.candidates[0].content.parts) {
+          if ('inlineData' in part && part.inlineData) {
+            const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
+            if (cleanBase64.length > 0 && /^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+              generatedImage = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
+              console.log('Retry successful! Image generated.');
+            }
+          }
+          if ('text' in part && part.text) {
+            textResponse = part.text;
+          }
+        }
+      } else {
+        const retryFeedback = retryResponse.promptFeedback;
+        if (retryFeedback) console.log('Retry prompt feedback:', JSON.stringify(retryFeedback));
+      }
     }
 
     if (!generatedImage) {

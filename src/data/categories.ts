@@ -11,9 +11,9 @@ export const categories: Category[] = [
     trustText: '10,000人以上のペットオーナーに選ばれています',
     basePrice: 2900,
     sampleImages: [
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=500&fit=crop'
+      '/images/hero/dog-before.jpg',
+      '/images/hero/cat-before.jpg',
+      '/images/styles/pet/pet-royalty.jpeg'
     ]
   },
   {
@@ -26,9 +26,9 @@ export const categories: Category[] = [
     trustText: '1,000以上のご家族に選ばれています',
     basePrice: 4900,
     sampleImages: [
-      'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1606567595334-d39972c85dfd?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&h=500&fit=crop'
+      '/images/hero/family-before.jpeg',
+      '/images/hero/family2-before.jpeg',
+      '/images/hero/family-after.jpeg'
     ]
   },
   {
@@ -41,9 +41,9 @@ export const categories: Category[] = [
     trustText: '1,000人以上の保護者に選ばれています',
     basePrice: 4900,
     sampleImages: [
-      'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1595967964979-0a0a3f6f8dbd?w=400&h=500&fit=crop'
+      '/images/hero/kids-before.jpeg',
+      '/images/hero/kids2-before.jpg',
+      '/images/hero/kids-after.jpeg'
     ]
   }
 ];

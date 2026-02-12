@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, Search, Grid3X3, Crown, Leaf, Sparkles, Monitor } from 'lucide-react';
+import { X, Check, Search, Grid3X3, Crown, Leaf, Sparkles, Wand2, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
@@ -7,7 +7,7 @@ import { StyledButton } from '../common/StyledButton';
 import { StyleCategoryCarousel } from './style-selector/StyleCategoryCarousel';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Grid3X3, Crown, Leaf, Sparkles, Monitor
+  Grid3X3, Crown, Leaf, Sparkles, Wand2, Monitor
 };
 
 export function StyleModal() {

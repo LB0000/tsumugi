@@ -8,6 +8,12 @@ export const styleCategories: StyleCategory[] = [
     icon: 'Grid3X3'
   },
   {
+    id: 'narikiri',
+    name: 'なりきり',
+    description: 'コスチューム変身スタイル',
+    icon: 'Wand2'
+  },
+  {
     id: 'western',
     name: '西洋絵画',
     description: 'ルネサンス〜印象派の名画スタイル',

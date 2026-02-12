@@ -72,8 +72,8 @@ const testimonials: Testimonial[] = [
     comment: '豪華油絵スタイルが本当に美術館の絵のよう。技術の高さに感動しました。部屋の雰囲気が一気に変わりました。',
     style: '豪華油絵',
     category: 'pets',
-    beforeImage: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=300&h=300&fit=crop&q=80',
-    afterImage: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=300&h=300&fit=crop&q=80',
+    beforeImage: '/images/hero/dog-before.jpg',
+    afterImage: '/images/styles/pet/baroque.jpeg',
   },
   {
     id: '6',
@@ -180,23 +180,24 @@ export function TestimonialTicker() {
   const items = prefersReducedMotion ? testimonials : [...testimonials, ...testimonials];
 
   return (
-    <section className="py-12 overflow-hidden" aria-labelledby="testimonial-heading">
+    <section className="py-12" aria-labelledby="testimonial-heading">
       <div className="mb-8 text-center">
         <p className="text-xs text-secondary uppercase tracking-[0.2em] mb-2">
           お客様の声
         </p>
         <h3 id="testimonial-heading" className="font-serif text-xl sm:text-2xl font-semibold text-foreground">
-          2,800件以上のレビューで平均4.9の高評価
+          <span className="block sm:inline">2,800件以上のレビューで</span>
+          <span className="block sm:inline">平均4.9の高評価</span>
         </h3>
       </div>
 
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-6 sm:w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
 
         <div
           onScroll={handleScroll}
-          className={`flex gap-5 overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:snap-none ${prefersReducedMotion ? '' : 'sm:animate-tickerScroll'} scrollbar-hide`}
+          className={`flex gap-5 overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:snap-none ${prefersReducedMotion ? '' : 'animate-tickerScroll'} scrollbar-hide`}
         >
           {items.map((testimonial, index) => (
             <TestimonialCard

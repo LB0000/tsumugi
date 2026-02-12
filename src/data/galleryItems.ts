@@ -3,12 +3,40 @@ export interface GalleryItem {
   beforeImage: string;
   afterImage: string;
   styleName: string;
-  styleCategory: 'western' | 'japanese' | 'pop';
+  styleCategory: 'narikiri' | 'western' | 'japanese' | 'pop';
   subjectCategory: 'pets' | 'family' | 'kids';
   label: string;
 }
 
 export const galleryItems: GalleryItem[] = [
+  // なりきり
+  {
+    id: 'dog-royalty',
+    beforeImage: '/images/hero/dog-before.jpg',
+    afterImage: '/images/styles/pet/pet-royalty.jpeg',
+    styleName: '王族スタイル',
+    styleCategory: 'narikiri',
+    subjectCategory: 'pets',
+    label: '高橋様の愛犬',
+  },
+  {
+    id: 'cat-samurai',
+    beforeImage: '/images/hero/cat-before.jpg',
+    afterImage: '/images/styles/pet/pet-samurai.jpeg',
+    styleName: '武将スタイル',
+    styleCategory: 'narikiri',
+    subjectCategory: 'pets',
+    label: '伊藤様の猫',
+  },
+  {
+    id: 'kid-fairy',
+    beforeImage: '/images/hero/kids-before.jpeg',
+    afterImage: '/images/styles/pet/pet-fairy.jpeg',
+    styleName: '妖精',
+    styleCategory: 'narikiri',
+    subjectCategory: 'kids',
+    label: 'さくらちゃんの肖像',
+  },
   // 西洋絵画
   {
     id: 'dog-baroque',
@@ -68,8 +96,8 @@ export const galleryItems: GalleryItem[] = [
   // ポップ・イラスト
   {
     id: 'dog-anime',
-    beforeImage: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=500&fit=crop',
-    afterImage: 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=500&fit=crop&q=80',
+    beforeImage: '/images/hero/dog-before.jpg',
+    afterImage: '/images/styles/pet/anime.jpeg',
     styleName: 'アニメ',
     styleCategory: 'pop',
     subjectCategory: 'pets',
@@ -77,17 +105,17 @@ export const galleryItems: GalleryItem[] = [
   },
   {
     id: 'cat-ghibli',
-    beforeImage: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&h=500&fit=crop',
-    afterImage: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400&h=500&fit=crop&q=80',
+    beforeImage: '/images/hero/cat-before.jpg',
+    afterImage: '/images/styles/pet/ghibli.jpeg',
     styleName: 'ジブリ風',
     styleCategory: 'pop',
     subjectCategory: 'pets',
     label: '中村様の猫',
   },
   {
-    id: 'kid-popart',
-    beforeImage: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400&h=500&fit=crop',
-    afterImage: 'https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=400&h=500&fit=crop&q=80',
+    id: 'dog-popart',
+    beforeImage: '/images/hero/dog-before.jpg',
+    afterImage: '/images/styles/pet/pop-art.jpeg',
     styleName: 'ポップアート',
     styleCategory: 'pop',
     subjectCategory: 'pets',

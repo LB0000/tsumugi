@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, Crown, Leaf, Grid3X3, ArrowRight, X } from 'lucide-react';
+import { Sparkles, Crown, Leaf, Grid3X3, Wand2, ArrowRight, X } from 'lucide-react';
 import { galleryItems, type GalleryItem } from '../../data/galleryItems';
 import { artStyles } from '../../data/artStyles';
 import { useAppStore } from '../../stores/appStore';
@@ -7,6 +7,7 @@ import type { StyleCategoryId } from '../../types';
 
 const filterTabs: { id: StyleCategoryId; name: string; icon: typeof Grid3X3 }[] = [
   { id: 'all', name: 'すべて', icon: Grid3X3 },
+  { id: 'narikiri', name: 'なりきり', icon: Wand2 },
   { id: 'western', name: '西洋絵画', icon: Crown },
   { id: 'japanese', name: '和風・東洋', icon: Leaf },
   { id: 'pop', name: 'ポップ', icon: Sparkles },

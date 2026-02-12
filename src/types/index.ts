@@ -10,7 +10,7 @@ export interface Category {
   sampleImages: string[];
 }
 
-export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop' | 'digital';
+export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop' | 'narikiri' | 'digital';
 
 export interface ArtStyle {
   id: string;
