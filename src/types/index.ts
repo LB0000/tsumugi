@@ -24,6 +24,7 @@ export interface ArtStyle {
   tags?: string[];
   isNew?: boolean;
   popularity?: number;
+  availableCategories?: Category['id'][];
 }
 
 export interface StyleCategory {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
@@ -29,6 +29,7 @@ export function GeneratePreview() {
   const [error, setError] = useState<string | null>(null);
   const [generationStage, setGenerationStage] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
+  const [hasImageProcessingConsent, setHasImageProcessingConsent] = useState(false);
 
   // Labor Illusion: ステージ付きプログレス表示
   const generationStages = [
@@ -66,6 +67,12 @@ export function GeneratePreview() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  useEffect(() => {
+    if (!uploadState.previewUrl) {
+      setHasImageProcessingConsent(false);
+    }
+  }, [uploadState.previewUrl]);
+
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle) return;
 
@@ -92,8 +99,8 @@ export function GeneratePreview() {
     resetUpload();
   };
 
-  const hasPhoto = uploadState.status === 'complete' && uploadState.previewUrl;
-  const canGenerate = hasPhoto && selectedStyle;
+  const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
+  const canGenerate = hasPhoto && Boolean(selectedStyle) && hasImageProcessingConsent;
 
   const estimatedSeconds = 15 - (generationStage * 3);
   const dynamicMessage = generationStage === generationStages.length - 1
@@ -149,24 +156,43 @@ export function GeneratePreview() {
                 </div>
               </div>
             ) : (
-              <button
-                onClick={handleGenerate}
-                disabled={!canGenerate || isGenerating}
-                className={`group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 ${
-                  canGenerate
-                    ? 'hover:shadow-primary/40 hover:scale-[1.05] cursor-pointer animate-subtlePulse'
-                    : 'opacity-40 cursor-not-allowed'
-                }`}
-              >
-                {canGenerate && (
-                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="space-y-4">
+                {hasPhoto && selectedStyle && (
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-card/70 border border-border/60 text-left">
+                    <input
+                      type="checkbox"
+                      checked={hasImageProcessingConsent}
+                      onChange={(e) => setHasImageProcessingConsent(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary/40"
+                    />
+                    <span className="text-sm text-muted leading-relaxed">
+                      画像生成のため、アップロード画像を外部AI（Google Gemini）に送信することに同意します。
+                      <Link to="/privacy" className="ml-1 text-primary hover:underline">
+                        プライバシーポリシー
+                      </Link>
+                    </span>
+                  </label>
                 )}
-                <span className="relative flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  肖像画を生成
-                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </span>
-              </button>
+
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate || isGenerating}
+                  className={`group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 ${
+                    canGenerate
+                      ? 'hover:shadow-primary/40 hover:scale-[1.05] cursor-pointer animate-subtlePulse'
+                      : 'opacity-40 cursor-not-allowed'
+                  }`}
+                >
+                  {canGenerate && (
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  )}
+                  <span className="relative flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    肖像画を生成
+                    <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+              </div>
             )}
 
             {error && (
@@ -181,7 +207,9 @@ export function GeneratePreview() {
                   ? '写真のアップロードとスタイル選択が必要です'
                   : !hasPhoto
                     ? '写真をアップロードしてください'
-                    : 'スタイルを選択してください'}
+                    : !selectedStyle
+                      ? 'スタイルを選択してください'
+                      : '生成を開始するには画像処理への同意が必要です'}
               </p>
             )}
 

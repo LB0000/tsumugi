@@ -20,7 +20,7 @@ export function PrivacyPage() {
           <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-3">
             プライバシーポリシー
           </h1>
-          <p className="text-muted">最終更新日: 2024年1月1日</p>
+          <p className="text-muted">最終更新日: 2026年2月12日</p>
         </div>
       </div>
 
@@ -42,11 +42,11 @@ export function PrivacyPage() {
               <p>当社は、以下の情報を収集することがあります。</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>氏名、メールアドレス、電話番号、住所等の連絡先情報</li>
-                <li>お支払い情報（クレジットカード番号等）</li>
-                <li>アップロードされた写真および生成された肖像画</li>
-                <li>サービス利用履歴、購入履歴</li>
+                <li>決済に必要な情報（カード情報は決済代行事業者Squareが処理し、当社サーバーでは保存しません）</li>
+                <li>アップロード画像および生成画像（画像生成処理のため）</li>
+                <li>お問い合わせ内容、サービス利用履歴、購入履歴</li>
                 <li>IPアドレス、ブラウザの種類、アクセス日時等のログ情報</li>
-                <li>Cookie情報</li>
+                <li>Cookie情報（認証セッション管理およびCSRF対策を含む）</li>
               </ul>
             </div>
           </section>
@@ -83,12 +83,15 @@ export function PrivacyPage() {
             <h2 className="font-serif text-xl font-semibold text-foreground mb-4">5. 写真データの取り扱い</h2>
             <div className="text-muted leading-relaxed space-y-3">
               <p>
-                お客様がアップロードされた写真は、肖像画生成の目的でのみ使用します。
-                生成処理完了後、元の写真データは30日以内にサーバーから削除されます。
+                お客様がアップロードした画像は、肖像画生成の目的に限定して利用します。画像生成時には、
+                外部AIサービス（Google Gemini）に画像データを送信して処理します。
               </p>
               <p>
-                生成された肖像画は、お客様のアカウントに保存され、お客様がいつでもダウンロードできます。
-                アカウント削除時には、関連するすべてのデータが削除されます。
+                当社サーバーは、通常運用でアップロード画像ファイルおよび生成画像ファイルを恒久保存しません。
+                生成プレビューは主にブラウザ内セッションで保持され、同一端末利用時の漏洩防止のためログアウト時にクリアされます。
+              </p>
+              <p>
+                機微情報（顔写真、身分証、医療情報など）を含む画像のアップロードは避けてください。
               </p>
             </div>
           </section>

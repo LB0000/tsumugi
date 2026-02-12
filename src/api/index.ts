@@ -214,6 +214,11 @@ interface CurrentUserResponse {
   user: AuthUser;
 }
 
+interface CsrfResponse {
+  success: true;
+  csrfToken: string;
+}
+
 function isCreateOrderResponse(data: unknown): data is CreateOrderResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
@@ -290,6 +295,49 @@ function isCurrentUserResponse(data: unknown): data is CurrentUserResponse {
     typeof user.name === 'string' &&
     typeof user.email === 'string'
   );
+}
+
+function isCsrfResponse(data: unknown): data is CsrfResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return (
+    obj.success === true &&
+    typeof obj.csrfToken === 'string'
+  );
+}
+
+async function getFreshCsrfToken(): Promise<string> {
+  const response = await fetch(`${API_BASE}/auth/csrf`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'CSRFトークンの取得に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isCsrfResponse(data)) {
+    throw new Error('Invalid csrf response format');
+  }
+
+  return data.csrfToken;
+}
+
+async function buildAuthPostHeaders(): Promise<Record<string, string>> {
+  const csrfToken = await getFreshCsrfToken();
+  return {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken,
+  };
+}
+
+async function buildAuthActionHeaders(): Promise<Record<string, string>> {
+  const csrfToken = await getFreshCsrfToken();
+  return {
+    'X-CSRF-Token': csrfToken,
+  };
 }
 
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
@@ -377,9 +425,10 @@ export async function sendSupportChat(request: SupportChatRequest): Promise<Supp
 }
 
 export async function loginAuth(request: { email: string; password: string }): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -399,9 +448,10 @@ export async function loginAuth(request: { email: string; password: string }): P
 }
 
 export async function registerAuth(request: { name: string; email: string; password: string }): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -421,9 +471,10 @@ export async function registerAuth(request: { name: string; email: string; passw
 }
 
 export async function forgotPassword(request: { email: string }): Promise<ForgotPasswordResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/auth/forgot-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -443,9 +494,10 @@ export async function forgotPassword(request: { email: string }): Promise<Forgot
 }
 
 export async function resetPassword(request: { token: string; newPassword: string }): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -485,8 +537,10 @@ export async function getCurrentUser(): Promise<AuthUser> {
 }
 
 export async function logoutAuth(): Promise<void> {
+  const headers = await buildAuthActionHeaders();
   const response = await fetch(`${API_BASE}/auth/logout`, {
     method: 'POST',
+    headers,
     credentials: 'include',
   });
 

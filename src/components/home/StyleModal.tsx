@@ -16,6 +16,7 @@ export function StyleModal() {
     closeStyleModal,
     selectedStyle,
     setSelectedStyle,
+    selectedCategory,
     styleFilterState,
     setStyleSearchQuery,
     setStyleTierFilter
@@ -29,6 +30,11 @@ export function StyleModal() {
   // フィルタリング
   const filteredStyles = useMemo(() => {
     return artStyles.filter((style) => {
+      // カテゴリ別フィルター（ペット専用スタイルなど）
+      if (style.availableCategories && !style.availableCategories.includes(selectedCategory)) {
+        return false;
+      }
+
       // 検索クエリ
       if (styleFilterState.searchQuery) {
         const query = styleFilterState.searchQuery.toLowerCase();
@@ -52,7 +58,7 @@ export function StyleModal() {
 
       return true;
     });
-  }, [styleFilterState]);
+  }, [styleFilterState, selectedCategory]);
 
   // カテゴリごとにスタイルをグループ化
   const stylesByCategory = useMemo(() => {

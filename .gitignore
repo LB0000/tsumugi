@@ -18,6 +18,9 @@ dist-server
 .env.local
 .env.production
 
+# Runtime data stores (auth/session/contact/checkout)
+server/.data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

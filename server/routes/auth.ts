@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import {
   SESSION_TTL_MS,
   getUserBySessionToken,
@@ -12,6 +13,7 @@ import {
 
 export const authRouter = Router();
 const AUTH_SESSION_COOKIE_NAME = 'fable_session';
+const AUTH_CSRF_COOKIE_NAME = 'fable_csrf';
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendUrl = process.env.FRONTEND_URL;
 const authCookieSameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
@@ -61,9 +63,47 @@ function extractSessionToken(req: Request): string | null {
   return cookies.get(AUTH_SESSION_COOKIE_NAME) ?? null;
 }
 
+function extractCsrfTokenFromCookie(req: Request): string | null {
+  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
+  const cookies = parseCookies(cookieHeader);
+  return cookies.get(AUTH_CSRF_COOKIE_NAME) ?? null;
+}
+
+function extractCsrfTokenFromHeader(req: Request): string | null {
+  const header = req.headers['x-csrf-token'];
+  if (typeof header === 'string' && header.trim().length > 0) {
+    return header.trim();
+  }
+  if (Array.isArray(header) && typeof header[0] === 'string' && header[0].trim().length > 0) {
+    return header[0].trim();
+  }
+  return null;
+}
+
+function createCsrfToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+function isSameToken(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
 function setSessionCookie(res: Response, token: string): void {
   res.cookie(AUTH_SESSION_COOKIE_NAME, token, {
     httpOnly: true,
+    secure: authCookieSecure,
+    sameSite: authCookieSameSite,
+    maxAge: SESSION_TTL_MS,
+    path: '/',
+  });
+}
+
+function setCsrfCookie(res: Response, token: string): void {
+  res.cookie(AUTH_CSRF_COOKIE_NAME, token, {
+    httpOnly: false,
     secure: authCookieSecure,
     sameSite: authCookieSameSite,
     maxAge: SESSION_TTL_MS,
@@ -80,11 +120,29 @@ function clearSessionCookie(res: Response): void {
   });
 }
 
+function clearCsrfCookie(res: Response): void {
+  res.clearCookie(AUTH_CSRF_COOKIE_NAME, {
+    httpOnly: false,
+    secure: authCookieSecure,
+    sameSite: authCookieSameSite,
+    path: '/',
+  });
+}
+
 function isAllowedOrigin(originHeader: string | undefined): boolean {
   if (!isProduction || !frontendUrl) return true;
-  if (!originHeader) return true;
+  if (!originHeader) return false;
   return originHeader === frontendUrl;
 }
+
+authRouter.get('/csrf', (_req, res) => {
+  const csrfToken = createCsrfToken();
+  setCsrfCookie(res, csrfToken);
+  res.json({
+    success: true,
+    csrfToken,
+  });
+});
 
 authRouter.use((req, res, next) => {
   if (req.method !== 'POST') {
@@ -97,6 +155,16 @@ authRouter.use((req, res, next) => {
     res.status(403).json({
       success: false,
       error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
+    });
+    return;
+  }
+
+  const csrfTokenFromCookie = extractCsrfTokenFromCookie(req);
+  const csrfTokenFromHeader = extractCsrfTokenFromHeader(req);
+  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !isSameToken(csrfTokenFromCookie, csrfTokenFromHeader)) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
     });
     return;
   }
@@ -146,6 +214,7 @@ authRouter.post('/register', async (req, res) => {
       password: normalizedPassword,
     });
     setSessionCookie(res, result.token);
+    setCsrfCookie(res, createCsrfToken());
 
     res.json({
       success: true,
@@ -191,6 +260,7 @@ authRouter.post('/login', async (req, res) => {
       password: normalizedPassword,
     });
     setSessionCookie(res, result.token);
+    setCsrfCookie(res, createCsrfToken());
 
     res.json({
       success: true,
@@ -227,6 +297,7 @@ authRouter.post('/forgot-password', (req, res) => {
 
   const resetToken = requestPasswordReset(normalizedEmail);
   const isProduction = process.env.NODE_ENV === 'production';
+  setCsrfCookie(res, createCsrfToken());
 
   res.json({
     success: true,
@@ -266,6 +337,7 @@ authRouter.post('/reset-password', async (req, res) => {
       newPassword: normalizedPassword,
     });
     setSessionCookie(res, result.token);
+    setCsrfCookie(res, createCsrfToken());
 
     res.json({
       success: true,
@@ -319,5 +391,6 @@ authRouter.post('/logout', (req, res) => {
     logoutSession(token);
   }
   clearSessionCookie(res);
+  clearCsrfCookie(res);
   res.json({ success: true });
 });

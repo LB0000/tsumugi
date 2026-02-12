@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Check, Sparkles, ChevronRight, ChevronLeft, Crown, Leaf, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
@@ -149,13 +149,19 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
 }
 
 export function StyleSection() {
-  const { selectedStyle, setSelectedStyle, openStyleModal } = useAppStore();
+  const { selectedStyle, setSelectedStyle, openStyleModal, selectedCategory } = useAppStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const visibleStyles = artStyles.slice(0, 8);
+  const filteredStyles = useMemo(() => {
+    return artStyles.filter(
+      style => !style.availableCategories || style.availableCategories.includes(selectedCategory)
+    );
+  }, [selectedCategory]);
+
+  const visibleStyles = useMemo(() => filteredStyles.slice(0, 8), [filteredStyles]);
   const cardWidth = 192 + 20; // w-48 (192px) + gap-5 (20px)
   const totalPages = Math.max(1, Math.ceil((visibleStyles.length + 1) / 3)); // +1 for "View All"
 
@@ -236,7 +242,7 @@ export function StyleSection() {
           <Sparkles className="w-4 h-4" />
           すべて見る
           <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
-            {artStyles.length}種類
+            {filteredStyles.length}種類
           </span>
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </button>
@@ -291,7 +297,7 @@ export function StyleSection() {
             <Monitor className="w-4 h-4 text-muted/50" />
           </div>
           <span className="text-lg font-bold text-primary">
-            {artStyles.length}
+            {filteredStyles.length}
           </span>
           <span className="text-sm font-medium text-primary">
             種類から選ぶ

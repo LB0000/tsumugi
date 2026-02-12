@@ -16,6 +16,10 @@ export async function writeJsonAtomic(filePath: string, data: unknown): Promise<
   const dir = path.dirname(filePath);
   await fs.mkdir(dir, { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
-  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+  // Persist sensitive runtime data with owner-only permissions.
+  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
   await fs.rename(tempPath, filePath);
+  await fs.chmod(filePath, 0o600).catch(() => {
+    // Best effort: some environments may not support chmod reliably.
+  });
 }

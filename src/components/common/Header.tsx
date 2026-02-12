@@ -10,8 +10,10 @@ export function Header() {
     setSelectedCategory,
     toggleSidebar,
     cartItems,
+    clearCart,
     authUser,
     clearAuthSession,
+    resetUpload,
   } = useAppStore();
   const { pathname } = useLocation();
   const isHomePage = pathname === '/';
@@ -23,6 +25,9 @@ export function Header() {
     } catch {
       // Logout should still clear client session if API call fails
     } finally {
+      sessionStorage.removeItem('tsumugi-result');
+      resetUpload();
+      clearCart();
       clearAuthSession();
     }
   };

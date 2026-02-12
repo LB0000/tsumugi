@@ -7,18 +7,42 @@ import { StyledButton } from '../components/common/StyledButton';
 
 type ProductOption = (typeof products)[number];
 
+const SESSION_KEY = 'tsumugi-result';
+
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, setGeneratedImage, addToCart } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, setGeneratedImage, setSelectedStyle, resetUpload, addToCart } = useAppStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
 
+  // Restore from sessionStorage if store is empty (e.g. browser back)
   useEffect(() => {
     if (!generatedImage || !selectedStyle) {
+      try {
+        const saved = sessionStorage.getItem(SESSION_KEY);
+        if (saved) {
+          const { image, style } = JSON.parse(saved);
+          if (image && style) {
+            setGeneratedImage(image);
+            setSelectedStyle(style);
+            return;
+          }
+        }
+      } catch { /* ignore parse errors */ }
       navigate('/');
     }
-  }, [generatedImage, selectedStyle, navigate]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save to sessionStorage when data is available
+  useEffect(() => {
+    if (generatedImage && selectedStyle) {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        image: generatedImage,
+        style: selectedStyle,
+      }));
+    }
+  }, [generatedImage, selectedStyle]);
 
   if (!generatedImage || !selectedStyle) return null;
 
@@ -49,12 +73,19 @@ export function ResultPage() {
   };
 
   const handleRetryWithNewStyle = () => {
+    sessionStorage.removeItem(SESSION_KEY);
     setGeneratedImage(null);
     navigate('/');
     // スタイルセクションへスクロール（遷移後に実行）
     setTimeout(() => {
       document.getElementById('style-section')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
+  };
+
+  const handleBackToHome = () => {
+    sessionStorage.removeItem(SESSION_KEY);
+    resetUpload();
+    navigate('/');
   };
 
   return (
@@ -65,7 +96,7 @@ export function ResultPage() {
           {/* Navigation */}
           <div className="text-center mb-6">
             <button
-              onClick={() => navigate('/')}
+              onClick={handleBackToHome}
               className="inline-flex items-center text-sm text-muted hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />

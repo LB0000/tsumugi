@@ -452,6 +452,7 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
 // GET /api/checkout/payment-status/:orderId
 checkoutRouter.get('/payment-status/:orderId', (req, res) => {
   const orderId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
+  const paymentIdQuery = typeof req.query.paymentId === 'string' ? req.query.paymentId.trim() : '';
   if (!orderId) {
     res.status(400).json({
       success: false,
@@ -459,9 +460,16 @@ checkoutRouter.get('/payment-status/:orderId', (req, res) => {
     });
     return;
   }
+  if (!paymentIdQuery) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_PAYMENT_ID', message: '決済IDが必要です' },
+    });
+    return;
+  }
 
   const paymentStatus = getOrderPaymentStatus(orderId);
-  if (!paymentStatus) {
+  if (!paymentStatus || paymentStatus.paymentId !== paymentIdQuery) {
     res.status(404).json({
       success: false,
       error: { code: 'PAYMENT_STATUS_NOT_FOUND', message: '決済ステータスが見つかりません' },

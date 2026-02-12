@@ -1,10 +1,20 @@
+import { useEffect } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
 
+const RESULT_SESSION_KEY = 'tsumugi-result';
+
 export function HomePage() {
-  const { selectedCategory } = useAppStore();
+  const { selectedCategory, resetUpload } = useAppStore();
   const currentCategory = categories.find(c => c.id === selectedCategory);
+
+  useEffect(() => {
+    const hasResultSession = sessionStorage.getItem(RESULT_SESSION_KEY);
+    if (!hasResultSession) return;
+    sessionStorage.removeItem(RESULT_SESSION_KEY);
+    resetUpload();
+  }, [resetUpload]);
 
   if (!currentCategory) return null;
 
