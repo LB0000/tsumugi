@@ -139,21 +139,6 @@ export const StyleCard = memo(function StyleCard({
         {/* ホバーオーバーレイ */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* Tier バッジ（視認性改善） */}
-        {style.tier !== 'free' && (
-          <span
-            className={`
-              absolute rounded-full tracking-wider shadow-lg font-bold
-              ${compact ? 'bottom-1 left-1 px-1.5 py-0.5 text-[7px] sm:bottom-2 sm:left-2 sm:px-2 sm:py-1 sm:text-[8px]' : 'bottom-3 left-3 px-3 py-1.5 text-[10px]'}
-              ${style.tier === 'studio'
-                ? 'bg-gradient-to-r from-amber-500/90 to-yellow-500/90 text-white'
-                : 'bg-gradient-to-r from-primary/90 to-primary/80 text-white'
-              }
-            `}
-          >
-            {style.tier === 'studio' ? 'プレミアム' : '人気'}
-          </span>
-        )}
       </div>
 
       {/* 情報エリア */}

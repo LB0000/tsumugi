@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, Search, Info, ChevronDown, Grid3X3, Crown, Leaf, Sparkles, Monitor } from 'lucide-react';
+import { X, Check, Search, Grid3X3, Crown, Leaf, Sparkles, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
@@ -18,11 +18,9 @@ export function StyleModal() {
     setSelectedStyle,
     selectedCategory,
     styleFilterState,
-    setStyleSearchQuery,
-    setStyleTierFilter
+    setStyleSearchQuery
   } = useAppStore();
 
-  const [showTierComparison, setShowTierComparison] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('');
   const mainRef = useRef<HTMLElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -46,14 +44,6 @@ export function StyleModal() {
         if (!matchesName && !matchesDescription && !matchesTags) {
           return false;
         }
-      }
-
-      // Tier フィルター
-      if (
-        styleFilterState.selectedTier !== 'all' &&
-        style.tier !== styleFilterState.selectedTier
-      ) {
-        return false;
       }
 
       return true;
@@ -174,13 +164,6 @@ export function StyleModal() {
     });
   };
 
-  const tierOptions = [
-    { key: 'all' as const, label: 'すべて' },
-    { key: 'free' as const, label: 'お試し' },
-    { key: 'starter' as const, label: 'スタンダード' },
-    { key: 'studio' as const, label: 'プレミアム' }
-  ];
-
   return (
     <>
       {/* オーバーレイ */}
@@ -225,92 +208,26 @@ export function StyleModal() {
             </button>
           </div>
 
-          {/* 検索・フィルター */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* 検索バー */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                type="text"
-                placeholder="スタイルを検索..."
-                value={styleFilterState.searchQuery}
-                onChange={(e) => setStyleSearchQuery(e.target.value)}
-                className="
-                  w-full pl-10 pr-4 py-2 min-h-[40px] sm:py-3.5 sm:min-h-[48px] rounded-xl
-                  bg-white/80 backdrop-blur-sm
-                  border border-border/50
-                  focus:border-primary/50 focus:ring-2 focus:ring-primary/20
-                  outline-none transition-all text-sm
-                  placeholder:text-muted
-                "
-              />
-            </div>
-
-            {/* Tier フィルター */}
-            <div className="flex gap-1.5 items-center">
-              {tierOptions.map((tier) => (
-                <button
-                  key={tier.key}
-                  onClick={() => setStyleTierFilter(tier.key)}
-                  className={`
-                    px-3 py-1.5 rounded-lg text-xs min-h-0 sm:px-5 sm:py-3.5 sm:rounded-xl sm:text-sm sm:min-h-[48px] font-medium
-                    transition-all duration-200 cursor-pointer whitespace-nowrap
-                    ${styleFilterState.selectedTier === tier.key
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'bg-white/60 border border-border/50 text-muted hover:text-foreground hover:border-primary/30'
-                    }
-                  `}
-                >
-                  {tier.label}
-                </button>
-              ))}
-              <span className="text-xs text-muted ml-2 whitespace-nowrap">
-                {filteredStyles.length}件
-              </span>
-            </div>
+          {/* 検索バー */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="スタイルを検索..."
+              value={styleFilterState.searchQuery}
+              onChange={(e) => setStyleSearchQuery(e.target.value)}
+              className="
+                w-full pl-10 pr-4 py-2 min-h-[40px] sm:py-3.5 sm:min-h-[48px] rounded-xl
+                bg-white/80 backdrop-blur-sm
+                border border-border/50
+                focus:border-primary/50 focus:ring-2 focus:ring-primary/20
+                outline-none transition-all text-sm
+                placeholder:text-muted
+              "
+            />
           </div>
 
-          {/* Tier説明（展開式） */}
-          <button
-            onClick={() => setShowTierComparison(!showTierComparison)}
-            className="flex items-center gap-1.5 text-xs text-muted mt-1 sm:mt-2 hover:text-foreground transition-colors cursor-pointer"
-          >
-            <Info className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>プランの違いを確認</span>
-            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showTierComparison ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showTierComparison && (
-            <div className="mt-3 p-4 bg-card/50 rounded-xl border border-border/50 animate-slideUp">
-              <div className="grid grid-cols-3 gap-3 text-xs">
-                <div className="p-3 bg-white/80 rounded-lg">
-                  <div className="font-bold text-accent-sage mb-2">お試し</div>
-                  <ul className="space-y-1 text-muted">
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-accent-sage" />プレビュー生成</li>
-                    <li className="flex items-center gap-1 opacity-50"><X className="w-3 h-3" />ダウンロード</li>
-                  </ul>
-                </div>
-                <div className="p-3 bg-white/80 rounded-lg ring-2 ring-primary/30">
-                  <div className="font-bold text-primary mb-2">スタンダード</div>
-                  <ul className="space-y-1 text-muted">
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />プレビュー生成</li>
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-primary" />HD ダウンロード</li>
-                    <li className="font-semibold text-primary mt-1">¥2,900〜</li>
-                  </ul>
-                </div>
-                <div className="p-3 bg-white/80 rounded-lg">
-                  <div className="font-bold text-secondary mb-2">プレミアム</div>
-                  <ul className="space-y-1 text-muted">
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />全機能</li>
-                    <li className="flex items-center gap-1"><Check className="w-3 h-3 text-secondary" />優先生成</li>
-                    <li className="font-semibold text-secondary mt-1">¥4,900〜</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* モバイルカテゴリナビ（アクティブ状態＋カウント付き） */}
+          {/* カテゴリナビ（アクティブ状態＋カウント付き） */}
           <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 mt-2 sm:mt-3 scrollbar-thin scrollbar-thumb-muted/20 -mx-1 px-1">
             {styleCategories.filter(c => c.id !== 'all').map((category) => {
               const isActive = activeCategory === category.id;

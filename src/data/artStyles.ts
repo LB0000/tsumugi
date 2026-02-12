@@ -97,17 +97,16 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: 'pet-samurai',
-    name: 'うちの子 武将',
-    description: '鎧兜に身を包んだ、うちの子の勇ましい武将肖像画',
+    name: '武将',
+    description: '鎧兜に身を包んだ勇ましい武将肖像画',
     thumbnailUrl: '/images/styles/pet/pet-samurai.jpeg',
     colorPalette: ['#2C2C2C', '#8B0000', '#C9B037', '#4A4A4A'],
     isIntelligent: false,
     tier: 'studio',
     category: 'japanese',
-    tags: ['ペット', '武将', '鎧', '和風', 'うちの子'],
+    tags: ['武将', '鎧', '和風'],
     isNew: true,
-    popularity: 88,
-    availableCategories: ['pets']
+    popularity: 88
   },
   // ポップ・イラスト
   {
@@ -134,17 +133,17 @@ export const artStyles: ArtStyle[] = [
   },
   {
     id: 'pet-fairy',
-    name: 'うちの子 妖精',
-    description: '花と光に囲まれた、うちの子のメルヘン妖精イラスト',
+    name: '妖精',
+    description: '花と光に囲まれたメルヘン妖精イラスト',
     thumbnailUrl: '/images/styles/pet/pet-fairy.jpeg',
     colorPalette: ['#FFB6C1', '#E6E6FA', '#98FB98', '#FFD700'],
     isIntelligent: false,
     tier: 'starter',
     category: 'pop',
-    tags: ['ペット', '妖精', 'ファンタジー', 'メルヘン', 'うちの子'],
+    tags: ['妖精', 'ファンタジー', 'メルヘン'],
     isNew: true,
     popularity: 90,
-    availableCategories: ['pets']
+    availableCategories: ['family', 'kids']
   },
   {
     id: 'pop-art',

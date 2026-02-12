@@ -4,7 +4,6 @@ import { artStyles } from '../data/artStyles';
 
 const initialStyleFilterState: StyleFilterState = {
   searchQuery: '',
-  selectedTier: 'all',
   selectedCategory: 'all'
 };
 
@@ -23,7 +22,6 @@ interface AppState {
   // Style Filter
   styleFilterState: StyleFilterState;
   setStyleSearchQuery: (query: string) => void;
-  setStyleTierFilter: (tier: StyleFilterState['selectedTier']) => void;
   setStyleCategoryFilter: (category: StyleCategoryId) => void;
   resetStyleFilters: () => void;
 
@@ -83,9 +81,6 @@ export const useAppStore = create<AppState>((set) => ({
   styleFilterState: initialStyleFilterState,
   setStyleSearchQuery: (query) => set((state) => ({
     styleFilterState: { ...state.styleFilterState, searchQuery: query }
-  })),
-  setStyleTierFilter: (tier) => set((state) => ({
-    styleFilterState: { ...state.styleFilterState, selectedTier: tier }
   })),
   setStyleCategoryFilter: (category) => set((state) => ({
     styleFilterState: { ...state.styleFilterState, selectedCategory: category }

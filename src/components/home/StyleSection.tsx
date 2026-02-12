@@ -110,21 +110,6 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
         {/* ホバーオーバーレイ */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* Tier バッジ */}
-        {style.tier !== 'free' && (
-          <span
-            className={`
-              absolute bottom-2 left-2 px-2 py-1 text-[9px] font-bold
-              rounded-full tracking-wider shadow-lg
-              ${style.tier === 'studio'
-                ? 'bg-gradient-to-r from-amber-500/90 to-yellow-500/90 text-white'
-                : 'bg-gradient-to-r from-primary/90 to-primary/80 text-white'
-              }
-            `}
-          >
-            {style.tier === 'studio' ? 'プレミアム' : '人気'}
-          </span>
-        )}
       </div>
 
       {/* スタイル情報 */}

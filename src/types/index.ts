@@ -36,7 +36,6 @@ export interface StyleCategory {
 
 export interface StyleFilterState {
   searchQuery: string;
-  selectedTier: 'all' | 'free' | 'starter' | 'studio';
   selectedCategory: StyleCategoryId;
 }
 
