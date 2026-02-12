@@ -157,15 +157,6 @@ const artStyles = [
     tier: 'free'
   },
   {
-    id: '3d-illustration',
-    name: 'ぷっくり3D',
-    description: 'ピクサーみたいな、ぷっくりかわいい3Dキャラクター風',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=500&fit=crop&q=80',
-    colorPalette: ['#667EEA', '#764BA2', '#F093FB', '#4FACFE'],
-    isIntelligent: false,
-    tier: 'studio'
-  },
-  {
     id: 'vector',
     name: 'フラットイラスト',
     description: 'すっきりおしゃれなフラットデザインイラスト',

@@ -211,19 +211,6 @@ export const artStyles: ArtStyle[] = [
     popularity: 85
   },
   {
-    id: '3d-illustration',
-    name: 'ぷっくり3D',
-    description: 'ピクサーみたいな、ぷっくりかわいい3Dキャラクター風',
-    thumbnailUrl: '',
-    colorPalette: ['#667EEA', '#764BA2', '#F093FB', '#4FACFE'],
-    isIntelligent: false,
-    tier: 'studio',
-    category: 'digital',
-    tags: ['3D', 'CG', 'Pixar', 'モダン', 'レンダリング'],
-    isNew: true,
-    popularity: 90
-  },
-  {
     id: 'vector',
     name: 'フラットイラスト',
     description: 'すっきりおしゃれなフラットデザインイラスト',
