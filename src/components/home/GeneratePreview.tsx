@@ -1,18 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame } from 'lucide-react';
+import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame, ScanFace, Paintbrush, Layers, Contrast } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
 import { StyledButton } from '../common/StyledButton';
+import { CircularProgress } from './CircularProgress';
+import { StyleInfoPanel } from './StyleInfoPanel';
 
-const artFacts = [
-  'ルネサンス時代の肖像画は、数ヶ月かけて描かれました',
-  'モナリザの制作には4年以上かかったと言われています',
-  '浮世絵の版画は、最大20色の重ね刷りで表現されました',
-  'バロック絵画では光と影のコントラストが重要視されました',
-  '印象派の画家たちは、屋外で直接光を観察して描きました',
-  '水墨画は「余白の美」を大切にする日本独自の美意識です',
+// 9段階マイクロステージ
+const generationStages = [
+  { icon: Camera, label: '写真を読み込んでいます', duration: 1000, progress: 8 },
+  { icon: ScanFace, label: '顔と表情を分析中', duration: 1200, progress: 18 },
+  { icon: Sparkles, label: 'スタイルを理解中', duration: 1500, progress: 30 },
+  { icon: Palette, label: '色彩を調和中', duration: 1800, progress: 45 },
+  { icon: Paintbrush, label: '筆致を再現中', duration: 1600, progress: 58 },
+  { icon: Wand2, label: 'ディテールを描き込み中', duration: 1400, progress: 70 },
+  { icon: Layers, label: 'テクスチャを重ねています', duration: 1200, progress: 82 },
+  { icon: Contrast, label: '明暗を調整中', duration: 1000, progress: 92 },
+  { icon: Frame, label: '最終仕上げ中', duration: 2300, progress: 98 },
 ];
+
+function getEncouragingMessage(stage: number) {
+  if (stage < 3) return '素敵に仕上げています...';
+  if (stage < 6) return '細部まで丁寧に...';
+  if (stage < 8) return 'もうすぐ完成です！';
+  return '完成間近です！';
+}
 
 export function GeneratePreview() {
   const {
@@ -28,41 +41,71 @@ export function GeneratePreview() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generationStage, setGenerationStage] = useState(0);
+  const [smoothProgress, setSmoothProgress] = useState(0);
+  const [currentInfoPanel, setCurrentInfoPanel] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
   const [hasImageProcessingConsent, setHasImageProcessingConsent] = useState(false);
 
-  // Labor Illusion: ステージ付きプログレス表示
-  const generationStages = [
-    { icon: Camera, label: '画像を分析中...', progress: 15 },
-    { icon: Palette, label: 'スタイルを適用中...', progress: 45 },
-    { icon: Wand2, label: 'ディテールを調整中...', progress: 75 },
-    { icon: Frame, label: '最終仕上げ中...', progress: 95 },
-  ];
+  const cancelledRef = useRef(false);
 
-  // ステージを自動で進める
+  // ステージを段階的に進める（可変 duration）
   useEffect(() => {
     if (!isGenerating) {
       setGenerationStage(0);
+      setSmoothProgress(0);
+      cancelledRef.current = true;
       return;
     }
 
+    cancelledRef.current = false;
+
+    const scheduleNext = (currentStage: number) => {
+      if (currentStage >= generationStages.length - 1) return;
+
+      const nextStage = currentStage + 1;
+      const timeout = setTimeout(() => {
+        if (cancelledRef.current) return;
+        setGenerationStage(nextStage);
+        scheduleNext(nextStage);
+      }, generationStages[nextStage].duration);
+
+      return timeout;
+    };
+
+    const firstTimeout = setTimeout(() => {
+      if (cancelledRef.current) return;
+      setGenerationStage(1);
+      scheduleNext(1);
+    }, generationStages[0].duration);
+
+    return () => {
+      cancelledRef.current = true;
+      clearTimeout(firstTimeout);
+    };
+  }, [isGenerating]);
+
+  // 滑らかなプログレス補間
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const targetProgress = generationStages[generationStage].progress;
     const interval = setInterval(() => {
-      setGenerationStage(prev => {
-        if (prev < generationStages.length - 1) {
-          return prev + 1;
-        }
-        return prev;
+      setSmoothProgress(prev => {
+        const diff = targetProgress - prev;
+        if (Math.abs(diff) < 0.5) return targetProgress;
+        return prev + diff * 0.08;
       });
-    }, 1500); // 1.5秒ごとにステージを進める
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [isGenerating, generationStages.length]);
+  }, [isGenerating, generationStage]);
 
-  // アート豆知識を切り替え
+  // インフォパネルのローテーション（3秒ごと）
   useEffect(() => {
     if (!isGenerating) return;
     const interval = setInterval(() => {
-      setCurrentFact((prev) => (prev + 1) % artFacts.length);
+      setCurrentInfoPanel(prev => prev + 1);
+      setCurrentFact(prev => prev + 1);
     }, 3000);
     return () => clearInterval(interval);
   }, [isGenerating]);
@@ -78,6 +121,8 @@ export function GeneratePreview() {
 
     setIsGenerating(true);
     setError(null);
+    setCurrentInfoPanel(0);
+    setCurrentFact(0);
 
     try {
       const result = await generateImage({
@@ -102,63 +147,107 @@ export function GeneratePreview() {
   const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
   const canGenerate = hasPhoto && Boolean(selectedStyle) && hasImageProcessingConsent;
 
-  const estimatedSeconds = 15 - (generationStage * 3);
-  const dynamicMessage = generationStage === generationStages.length - 1
-    ? '完成間近です！'
-    : `あと約${estimatedSeconds}秒...`;
+  const progressColors: [string, string] = [
+    selectedStyle?.colorPalette[0] || '#8B4513',
+    selectedStyle?.colorPalette[1] || '#B8860B'
+  ];
 
   return (
     <div className="animate-fadeInUp">
       {/* Generate Button */}
       {!generatedImage && (
         <div className="text-center">
-          <div className="inline-flex flex-col items-center p-8 rounded-3xl bg-gradient-to-br from-primary/5 via-card to-secondary/5 border border-border/50">
+          <div className="inline-flex flex-col items-center p-8 rounded-3xl glass-card max-w-lg w-full">
             {isGenerating ? (
-              <div className="w-full max-w-sm space-y-5">
-                {/* プログレスバー */}
-                <div className="h-2 bg-card rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500 ease-out"
-                    style={{ width: `${generationStages[generationStage].progress}%` }}
-                  />
-                </div>
-
-                {/* ステージ表示 + 推定時間 */}
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-foreground">
-                    {(() => {
-                      const StageIcon = generationStages[generationStage].icon;
-                      return <StageIcon className="w-5 h-5 text-primary animate-pulse" />;
-                    })()}
-                    <span className="font-medium">{generationStages[generationStage].label}</span>
+              <div className="w-full space-y-6">
+                {/* サークルプログレス + 写真 */}
+                <CircularProgress
+                  progress={smoothProgress}
+                  colors={progressColors}
+                >
+                  <div className="relative">
+                    <img
+                      src={uploadState.previewUrl ?? ''}
+                      alt="生成中"
+                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-background shadow-lg"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/60 backdrop-blur-[2px]">
+                      <span className="text-2xl sm:text-3xl font-serif font-bold text-white">
+                        {Math.round(smoothProgress)}%
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-muted text-xs">{dynamicMessage}</span>
+                </CircularProgress>
+
+                {/* ステージ表示 */}
+                <div className="flex items-center justify-between px-1" aria-live="polite">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <div className="absolute -inset-1 rounded-full border-2 border-primary/20 animate-stageIconSpin" />
+                      {(() => {
+                        const StageIcon = generationStages[generationStage].icon;
+                        return <StageIcon className="w-6 h-6 text-primary relative" />;
+                      })()}
+                    </div>
+                    <span
+                      className="font-medium text-foreground text-sm sm:text-base animate-slideInFromLeft truncate"
+                      key={generationStage}
+                    >
+                      {generationStages[generationStage].label}
+                    </span>
+                  </div>
+                  <span
+                    className="text-xs text-secondary shrink-0 ml-3 animate-fadeIn"
+                    key={`msg-${generationStage}`}
+                  >
+                    {getEncouragingMessage(generationStage)}
+                  </span>
                 </div>
 
-                {/* ステージドットインジケーター */}
-                <div className="flex justify-center gap-2">
+                {/* マイクロステージ ドットインジケーター */}
+                <div className="flex justify-center gap-1">
                   {generationStages.map((_, idx) => (
                     <div
                       key={idx}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        idx <= generationStage ? 'w-6 bg-primary' : 'w-2 bg-muted/30'
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        idx <= generationStage
+                          ? 'w-5 bg-gradient-to-r from-primary to-secondary'
+                          : 'w-1.5 bg-muted/20'
                       }`}
                     />
                   ))}
                 </div>
 
-                {/* アート豆知識 */}
-                <div className="p-4 bg-gradient-to-r from-primary/5 to-secondary/5 rounded-xl border border-border/50">
-                  <p className="text-xs text-secondary uppercase tracking-wider mb-1">豆知識</p>
-                  <p className="text-sm text-foreground animate-fadeIn" key={currentFact}>
-                    {artFacts[currentFact]}
-                  </p>
+                {/* スタイル連動インフォパネル */}
+                {selectedStyle && (
+                  <StyleInfoPanel
+                    key={currentInfoPanel}
+                    panelIndex={currentInfoPanel}
+                    style={selectedStyle}
+                    factIndex={currentFact}
+                  />
+                )}
+
+                {/* 浮遊パーティクル装飾 */}
+                <div className="relative h-0 pointer-events-none" aria-hidden="true">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-1.5 h-1.5 rounded-full bg-secondary/20 animate-floatUp"
+                      style={{
+                        left: `${10 + i * 20}%`,
+                        bottom: '0',
+                        animationDelay: `${i * 0.7}s`,
+                        animationDuration: '4s'
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 {hasPhoto && selectedStyle && (
-                  <label className="flex items-start gap-3 p-3 rounded-xl bg-card/70 border border-border/60 text-left">
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-card/70 border border-border/60 text-left cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hasImageProcessingConsent}
@@ -201,7 +290,7 @@ export function GeneratePreview() {
               </div>
             )}
 
-            {!canGenerate && (
+            {!isGenerating && !canGenerate && (
               <p className="mt-4 text-sm text-muted">
                 {!hasPhoto && !selectedStyle
                   ? '写真のアップロードとスタイル選択が必要です'
@@ -213,7 +302,7 @@ export function GeneratePreview() {
               </p>
             )}
 
-            {canGenerate && (
+            {!isGenerating && canGenerate && (
               <div className="mt-6 flex items-center gap-3 text-sm text-muted">
                 <span className="w-2 h-2 rounded-full bg-secondary" />
                 <span>スタイル: {selectedStyle?.name || 'インテリジェント'}</span>
@@ -248,7 +337,7 @@ export function GeneratePreview() {
               </div>
               <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
                 <img
-                  src={uploadState.previewUrl!}
+                  src={uploadState.previewUrl ?? ''}
                   alt="元の写真"
                   className="w-full h-full object-cover"
                 />

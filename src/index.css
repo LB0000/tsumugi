@@ -510,11 +510,17 @@ textarea:focus-visible {
 }
 
 .animate-tickerScroll {
-  animation: tickerScroll 40s linear infinite;
+  animation: none;
 }
 
-.animate-tickerScroll:hover {
-  animation-play-state: paused;
+@media (min-width: 640px) {
+  .animate-tickerScroll {
+    animation: tickerScroll 40s linear infinite;
+  }
+
+  .animate-tickerScroll:hover {
+    animation-play-state: paused;
+  }
 }
 
 /* スクロールバー非表示 */
@@ -536,6 +542,29 @@ textarea:focus-visible {
   animation: newBadgePulse 2s ease-in-out infinite;
 }
 
+/* 生成中UI アニメーション */
+@keyframes circularProgressGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(139, 69, 19, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(184, 134, 11, 0.4));
+  }
+}
+
+@keyframes stageIconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-circularProgressGlow {
+  animation: circularProgressGlow 3s ease-in-out infinite;
+}
+
+.animate-stageIconSpin {
+  animation: stageIconSpin 3s linear infinite;
+}
+
 /* prefers-reduced-motion対応 */
 @media (prefers-reduced-motion: reduce) {
   .glass-card,
@@ -551,7 +580,9 @@ textarea:focus-visible {
   .animate-selectBounce,
   .animate-particleBurst,
   .animate-tickerScroll,
-  .animate-newBadgePulse {
+  .animate-newBadgePulse,
+  .animate-circularProgressGlow,
+  .animate-stageIconSpin {
     animation: none;
     transition: none;
   }
