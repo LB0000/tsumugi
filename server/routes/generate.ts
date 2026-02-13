@@ -109,36 +109,13 @@ const petStylePrompts: Record<string, (isPet: boolean) => string> = {
     : 'Transform this portrait into an enchanting fairy tale illustration. Give the subject delicate translucent fairy wings shimmering with iridescent light. Crown them with a flower wreath of tiny roses and baby\'s breath. Surround with magical sparkles, floating petals, and luminous butterflies in a dreamy meadow bathed in golden hour light. Use soft pastel colors and whimsical watercolor style. AVOID: dark or realistic tones; keep everything light, dreamy, and magical.'
 };
 
-// Intelligent mode: category-aware art direction
-function getIntelligentPrompt(category: string): string {
-  const categoryHints: Record<string, string> = {
-    'pets': 'The subject is a pet animal. Consider the animal\'s breed, fur texture, and personality to choose the most flattering artistic style. Bold, characterful styles often work well for confident pets, while soft styles suit gentle, calm animals.',
-    'family': 'The subject is a family portrait or couple. Choose a style that enhances the warmth and emotional connection between the subjects. Classical and warm-toned styles tend to create timeless, elegant family portraits.',
-    'kids': 'The subject is a child. Choose a style that captures their youthful energy and innocence. Bright, cheerful, or whimsical styles tend to work beautifully for children\'s portraits.'
-  };
-
-  return `You are an expert art director specializing in portrait art. ${categoryHints[category] || ''}
-
-Carefully analyze this image — its lighting, mood, color palette, composition, and the subject's character. Based on your analysis, select and apply the SINGLE most suitable artistic style from these options:
-- Classical oil painting (rich brushstrokes, dramatic lighting)
-- Impressionist painting (soft light, broken brushstrokes, pastel colors)
-- Watercolor illustration (delicate washes, soft bleeding edges)
-- Anime/illustration (clean lines, vibrant cel-shading)
-- 3D character illustration (rounded, Pixar-like, warm lighting)
-
-Apply your chosen style with FULL artistic commitment — the result must look like genuine artwork in that style, not a photo filter. Do not mix styles; commit fully to one.`;
-}
-
 // Get the appropriate style prompt based on styleId and category
 function getStylePrompt(styleId: string, category: string): string {
-  if (styleId === 'intelligent') {
-    return getIntelligentPrompt(category);
-  }
   if (petStylePrompts[styleId]) {
     const isPet = category === 'pets';
     return petStylePrompts[styleId](isPet);
   }
-  return stylePrompts[styleId] || getIntelligentPrompt(category);
+  return stylePrompts[styleId] || stylePrompts['baroque'];
 }
 
 // Style-specific guidance to reinforce transformations that are often under-stylized
@@ -368,7 +345,7 @@ CRITICAL REQUIREMENTS:
     if (allowMockGeneration) {
       try {
         const { styleId } = req.body;
-        const mockResponse = await generateMockResponse(styleId || 'intelligent');
+        const mockResponse = await generateMockResponse(styleId || 'baroque');
         res.json(mockResponse);
         return;
       } catch {

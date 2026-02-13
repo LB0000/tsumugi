@@ -81,14 +81,7 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
 
       {/* サムネイル */}
       <div className="relative aspect-square overflow-hidden bg-muted/5">
-        {style.isIntelligent ? (
-          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 flex items-center justify-center group-hover:from-primary/15 group-hover:to-primary/15 transition-colors duration-500">
-            <div className="relative">
-              <Sparkles className="w-10 h-10 text-primary animate-floatUp group-hover:scale-110 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-primary/20 blur-2xl" />
-            </div>
-          </div>
-        ) : thumbnailUrl && !imageError ? (
+        {thumbnailUrl && !imageError ? (
           <>
             {!imageLoaded && <ImageSkeleton />}
             <img

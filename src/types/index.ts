@@ -18,7 +18,6 @@ export interface ArtStyle {
   description: string;
   thumbnailUrl: string;
   colorPalette: string[];
-  isIntelligent: boolean;
   tier: 'free' | 'starter' | 'studio';
   category: Exclude<StyleCategoryId, 'all'>;
   tags?: string[];

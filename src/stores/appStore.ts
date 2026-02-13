@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedCategory: (category) => set({ selectedCategory: category }),
 
   // Style
-  selectedStyle: artStyles.find(s => s.isIntelligent) || null,
+  selectedStyle: artStyles[0] || null,
   setSelectedStyle: (style) => set({ selectedStyle: style }),
   isStyleModalOpen: false,
   openStyleModal: () => set({ isStyleModalOpen: true }),

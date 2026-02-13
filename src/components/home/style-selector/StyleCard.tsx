@@ -1,5 +1,5 @@
 import { memo, useState, useMemo } from 'react';
-import { Check, Sparkles, Flame } from 'lucide-react';
+import { Check, Flame } from 'lucide-react';
 import { useAppStore } from '../../../stores/appStore';
 import { getStyleThumbnail } from '../../../data/artStyles';
 import type { ArtStyle } from '../../../types';
@@ -111,14 +111,7 @@ export const StyleCard = memo(function StyleCard({
 
       {/* サムネイル */}
       <div className={`relative overflow-hidden bg-muted/5 ${compact ? 'aspect-square' : 'aspect-[4/5]'}`}>
-        {style.isIntelligent ? (
-          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 flex items-center justify-center group-hover:from-primary/15 group-hover:to-primary/15 transition-colors duration-500">
-            <div className="relative">
-              <Sparkles className={`text-primary animate-floatUp group-hover:scale-110 transition-transform duration-500 ${compact ? 'w-10 h-10' : 'w-16 h-16'}`} />
-              <div className="absolute inset-0 bg-primary/20 blur-3xl" />
-            </div>
-          </div>
-        ) : thumbnailUrl && !imageError ? (
+        {thumbnailUrl && !imageError ? (
           <>
             {/* スケルトンローダー */}
             {!imageLoaded && <ImageSkeleton />}
@@ -167,7 +160,7 @@ export const StyleCard = memo(function StyleCard({
       </div>
 
       {/* ホバー拡大プレビュー（デスクトップ・compact時のみ） */}
-      {compact && !style.isIntelligent && thumbnailUrl && (
+      {compact && thumbnailUrl && (
         <div className="hidden md:block absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30
           opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-300">
           <div className="w-56 rounded-xl overflow-hidden shadow-2xl border border-border/50 bg-background">

@@ -33,7 +33,7 @@ export const categories: Category[] = [
   },
   {
     id: 'kids',
-    name: 'キッズ',
+    name: 'キッズ・ベビー',
     headline: '今だけの表情を、一生の宝物に',
     subheadline: '無料プレビュー · ¥4,900から購入可能',
     heroDescription: '成長はあっという間。今しかないあどけない表情を、ずっと色あせない肖像画に残しませんか。',

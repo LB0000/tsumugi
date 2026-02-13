@@ -58,7 +58,6 @@ function isArtStyle(data: unknown): data is ArtStyle {
     typeof obj.description === 'string' &&
     typeof obj.thumbnailUrl === 'string' &&
     Array.isArray(obj.colorPalette) &&
-    typeof obj.isIntelligent === 'boolean' &&
     (obj.tier === 'free' || obj.tier === 'starter' || obj.tier === 'studio')
   );
 }
