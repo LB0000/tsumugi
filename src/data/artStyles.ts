@@ -1,26 +1,37 @@
 import type { ArtStyle, Category } from '../types';
 
-// family用サムネイルが存在するスタイルID
-const familyThumbnails = new Set([
-  'anime', 'art-nouveau', 'baroque', 'ghibli', 'hand-drawn',
-  'impressionist', 'pop-art', 'renaissance', 'stained-glass',
-  'sumi-e', 'ukiyo-e', 'watercolor'
-]);
+// カテゴリ別サムネイルが存在するスタイルID
+const categoryThumbnails: Record<string, Set<string>> = {
+  family: new Set([
+    'anime', 'art-nouveau', 'baroque', 'ghibli', 'hand-drawn',
+    'impressionist', 'pop-art', 'renaissance', 'stained-glass',
+    'sumi-e', 'ukiyo-e', 'watercolor'
+  ]),
+  kids: new Set([
+    'anime', 'art-nouveau', 'ghibli', 'hand-drawn', 'impressionist',
+    'pixel-art', 'pop-art', 'renaissance', 'sumi-e', 'ukiyo-e', 'watercolor'
+  ]),
+};
 
 // ファイル名がpetと異なるスタイルの対応表
-const familyFilenameOverrides: Record<string, string> = {
-  'pet-samurai': 'family-samurai.jpeg',
+const filenameOverrides: Record<string, Record<string, string>> = {
+  family: {
+    'pet-samurai': 'family-samurai.jpeg',
+  },
+  kids: {
+    'pet-samurai': 'kids-samurai.jpeg',
+    'pet-royalty': 'kids-royalty.jpeg',
+    'pet-fairy': 'kids-fairy.jpeg',
+  },
 };
 
 /** カテゴリに応じたサムネイルURLを返す */
 export function getStyleThumbnail(style: ArtStyle, category: Category['id']): string {
   if (!style.thumbnailUrl || category === 'pets') return style.thumbnailUrl;
 
-  if (category === 'family') {
-    const override = familyFilenameOverrides[style.id];
-    if (override) return `/images/styles/family/${override}`;
-    if (familyThumbnails.has(style.id)) return `/images/styles/family/${style.id}.jpeg`;
-  }
+  const override = filenameOverrides[category]?.[style.id];
+  if (override) return `/images/styles/${category}/${override}`;
+  if (categoryThumbnails[category]?.has(style.id)) return `/images/styles/${category}/${style.id}.jpeg`;
 
   return style.thumbnailUrl;
 }
