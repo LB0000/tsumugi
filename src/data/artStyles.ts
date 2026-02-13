@@ -8,7 +8,7 @@ const categoryThumbnails: Record<string, Set<string>> = {
     'sumi-e', 'ukiyo-e', 'watercolor'
   ]),
   kids: new Set([
-    'anime', 'art-nouveau', 'ghibli', 'hand-drawn', 'impressionist',
+    'anime', 'art-nouveau', 'baroque', 'ghibli', 'hand-drawn', 'impressionist',
     'pixel-art', 'pop-art', 'renaissance', 'sumi-e', 'ukiyo-e', 'watercolor'
   ]),
 };

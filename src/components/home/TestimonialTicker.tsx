@@ -22,8 +22,8 @@ const categoryLabels: Record<string, string> = {
 const testimonials: Testimonial[] = [
   {
     id: '1',
-    name: '田中様',
-    initial: '田',
+    name: 'S.T様',
+    initial: 'S',
     rating: 5,
     comment: '愛犬の肖像画、想像以上の出来栄えでした！額に入れて玄関に飾っていますが、来客の方にも好評です。',
     style: '浮世絵風',
@@ -33,8 +33,8 @@ const testimonials: Testimonial[] = [
   },
   {
     id: '2',
-    name: '佐藤様',
-    initial: '佐',
+    name: 'M.S様',
+    initial: 'M',
     rating: 5,
     comment: '家族写真を古典名画で仕上げてもらいました。祖母の誕生日に贈ったら涙を流して喜んでくれました。',
     style: '古典名画',
@@ -44,8 +44,8 @@ const testimonials: Testimonial[] = [
   },
   {
     id: '3',
-    name: '鈴木様',
-    initial: '鈴',
+    name: 'A.S様',
+    initial: 'A',
     rating: 4,
     comment: '猫の肖像画がとても可愛くて、友人にも勧めました。プレビューで仕上がりを確認できるのが安心でした。',
     style: 'アニメ風',
@@ -55,8 +55,8 @@ const testimonials: Testimonial[] = [
   },
   {
     id: '4',
-    name: '山田様',
-    initial: '山',
+    name: 'Y.K様',
+    initial: 'Y',
     rating: 5,
     comment: '子供の七五三写真を水彩画風に。成長の記念として一生の宝物になりました。リビングに飾るたびに温かい気持ちになります。',
     style: '水彩画',
@@ -66,8 +66,8 @@ const testimonials: Testimonial[] = [
   },
   {
     id: '5',
-    name: '高橋様',
-    initial: '高',
+    name: 'K.T様',
+    initial: 'K',
     rating: 5,
     comment: '豪華油絵スタイルが本当に美術館の絵のよう。技術の高さに感動しました。部屋の雰囲気が一気に変わりました。',
     style: '豪華油絵',
@@ -77,8 +77,8 @@ const testimonials: Testimonial[] = [
   },
   {
     id: '6',
-    name: '伊藤様',
-    initial: '伊',
+    name: 'R.I様',
+    initial: 'R',
     rating: 4,
     comment: '結婚記念日のサプライズに。夫婦の肖像画をやわらか絵画で仕上げてもらいました。妻がとても喜んでくれて大満足です。',
     style: 'やわらか絵画',
