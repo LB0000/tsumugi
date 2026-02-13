@@ -23,6 +23,8 @@ const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage')
 const ShippingPage = lazy(() => import('./pages/ShippingPage').then(m => ({ default: m.ShippingPage })));
 const ReturnsPage = lazy(() => import('./pages/ReturnsPage').then(m => ({ default: m.ReturnsPage })));
 const CompanyPage = lazy(() => import('./pages/CompanyPage').then(m => ({ default: m.CompanyPage })));
+const AccountPage = lazy(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -79,6 +81,8 @@ function AppLayout() {
               <Route path="/shipping" element={<ShippingPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/company" element={<CompanyPage />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

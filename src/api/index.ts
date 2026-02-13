@@ -343,6 +343,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   const response = await fetch(`${API_BASE}/checkout/create-order`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
@@ -364,6 +365,7 @@ export async function processPayment(request: ProcessPaymentRequest): Promise<Pr
   const response = await fetch(`${API_BASE}/checkout/process-payment`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
@@ -533,6 +535,143 @@ export async function getCurrentUser(): Promise<AuthUser> {
   }
 
   return data.user;
+}
+
+export interface OrderHistoryItem {
+  orderId: string;
+  paymentId: string;
+  status: string;
+  totalAmount?: number;
+  createdAt?: string;
+  updatedAt: string;
+}
+
+interface OrdersResponse {
+  success: true;
+  orders: OrderHistoryItem[];
+}
+
+function isOrdersResponse(data: unknown): data is OrdersResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.success === true && Array.isArray(obj.orders);
+}
+
+export async function getOrders(): Promise<OrderHistoryItem[]> {
+  const response = await fetch(`${API_BASE}/checkout/orders`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '注文履歴の取得に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isOrdersResponse(data)) {
+    throw new Error('Invalid orders response format');
+  }
+
+  return data.orders;
+}
+
+export async function updateProfile(request: { name: string }): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/profile`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'プロフィールの更新に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid profile response format');
+  }
+
+  return data;
+}
+
+export async function changePassword(request: { currentPassword: string; newPassword: string }): Promise<void> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/change-password`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(request),
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'パスワード変更に失敗しました';
+    throw new Error(errorMessage);
+  }
+}
+
+export async function loginWithGoogle(credential: string): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/google`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({ credential }),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'Googleログインに失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid google login response format');
+  }
+
+  return data;
+}
+
+export async function verifyEmailToken(token: string): Promise<AuthResponse> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/verify-email`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({ token }),
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'メール認証に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAuthResponse(data)) {
+    throw new Error('Invalid verify-email response format');
+  }
+
+  return data;
+}
+
+export async function resendVerification(): Promise<void> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/resend-verification`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '認証メール再送信に失敗しました';
+    throw new Error(errorMessage);
+  }
 }
 
 export async function logoutAuth(): Promise<void> {

@@ -169,6 +169,8 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  authProvider: 'email' | 'google';
+  emailVerified: boolean;
 }
 
 export interface AuthSession {

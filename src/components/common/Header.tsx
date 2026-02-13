@@ -64,12 +64,13 @@ export function Header() {
               {/* User Icon / Session */}
               {authUser ? (
                 <div className="hidden sm:flex items-center gap-1">
-                  <div
-                    className="px-3 py-2 rounded-[var(--radius-button)] bg-card border border-border text-sm text-foreground"
+                  <Link
+                    to="/account"
+                    className="px-3 py-2 rounded-[var(--radius-button)] bg-card border border-border text-sm text-foreground hover:bg-card-hover hover:border-primary/30 transition-all"
                     title={`${authUser.name} としてログイン中`}
                   >
                     {authUser.name}
-                  </div>
+                  </Link>
                   <button
                     onClick={() => void handleLogout()}
                     className="p-3 hover:bg-card-hover transition-all duration-300 rounded-[var(--radius-button)]"

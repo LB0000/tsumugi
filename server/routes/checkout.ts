@@ -5,10 +5,12 @@ import { WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
 import {
   getOrderPaymentStatus,
+  getOrdersByUserId,
   hasProcessedWebhookEvent,
   markProcessedWebhookEvent,
   updateOrderPaymentStatus,
 } from '../lib/checkoutState.js';
+import { getUserBySessionToken } from '../lib/auth.js';
 import { locationId, squareClient } from '../lib/square.js';
 
 export const checkoutRouter = Router();
@@ -31,6 +33,24 @@ interface ShippingAddressPayload {
 
 interface RawBodyRequest extends Request {
   rawBody?: string;
+}
+
+function extractSessionToken(req: Request): string | null {
+  const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined;
+  if (authorization) {
+    const [scheme, token] = authorization.split(' ');
+    if (scheme === 'Bearer' && token) return token.trim();
+  }
+  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
+  if (!cookieHeader) return null;
+  for (const entry of cookieHeader.split(';')) {
+    const [rawName, ...rawValue] = entry.trim().split('=');
+    if (rawName?.trim() === 'fable_session') {
+      const value = rawValue.join('=').trim();
+      try { return decodeURIComponent(value); } catch { return value; }
+    }
+  }
+  return null;
 }
 
 const MAX_ITEM_QUANTITY = 10;
@@ -218,10 +238,27 @@ checkoutRouter.post('/create-order', async (req, res) => {
       throw new Error('Order creation failed: no order returned');
     }
 
+    // Link order to user if logged in
+    const sessionToken = extractSessionToken(req);
+    const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
+    const totalAmount = Number(order.totalMoney?.amount ?? 0);
+
+    if (sessionUser && order.id) {
+      updateOrderPaymentStatus({
+        orderId: order.id,
+        paymentId: '',
+        status: 'PENDING',
+        updatedAt: new Date().toISOString(),
+        userId: sessionUser.id,
+        totalAmount,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     res.json({
       success: true,
       orderId: order.id,
-      totalAmount: Number(order.totalMoney?.amount ?? 0),
+      totalAmount,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_PRODUCT_ID') {
@@ -320,11 +357,16 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       throw new Error('Payment creation failed: invalid payment fields');
     }
 
+    // Preserve existing userId/totalAmount/createdAt when updating payment status
+    const existingStatus = getOrderPaymentStatus(normalizedOrderId);
     updateOrderPaymentStatus({
       orderId: normalizedOrderId,
       paymentId,
       status: paymentStatus,
       updatedAt: new Date().toISOString(),
+      userId: existingStatus?.userId,
+      totalAmount: existingStatus?.totalAmount ?? Number(orderAmount),
+      createdAt: existingStatus?.createdAt ?? new Date().toISOString(),
     });
 
     res.json({
@@ -418,11 +460,15 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
     const paymentStatus = typeof payment?.status === 'string' ? payment.status : undefined;
 
     if (orderId && paymentId && paymentStatus) {
+      const existingStatus = getOrderPaymentStatus(orderId);
       updateOrderPaymentStatus({
         orderId,
         paymentId,
         status: paymentStatus,
         updatedAt: new Date().toISOString(),
+        userId: existingStatus?.userId,
+        totalAmount: existingStatus?.totalAmount,
+        createdAt: existingStatus?.createdAt,
       });
     }
 
@@ -481,4 +527,28 @@ checkoutRouter.get('/payment-status/:orderId', (req, res) => {
     success: true,
     paymentStatus,
   });
+});
+
+// GET /api/checkout/orders
+checkoutRouter.get('/orders', (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  const orders = getOrdersByUserId(user.id);
+  res.json({ success: true, orders });
 });

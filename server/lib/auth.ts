@@ -11,6 +11,8 @@ interface UserRecord {
   email: string;
   passwordSalt: string;
   passwordHash: string;
+  authProvider: 'email' | 'google';
+  emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -31,6 +33,14 @@ export interface AuthPublicUser {
   id: string;
   name: string;
   email: string;
+  authProvider: 'email' | 'google';
+  emailVerified: boolean;
+}
+
+interface VerificationTokenRecord {
+  token: string;
+  userId: string;
+  expiresAt: number;
 }
 
 interface PersistedAuthState {
@@ -38,6 +48,7 @@ interface PersistedAuthState {
   users: UserRecord[];
   sessions: SessionRecord[];
   resetTokens: ResetTokenRecord[];
+  verificationTokens?: VerificationTokenRecord[];
 }
 
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
@@ -48,7 +59,9 @@ const usersByEmail = new Map<string, UserRecord>();
 const usersById = new Map<string, UserRecord>();
 const sessionsByToken = new Map<string, SessionRecord>();
 const resetTokensByToken = new Map<string, ResetTokenRecord>();
+const verificationTokensByToken = new Map<string, VerificationTokenRecord>();
 let persistQueue: Promise<void> = Promise.resolve();
+const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 30;
 
 function isUserRecord(value: unknown): value is UserRecord {
   if (typeof value !== 'object' || value === null) return false;
@@ -62,6 +75,16 @@ function isUserRecord(value: unknown): value is UserRecord {
     typeof obj.createdAt === 'string' &&
     typeof obj.updatedAt === 'string'
   );
+}
+
+// 既存ユーザーのフィールドが欠落している場合のマイグレーション
+function migrateUserRecord(user: UserRecord): void {
+  if (!user.authProvider) {
+    (user as UserRecord).authProvider = 'email';
+  }
+  if (user.emailVerified === undefined) {
+    (user as UserRecord).emailVerified = false;
+  }
 }
 
 function isSessionRecord(value: unknown): value is SessionRecord {
@@ -90,6 +113,7 @@ function persistAuthState(): void {
     users: [...usersById.values()],
     sessions: [...sessionsByToken.values()],
     resetTokens: [...resetTokensByToken.values()],
+    verificationTokens: [...verificationTokensByToken.values()],
   };
 
   persistQueue = persistQueue
@@ -108,6 +132,7 @@ function hydrateAuthState(): void {
 
   for (const user of parsed.users) {
     if (!isUserRecord(user)) continue;
+    migrateUserRecord(user);
     const normalizedEmail = normalizeEmail(user.email);
     const normalizedUser: UserRecord = { ...user, email: normalizedEmail };
     usersByEmail.set(normalizedEmail, normalizedUser);
@@ -126,6 +151,13 @@ function hydrateAuthState(): void {
     if (resetToken.expiresAt <= now) continue;
     if (!usersById.has(resetToken.userId)) continue;
     resetTokensByToken.set(resetToken.token, resetToken);
+  }
+
+  for (const vToken of parsed.verificationTokens ?? []) {
+    if (!isResetTokenRecord(vToken)) continue;
+    if (vToken.expiresAt <= now) continue;
+    if (!usersById.has(vToken.userId)) continue;
+    verificationTokensByToken.set(vToken.token, vToken);
   }
 }
 
@@ -146,6 +178,8 @@ function toPublicUser(user: UserRecord): AuthPublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
+    authProvider: user.authProvider ?? 'email',
+    emailVerified: user.emailVerified ?? false,
   };
 }
 
@@ -195,6 +229,8 @@ export async function registerUser(params: { name: string; email: string; passwo
     email,
     passwordSalt,
     passwordHash,
+    authProvider: 'email',
+    emailVerified: false,
     createdAt: now,
     updatedAt: now,
   };
@@ -212,6 +248,10 @@ export async function loginUser(params: { email: string; password: string }): Pr
   const user = usersByEmail.get(email);
   if (!user) {
     throw new Error('INVALID_CREDENTIALS');
+  }
+
+  if (user.authProvider === 'google' && !user.passwordHash) {
+    throw new Error('USE_GOOGLE_LOGIN');
   }
 
   const isValidPassword = await verifyPassword(params.password, user.passwordSalt, user.passwordHash);
@@ -295,6 +335,76 @@ export async function resetPassword(params: { token: string; newPassword: string
   return { user: toPublicUser(user), token };
 }
 
+export function registerOrLoginWithGoogle(params: { email: string; name: string }): { user: AuthPublicUser; token: string } {
+  const email = normalizeEmail(params.email);
+  const existing = usersByEmail.get(email);
+
+  if (existing) {
+    if (existing.authProvider === 'email') {
+      throw new Error('EMAIL_ACCOUNT_EXISTS');
+    }
+    const token = createSession(existing.id);
+    persistAuthState();
+    return { user: toPublicUser(existing), token };
+  }
+
+  const now = new Date().toISOString();
+  const user: UserRecord = {
+    id: createId('usr'),
+    name: params.name.trim(),
+    email,
+    passwordSalt: '',
+    passwordHash: '',
+    authProvider: 'google',
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  usersByEmail.set(email, user);
+  usersById.set(user.id, user);
+
+  const token = createSession(user.id);
+  persistAuthState();
+  return { user: toPublicUser(user), token };
+}
+
+export async function updateUserProfile(userId: string, params: { name: string }): Promise<AuthPublicUser> {
+  const user = usersById.get(userId);
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  user.name = params.name.trim();
+  user.updatedAt = new Date().toISOString();
+  persistAuthState();
+  return toPublicUser(user);
+}
+
+export async function changeUserPassword(
+  userId: string,
+  params: { currentPassword: string; newPassword: string },
+): Promise<{ token: string }> {
+  const user = usersById.get(userId);
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  if (user.authProvider === 'google' && !user.passwordHash) {
+    throw new Error('GOOGLE_ONLY_ACCOUNT');
+  }
+
+  const isValid = await verifyPassword(params.currentPassword, user.passwordSalt, user.passwordHash);
+  if (!isValid) throw new Error('INVALID_CURRENT_PASSWORD');
+
+  const passwordSalt = randomBytes(16).toString('hex');
+  const passwordHash = await hashPassword(params.newPassword, passwordSalt);
+  user.passwordSalt = passwordSalt;
+  user.passwordHash = passwordHash;
+  user.updatedAt = new Date().toISOString();
+
+  invalidateSessionsForUser(user.id);
+  const token = createSession(user.id);
+  persistAuthState();
+  return { token };
+}
+
 function cleanupExpiredRecords(): void {
   const now = Date.now();
   let changed = false;
@@ -313,9 +423,67 @@ function cleanupExpiredRecords(): void {
     }
   }
 
+  for (const [token, vToken] of verificationTokensByToken.entries()) {
+    if (vToken.expiresAt <= now) {
+      verificationTokensByToken.delete(token);
+      changed = true;
+    }
+  }
+
   if (changed) {
     persistAuthState();
   }
+}
+
+export function createVerificationToken(userId: string): string {
+  // Invalidate existing verification tokens for this user
+  for (const [token, record] of verificationTokensByToken.entries()) {
+    if (record.userId === userId) {
+      verificationTokensByToken.delete(token);
+    }
+  }
+
+  const token = createToken('verify');
+  verificationTokensByToken.set(token, {
+    token,
+    userId,
+    expiresAt: Date.now() + VERIFICATION_TOKEN_TTL_MS,
+  });
+  persistAuthState();
+  return token;
+}
+
+export function verifyEmail(token: string): AuthPublicUser | null {
+  const record = verificationTokensByToken.get(token);
+  if (!record || record.expiresAt <= Date.now()) {
+    if (record) verificationTokensByToken.delete(token);
+    return null;
+  }
+
+  const user = usersById.get(record.userId);
+  if (!user) {
+    verificationTokensByToken.delete(token);
+    return null;
+  }
+
+  user.emailVerified = true;
+  user.updatedAt = new Date().toISOString();
+  verificationTokensByToken.delete(token);
+  persistAuthState();
+  return toPublicUser(user);
+}
+
+export function getUserEmailForVerification(userId: string): string | null {
+  const user = usersById.get(userId);
+  return user?.email ?? null;
+}
+
+export function getAllPublicUsers(): AuthPublicUser[] {
+  return [...usersById.values()].map(toPublicUser);
+}
+
+export function getUserCreatedAt(userId: string): string | null {
+  return usersById.get(userId)?.createdAt ?? null;
 }
 
 hydrateAuthState();

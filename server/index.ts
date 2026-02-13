@@ -10,6 +10,7 @@ import { checkoutRouter } from './routes/checkout.js';
 import { contactRouter } from './routes/contact.js';
 import { supportRouter } from './routes/support.js';
 import { authRouter } from './routes/auth.js';
+import { internalRouter } from './routes/internal.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -74,6 +75,7 @@ app.use('/api/checkout', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefi
 app.use('/api/contact', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'contact' }), contactRouter);
 app.use('/api/support', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'support' }), supportRouter);
 app.use('/api/auth', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'auth' }), authRouter);
+app.use('/api/internal', internalRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

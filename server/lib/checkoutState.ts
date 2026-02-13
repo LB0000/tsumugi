@@ -6,6 +6,9 @@ export interface OrderPaymentStatus {
   paymentId: string;
   status: string;
   updatedAt: string;
+  userId?: string;
+  totalAmount?: number;
+  createdAt?: string;
 }
 
 export interface ProcessedWebhookEvent {
@@ -124,6 +127,20 @@ export function updateOrderPaymentStatus(status: OrderPaymentStatus): void {
 
 export function getOrderPaymentStatus(orderId: string): OrderPaymentStatus | null {
   return paymentStatusByOrderId.get(orderId) ?? null;
+}
+
+export function getOrdersByUserId(userId: string): OrderPaymentStatus[] {
+  const orders: OrderPaymentStatus[] = [];
+  for (const status of paymentStatusByOrderId.values()) {
+    if (status.userId === userId) {
+      orders.push(status);
+    }
+  }
+  return orders.sort((a, b) => {
+    const dateA = a.createdAt || a.updatedAt;
+    const dateB = b.createdAt || b.updatedAt;
+    return dateB.localeCompare(dateA);
+  });
 }
 
 hydrateCheckoutState();

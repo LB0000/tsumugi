@@ -1,15 +1,26 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { randomBytes, timingSafeEqual } from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import {
   SESSION_TTL_MS,
   getUserBySessionToken,
   loginUser,
   logoutSession,
   registerUser,
+  registerOrLoginWithGoogle,
   requestPasswordReset,
   resetPassword,
+  updateUserProfile,
+  changeUserPassword,
+  createVerificationToken,
+  verifyEmail,
+  getUserEmailForVerification,
 } from '../lib/auth.js';
+import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 export const authRouter = Router();
 const AUTH_SESSION_COOKIE_NAME = 'fable_session';
@@ -216,6 +227,10 @@ authRouter.post('/register', async (req, res) => {
     setSessionCookie(res, result.token);
     setCsrfCookie(res, createCsrfToken());
 
+    // Send verification email (non-blocking)
+    const verificationToken = createVerificationToken(result.user.id);
+    void sendVerificationEmail(normalizedEmail, verificationToken);
+
     res.json({
       success: true,
       user: result.user,
@@ -275,10 +290,88 @@ authRouter.post('/login', async (req, res) => {
       return;
     }
 
+    if (error instanceof Error && error.message === 'USE_GOOGLE_LOGIN') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'USE_GOOGLE_LOGIN', message: 'このアカウントはGoogleログインで登録されています。Googleでログインしてください。' },
+      });
+      return;
+    }
+
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: { code: 'LOGIN_FAILED', message: 'ログインに失敗しました' },
+    });
+  }
+});
+
+authRouter.post('/google', async (req, res) => {
+  try {
+    if (!googleOAuthClient) {
+      res.status(500).json({
+        success: false,
+        error: { code: 'GOOGLE_NOT_CONFIGURED', message: 'Googleログインが設定されていません' },
+      });
+      return;
+    }
+
+    const { credential } = req.body as { credential?: string };
+    if (!credential || typeof credential !== 'string') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_REQUEST', message: 'Google認証情報が必要です' },
+      });
+      return;
+    }
+
+    const ticket = await googleOAuthClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload || !payload.email) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Google認証トークンが無効です' },
+      });
+      return;
+    }
+
+    if (!payload.email_verified) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'EMAIL_NOT_VERIFIED', message: 'Googleアカウントのメールアドレスが未認証です' },
+      });
+      return;
+    }
+
+    const result = registerOrLoginWithGoogle({
+      email: payload.email,
+      name: payload.name || payload.email.split('@')[0],
+    });
+
+    setSessionCookie(res, result.token);
+    setCsrfCookie(res, createCsrfToken());
+
+    res.json({
+      success: true,
+      user: result.user,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'EMAIL_ACCOUNT_EXISTS') {
+      res.status(409).json({
+        success: false,
+        error: { code: 'EMAIL_ACCOUNT_EXISTS', message: 'このメールアドレスは既にメール・パスワードで登録されています。メールアドレスとパスワードでログインしてください。' },
+      });
+      return;
+    }
+
+    console.error('Google login error:', error);
+    res.status(401).json({
+      success: false,
+      error: { code: 'GOOGLE_LOGIN_FAILED', message: 'Googleログインに失敗しました' },
     });
   }
 });
@@ -296,13 +389,16 @@ authRouter.post('/forgot-password', (req, res) => {
   }
 
   const resetToken = requestPasswordReset(normalizedEmail);
-  const isProduction = process.env.NODE_ENV === 'production';
   setCsrfCookie(res, createCsrfToken());
+
+  // Send password reset email if token was created
+  if (resetToken) {
+    void sendPasswordResetEmail(normalizedEmail, resetToken);
+  }
 
   res.json({
     success: true,
     message: 'メールアドレスが登録されている場合、パスワード再設定用の案内を送信しました',
-    ...(isProduction ? {} : { resetToken }),
   });
 });
 
@@ -383,6 +479,189 @@ authRouter.get('/me', (req, res) => {
     success: true,
     user,
   });
+});
+
+authRouter.post('/profile', async (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  try {
+    const { name } = req.body as { name?: string };
+    const normalizedName = typeof name === 'string' ? name.trim() : '';
+
+    if (normalizedName.length < 1 || normalizedName.length > 80) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_NAME', message: 'お名前を正しく入力してください' },
+      });
+      return;
+    }
+
+    const updatedUser = await updateUserProfile(user.id, { name: normalizedName });
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'UPDATE_FAILED', message: 'プロフィールの更新に失敗しました' },
+    });
+  }
+});
+
+authRouter.post('/change-password', async (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  try {
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    const normalizedCurrent = typeof currentPassword === 'string' ? currentPassword : '';
+    const normalizedNew = typeof newPassword === 'string' ? newPassword : '';
+
+    if (normalizedCurrent.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_REQUEST', message: '現在のパスワードを入力してください' },
+      });
+      return;
+    }
+
+    if (normalizedNew.length < 8 || normalizedNew.length > 128) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PASSWORD', message: '新しいパスワードは8文字以上128文字以内で入力してください' },
+      });
+      return;
+    }
+
+    const result = await changeUserPassword(user.id, {
+      currentPassword: normalizedCurrent,
+      newPassword: normalizedNew,
+    });
+
+    setSessionCookie(res, result.token);
+    setCsrfCookie(res, createCsrfToken());
+
+    res.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_CURRENT_PASSWORD') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CURRENT_PASSWORD', message: '現在のパスワードが正しくありません' },
+      });
+      return;
+    }
+
+    if (error instanceof Error && error.message === 'GOOGLE_ONLY_ACCOUNT') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'GOOGLE_ONLY_ACCOUNT', message: 'Googleアカウントではパスワード変更はできません' },
+      });
+      return;
+    }
+
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'CHANGE_PASSWORD_FAILED', message: 'パスワード変更に失敗しました' },
+    });
+  }
+});
+
+authRouter.post('/verify-email', (req, res) => {
+  const { token } = req.body as { token?: string };
+  const normalizedToken = typeof token === 'string' ? token.trim() : '';
+
+  if (!normalizedToken) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_TOKEN', message: '認証トークンが必要です' },
+    });
+    return;
+  }
+
+  const user = verifyEmail(normalizedToken);
+  if (!user) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_VERIFICATION_TOKEN', message: '認証トークンが無効または期限切れです' },
+    });
+    return;
+  }
+
+  res.json({ success: true, user });
+});
+
+authRouter.post('/resend-verification', (req, res) => {
+  const sessionToken = extractSessionToken(req);
+  if (!sessionToken) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(sessionToken);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  if (user.emailVerified) {
+    res.json({ success: true, message: 'メールアドレスは既に認証済みです' });
+    return;
+  }
+
+  const email = getUserEmailForVerification(user.id);
+  if (!email) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'EMAIL_NOT_FOUND', message: 'メールアドレスが見つかりません' },
+    });
+    return;
+  }
+
+  const verificationToken = createVerificationToken(user.id);
+  void sendVerificationEmail(email, verificationToken);
+
+  res.json({ success: true, message: '認証メールを再送信しました' });
 });
 
 authRouter.post('/logout', (req, res) => {

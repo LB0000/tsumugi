@@ -11,7 +11,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export function Sidebar() {
-  const { isSidebarOpen, closeSidebar } = useAppStore();
+  const { isSidebarOpen, closeSidebar, authUser } = useAppStore();
   const location = useLocation();
 
   if (!isSidebarOpen) return null;
@@ -46,14 +46,14 @@ export function Sidebar() {
           <div className="p-4 border-b border-border bg-card/50 sm:hidden">
             <div className="flex items-center justify-around">
               <Link
-                to="/login"
+                to={authUser ? '/account' : '/login'}
                 className="flex flex-col items-center gap-1 text-foreground hover:text-primary transition-colors p-3"
                 onClick={closeSidebar}
               >
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="w-5 h-5" />
                 </div>
-                <span className="text-xs">ログイン</span>
+                <span className="text-xs">{authUser ? 'マイページ' : 'ログイン'}</span>
               </Link>
               <Link
                 to="/cart"
