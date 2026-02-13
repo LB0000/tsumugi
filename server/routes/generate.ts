@@ -103,6 +103,7 @@ const petStylePrompts: Record<string, (isPet: boolean) => string> = {
   'pet-samurai': (isPet) => isPet
     ? 'Transform this pet photo into a dramatic Japanese samurai warrior portrait. Dress the pet in full samurai armor (yoroi) with an elaborate kabuto helmet featuring a bold maedate crest and layered shoulder guards (sode). Place them before a backdrop of a Japanese castle (tenshu) at sunset, with falling cherry blossom petals and fluttering war banners (nobori). Blend traditional Japanese painting techniques (bold outlines, gold leaf accents) with dramatic cinematic lighting. The pet should look fierce, honorable, and legendary. AVOID: cute or comedic treatment; this is a serious warrior portrait. Do NOT add any face mask, face guard, or menpo — the subject\'s face must be fully visible.'
     : 'Transform this portrait into a dramatic Japanese samurai warrior painting. Dress the subject in full samurai armor (yoroi) with an elaborate kabuto helmet and bold maedate crest. Place them before a Japanese castle at sunset with cherry blossoms and war banners. Blend traditional Japanese painting with dramatic cinematic lighting. The subject should look fierce and honorable. AVOID: cute or comedic treatment; this is a serious warrior portrait. Do NOT add any face mask, face guard, or menpo — the subject\'s face must be fully visible.',
+  'kids-princess': () => 'Transform this child\'s portrait into a magical princess illustration. Dress the child in an elegant ball gown with layers of soft tulle and delicate lace in pastel pink, lavender, or sky blue. Add a sparkling tiara or small crown adorned with jewels on their head. Place them in a grand fairy-tale ballroom or enchanted castle garden with marble pillars, rose archways, and twinkling lights. Surround with soft sparkles, floating rose petals, and warm golden candlelight. Use a dreamy, painterly illustration style with soft lighting and warm pastel tones. The child should look enchanted and joyful, like a storybook princess. AVOID: overly mature or sexualized styling; keep the look innocent, age-appropriate, and magical.',
   'pet-fairy': (isPet) => isPet
     ? 'Transform this pet photo into an enchanting fairy tale illustration. Give the pet delicate, translucent iridescent fairy wings that shimmer with rainbow light. Crown them with a dainty flower wreath of tiny roses and baby\'s breath. Surround them with magical sparkles, floating petals, luminous butterflies, and soft bokeh light orbs. Place them in a dreamy enchanted meadow or forest glade bathed in golden hour light with soft pastel colors: lavender, blush pink, mint green, and warm gold. Use a soft, whimsical watercolor illustration style. The pet should look magical and utterly adorable. AVOID: dark or realistic tones; keep everything light, dreamy, and magical.'
     : 'Transform this portrait into an enchanting fairy tale illustration. Give the subject delicate translucent fairy wings shimmering with iridescent light. Crown them with a flower wreath of tiny roses and baby\'s breath. Surround with magical sparkles, floating petals, and luminous butterflies in a dreamy meadow bathed in golden hour light. Use soft pastel colors and whimsical watercolor style. AVOID: dark or realistic tones; keep everything light, dreamy, and magical.'
@@ -133,7 +134,7 @@ function getStylePrompt(styleId: string, category: string): string {
   if (styleId === 'intelligent') {
     return getIntelligentPrompt(category);
   }
-  if (styleId.startsWith('pet-') && petStylePrompts[styleId]) {
+  if (petStylePrompts[styleId]) {
     const isPet = category === 'pets';
     return petStylePrompts[styleId](isPet);
   }
@@ -469,6 +470,7 @@ function getStyleColors(styleId: string): Record<string, string> {
     'pet-royalty': { bg1: '#4B0082', bg2: '#2d004d', frame1: '#DAA520', frame2: '#722F37', accent: '#DAA520', text: '#FFFACD' },
     'pet-samurai': { bg1: '#2C2C2C', bg2: '#1a1a1a', frame1: '#C9B037', frame2: '#8B0000', accent: '#C9B037', text: '#E8D5B7' },
     'pet-fairy': { bg1: '#E6E6FA', bg2: '#D8BFD8', frame1: '#FFB6C1', frame2: '#98FB98', accent: '#FFD700', text: '#4B0082' },
+    'kids-princess': { bg1: '#FFB6C1', bg2: '#DDA0DD', frame1: '#FFD700', frame2: '#87CEEB', accent: '#FFB6C1', text: '#4B0082' },
     'default': { bg1: '#262626', bg2: '#1a1a1a', frame1: '#1ABC9C', frame2: '#16a085', accent: '#1ABC9C', text: '#FFFFFF' }
   };
 

@@ -85,6 +85,15 @@ const artStyles = [
     tier: 'studio'
   },
   {
+    id: 'kids-princess',
+    name: 'プリンセス',
+    description: 'ティアラとドレスで変身！夢見るプリンセス肖像画',
+    thumbnailUrl: '/images/styles/kids/kids-princess.jpeg',
+    colorPalette: ['#FFB6C1', '#DDA0DD', '#FFD700', '#87CEEB'],
+    isIntelligent: false,
+    tier: 'starter'
+  },
+  {
     id: 'anime',
     name: 'アニメ',
     description: 'セル画風の鮮やかなアニメイラスト',

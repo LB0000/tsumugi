@@ -182,6 +182,20 @@ export const artStyles: ArtStyle[] = [
     availableCategories: ['kids']
   },
   {
+    id: 'kids-princess',
+    name: 'プリンセス',
+    description: 'ティアラとドレスで変身！夢見るプリンセス肖像画',
+    thumbnailUrl: '/images/styles/kids/kids-princess.jpeg',
+    colorPalette: ['#FFB6C1', '#DDA0DD', '#FFD700', '#87CEEB'],
+    isIntelligent: false,
+    tier: 'starter',
+    category: 'narikiri',
+    tags: ['プリンセス', 'お姫様', 'ドレス', 'なりきり'],
+    isNew: true,
+    popularity: 95,
+    availableCategories: ['kids']
+  },
+  {
     id: 'pop-art',
     name: 'ポップアート',
     description: 'ビビッドな色でインパクト大！ウォーホル風ポップアート',
