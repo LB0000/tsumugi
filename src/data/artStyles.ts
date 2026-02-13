@@ -4,7 +4,7 @@ import type { ArtStyle, Category } from '../types';
 const categoryThumbnails: Record<string, Set<string>> = {
   family: new Set([
     'anime', 'art-nouveau', 'baroque', 'ghibli', 'hand-drawn',
-    'impressionist', 'pop-art', 'renaissance', 'stained-glass',
+    'impressionist', 'pixel-art', 'pop-art', 'renaissance', 'stained-glass',
     'sumi-e', 'ukiyo-e', 'watercolor'
   ]),
   kids: new Set([
@@ -17,6 +17,7 @@ const categoryThumbnails: Record<string, Set<string>> = {
 const filenameOverrides: Record<string, Record<string, string>> = {
   family: {
     'pet-samurai': 'family-samurai.jpeg',
+    'pet-royalty': 'family-royalty.jpeg',
   },
   kids: {
     'pet-samurai': 'kids-samurai.jpeg',
