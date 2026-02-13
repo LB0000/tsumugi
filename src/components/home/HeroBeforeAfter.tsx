@@ -151,8 +151,8 @@ function ParallaxCard({ sample, index }: { sample: TransformationSample; index: 
   }, [sample.revealDelay]);
 
   const sizeClasses = sample.size === 'large'
-    ? 'w-36 h-36 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]'
-    : 'w-36 h-36 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]';
+    ? 'w-44 h-44 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]'
+    : 'w-44 h-44 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]';
 
   const zIndex = sample.size === 'large' ? 'z-20' : 'z-10';
   const mobileTranslateX = index === 0 ? '-95%' : '-5%';
@@ -273,6 +273,15 @@ export function HeroBeforeAfter() {
         {/* サブグラデーション */}
         <div className="absolute top-0 right-0 w-[100vw] h-[100vh] bg-[radial-gradient(ellipse_at_top_right,rgba(139,69,19,0.08)_0%,transparent_50%)]" />
         <div className="absolute bottom-0 left-0 w-[80vw] h-[80vh] bg-[radial-gradient(ellipse_at_bottom_left,rgba(212,175,55,0.06)_0%,transparent_50%)]" />
+
+        {/* 七宝テキスタイル */}
+        <div
+          className="absolute inset-0 bg-shippo opacity-[0.06]"
+          style={{
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 70%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 20%, black 70%, transparent 100%)',
+          }}
+        />
 
         {/* 浮遊するぼかし円 - 強化 */}
         <div className="absolute top-16 left-[5%] w-80 h-80 rounded-full bg-secondary/8 blur-[100px] animate-float" />

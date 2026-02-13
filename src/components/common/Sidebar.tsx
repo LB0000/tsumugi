@@ -1,14 +1,11 @@
-import { X, ChevronRight, Home, Palette, DollarSign, LogIn, Info, HelpCircle, FileText, User, ShoppingCart } from 'lucide-react';
+import { X, Home, LogIn, HelpCircle, FileText, User, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { navigation } from '../../data/navigation';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'home': Home,
-  'create': Palette,
-  'pricing': DollarSign,
   'sign-in': LogIn,
-  'about': Info,
   'support': HelpCircle,
   'faq': HelpCircle,
 };
@@ -114,24 +111,7 @@ export function Sidebar() {
                       )}
                       <Icon className="w-5 h-5" />
                       <span className="font-medium">{item.label}</span>
-                      {item.children && <ChevronRight className="w-4 h-4 ml-auto" />}
                     </Link>
-                  )}
-
-                  {/* Sub-navigation */}
-                  {item.children && (
-                    <div className="ml-10 border-l-2 border-secondary/30">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.id}
-                          to={child.path}
-                          className="block px-4 py-2.5 text-sm text-muted hover:text-primary hover:bg-primary/5 transition-all"
-                          onClick={closeSidebar}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
-                    </div>
                   )}
                 </div>
               );
