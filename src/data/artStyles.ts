@@ -1,4 +1,29 @@
-import type { ArtStyle } from '../types';
+import type { ArtStyle, Category } from '../types';
+
+// family用サムネイルが存在するスタイルID
+const familyThumbnails = new Set([
+  'anime', 'art-nouveau', 'baroque', 'ghibli', 'hand-drawn',
+  'impressionist', 'pop-art', 'renaissance', 'stained-glass',
+  'sumi-e', 'ukiyo-e', 'watercolor'
+]);
+
+// ファイル名がpetと異なるスタイルの対応表
+const familyFilenameOverrides: Record<string, string> = {
+  'pet-samurai': 'family-samurai.jpeg',
+};
+
+/** カテゴリに応じたサムネイルURLを返す */
+export function getStyleThumbnail(style: ArtStyle, category: Category['id']): string {
+  if (!style.thumbnailUrl || category === 'pets') return style.thumbnailUrl;
+
+  if (category === 'family') {
+    const override = familyFilenameOverrides[style.id];
+    if (override) return `/images/styles/family/${override}`;
+    if (familyThumbnails.has(style.id)) return `/images/styles/family/${style.id}.jpeg`;
+  }
+
+  return style.thumbnailUrl;
+}
 
 export const artStyles: ArtStyle[] = [
   // 特別枠

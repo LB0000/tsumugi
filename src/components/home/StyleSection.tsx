@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Check, Sparkles, ChevronRight, ChevronLeft, Crown, Leaf, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
-import { artStyles } from '../../data/artStyles';
+import { artStyles, getStyleThumbnail } from '../../data/artStyles';
 import type { ArtStyle } from '../../types';
 
 function ColorPaletteStrip({ colors }: { colors: string[] }) {
@@ -37,6 +37,8 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
   onClick: () => void;
   index: number;
 }) {
+  const selectedCategory = useAppStore(s => s.selectedCategory);
+  const thumbnailUrl = useMemo(() => getStyleThumbnail(style, selectedCategory), [style, selectedCategory]);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showBounce, setShowBounce] = useState(false);
@@ -86,12 +88,12 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
               <div className="absolute inset-0 bg-primary/20 blur-2xl" />
             </div>
           </div>
-        ) : style.thumbnailUrl && !imageError ? (
+        ) : thumbnailUrl && !imageError ? (
           <>
             {!imageLoaded && <ImageSkeleton />}
             <img
               loading="lazy"
-              src={style.thumbnailUrl}
+              src={thumbnailUrl}
               alt={style.name}
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
@@ -197,8 +199,8 @@ export function StyleSection() {
       {/* 選択中スタイルサマリー */}
       {selectedStyle && (
         <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-primary/5 border border-primary/15">
-          {selectedStyle.thumbnailUrl ? (
-            <img src={selectedStyle.thumbnailUrl} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+          {getStyleThumbnail(selectedStyle, selectedCategory) ? (
+            <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-5 h-5 text-primary" />

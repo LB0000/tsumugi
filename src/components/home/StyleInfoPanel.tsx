@@ -1,3 +1,5 @@
+import { useAppStore } from '../../stores/appStore';
+import { getStyleThumbnail } from '../../data/artStyles';
 import type { ArtStyle } from '../../types';
 
 const categoryNames: Record<string, string> = {
@@ -53,6 +55,8 @@ interface StyleInfoPanelProps {
 }
 
 export function StyleInfoPanel({ panelIndex, style, factIndex }: StyleInfoPanelProps) {
+  const selectedCategory = useAppStore(s => s.selectedCategory);
+  const thumbnailUrl = getStyleThumbnail(style, selectedCategory);
   const type = panelIndex % 4;
 
   // colorPalette が空の場合はパレットパネルをスキップ
@@ -66,9 +70,9 @@ export function StyleInfoPanel({ panelIndex, style, factIndex }: StyleInfoPanelP
             Selected Style
           </p>
           <div className="flex items-center gap-4">
-            {style.thumbnailUrl && (
+            {thumbnailUrl && (
               <img
-                src={style.thumbnailUrl}
+                src={thumbnailUrl}
                 alt={style.name}
                 className="w-14 h-14 rounded-xl object-cover border border-border/50 shadow-sm"
               />

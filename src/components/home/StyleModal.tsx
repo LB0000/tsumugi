@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check, Search, Grid3X3, Crown, Leaf, Sparkles, Wand2, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
-import { artStyles } from '../../data/artStyles';
+import { artStyles, getStyleThumbnail } from '../../data/artStyles';
 import { styleCategories } from '../../data/styleCategories';
 import { StyledButton } from '../common/StyledButton';
 import { StyleCategoryCarousel } from './style-selector/StyleCategoryCarousel';
@@ -290,8 +290,8 @@ export function StyleModal() {
         {/* フッター */}
         <footer className="px-4 py-3 sm:px-6 sm:py-5 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {selectedStyle && selectedStyle.thumbnailUrl && (
-              <img src={selectedStyle.thumbnailUrl} alt="" className="hidden sm:block w-10 h-10 rounded-lg object-cover border border-border/50" />
+            {selectedStyle && getStyleThumbnail(selectedStyle, selectedCategory) && (
+              <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt="" className="hidden sm:block w-10 h-10 rounded-lg object-cover border border-border/50" />
             )}
             <p className="text-xs sm:text-sm text-muted truncate">
               {selectedStyle ? (

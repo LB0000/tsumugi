@@ -1,5 +1,7 @@
-import { memo, useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { Check, Sparkles, Flame } from 'lucide-react';
+import { useAppStore } from '../../../stores/appStore';
+import { getStyleThumbnail } from '../../../data/artStyles';
 import type { ArtStyle } from '../../../types';
 
 interface StyleCardProps {
@@ -45,6 +47,8 @@ export const StyleCard = memo(function StyleCard({
   index = 0,
   compact = false
 }: StyleCardProps) {
+  const selectedCategory = useAppStore(s => s.selectedCategory);
+  const thumbnailUrl = useMemo(() => getStyleThumbnail(style, selectedCategory), [style, selectedCategory]);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showBounce, setShowBounce] = useState(false);
@@ -114,13 +118,13 @@ export const StyleCard = memo(function StyleCard({
               <div className="absolute inset-0 bg-primary/20 blur-3xl" />
             </div>
           </div>
-        ) : style.thumbnailUrl && !imageError ? (
+        ) : thumbnailUrl && !imageError ? (
           <>
             {/* スケルトンローダー */}
             {!imageLoaded && <ImageSkeleton />}
             <img
               loading="lazy"
-              src={style.thumbnailUrl}
+              src={thumbnailUrl}
               alt={style.name}
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageError(true)}
@@ -163,11 +167,11 @@ export const StyleCard = memo(function StyleCard({
       </div>
 
       {/* ホバー拡大プレビュー（デスクトップ・compact時のみ） */}
-      {compact && !style.isIntelligent && style.thumbnailUrl && (
+      {compact && !style.isIntelligent && thumbnailUrl && (
         <div className="hidden md:block absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30
           opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 delay-300">
           <div className="w-56 rounded-xl overflow-hidden shadow-2xl border border-border/50 bg-background">
-            <img src={style.thumbnailUrl} alt="" className="w-full aspect-[4/5] object-cover" />
+            <img src={thumbnailUrl} alt="" className="w-full aspect-[4/5] object-cover" />
             <div className="p-3">
               <p className="font-serif font-semibold text-sm">{style.name}</p>
               <p className="text-xs text-muted mt-1 line-clamp-2">{style.description}</p>
