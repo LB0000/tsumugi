@@ -167,7 +167,7 @@ export const artStyles: ArtStyle[] = [
     tags: ['妖精', 'ファンタジー', 'メルヘン'],
     isNew: true,
     popularity: 90,
-    availableCategories: ['family', 'kids']
+    availableCategories: ['kids']
   },
   {
     id: 'pop-art',
@@ -245,6 +245,7 @@ export const artStyles: ArtStyle[] = [
     category: 'digital',
     tags: ['ベクター', 'フラット', 'グラフィック', 'ミニマル'],
     isNew: true,
-    popularity: 75
+    popularity: 75,
+    availableCategories: ['pets', 'kids']
   }
 ];
