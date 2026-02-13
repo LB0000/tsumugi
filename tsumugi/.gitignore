@@ -1,21 +1,3 @@
-# OS
-.DS_Store
-Thumbs.db
-
-# Editor / IDE
-.vscode/
-.idea/
-*.sw?
-
-# Tool directories
-.claude/
-.codex/
-.venv-skill/
-.tmp-skill-deps/
-
-# Temporary files
-tmp-*.md
-
 # Logs
 logs
 *.log
@@ -25,7 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies & Build
 node_modules
 dist
 dist-ssr
@@ -37,5 +18,16 @@ dist-server
 .env.local
 .env.production
 
-# Runtime data stores
+# Runtime data stores (auth/session/contact/checkout)
 server/.data/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
