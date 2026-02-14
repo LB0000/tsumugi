@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { Router } from 'express';
 import type { Request } from 'express';
-import { WebhooksHelper } from 'square';
+import { SquareError, WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
 import {
   getOrderPaymentStatus,
@@ -325,6 +325,18 @@ checkoutRouter.post('/create-order', async (req, res) => {
     }
 
     console.error('Create order error:', error);
+    if (error instanceof SquareError) {
+      console.error('Square API details:', {
+        statusCode: error.statusCode,
+        errors: error.errors,
+      });
+      const detail = error.errors?.[0]?.detail || '注文の作成に失敗しました';
+      res.status(error.statusCode ?? 500).json({
+        success: false,
+        error: { code: error.errors?.[0]?.code || 'ORDER_CREATION_FAILED', message: detail },
+      });
+      return;
+    }
     const message = error instanceof Error ? error.message : '注文の作成に失敗しました';
     res.status(500).json({
       success: false,
@@ -430,6 +442,18 @@ checkoutRouter.post('/process-payment', async (req, res) => {
     });
   } catch (error) {
     console.error('Process payment error:', error);
+    if (error instanceof SquareError) {
+      console.error('Square API details:', {
+        statusCode: error.statusCode,
+        errors: error.errors,
+      });
+      const detail = error.errors?.[0]?.detail || '決済処理に失敗しました';
+      res.status(error.statusCode ?? 500).json({
+        success: false,
+        error: { code: error.errors?.[0]?.code || 'PAYMENT_FAILED', message: detail },
+      });
+      return;
+    }
     const message = error instanceof Error ? error.message : '決済処理に失敗しました';
     res.status(500).json({
       success: false,
