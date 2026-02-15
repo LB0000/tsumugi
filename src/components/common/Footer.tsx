@@ -209,7 +209,7 @@ export function Footer() {
 
             {/* Copyright */}
             <p className="text-xs text-background/50">
-              © 2024 TSUMUGI. All rights reserved.
+              © {new Date().getFullYear()} TSUMUGI. All rights reserved.
             </p>
           </div>
         </div>

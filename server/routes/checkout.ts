@@ -14,47 +14,12 @@ import {
 import { getUserBySessionToken } from '../lib/auth.js';
 import { locationId, squareClient } from '../lib/square.js';
 import { validateCoupon, applyDiscount, useCoupon } from '../lib/coupon.js';
-import {
-  extractSessionTokenFromHeaders,
-  extractCsrfTokenFromCookie,
-  extractCsrfTokenFromHeader,
-  areTokensEqual,
-  isAllowedOrigin,
-  type HeaderMap,
-} from '../lib/requestAuth.js';
+import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
+import { csrfProtection } from '../middleware/csrfProtection.js';
+import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 
 export const checkoutRouter = Router();
-
-const isProductionEnv = process.env.NODE_ENV === 'production';
-const frontendUrlEnv = process.env.FRONTEND_URL;
-
-// CSRF protection for POST endpoints (except webhook which uses Square signature verification)
-checkoutRouter.use((req, res, next) => {
-  if (req.method !== 'POST') { next(); return; }
-  if (req.path === '/webhook') { next(); return; }
-
-  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  if (!isAllowedOrigin({ originHeader, frontendUrl: frontendUrlEnv, isProduction: isProductionEnv })) {
-    res.status(403).json({
-      success: false,
-      error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
-    });
-    return;
-  }
-
-  const headers = req.headers as HeaderMap;
-  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
-  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
-  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
-    res.status(403).json({
-      success: false,
-      error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
-    });
-    return;
-  }
-
-  next();
-});
+checkoutRouter.use(csrfProtection({ skipPaths: ['/webhook'] }));
 
 function handleSquareOrServerError(
   res: Parameters<Parameters<typeof checkoutRouter.post>[1]>[1],
@@ -612,7 +577,8 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
 });
 
 // GET /api/checkout/payment-status/:orderId
-checkoutRouter.get('/payment-status/:orderId', (req, res) => {
+checkoutRouter.get('/payment-status/:orderId', requireAuth, (req, res) => {
+  const user = getAuthUser(res);
   const orderId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
   const paymentIdQuery = typeof req.query.paymentId === 'string' ? req.query.paymentId.trim() : '';
   if (!orderId) {
@@ -631,7 +597,7 @@ checkoutRouter.get('/payment-status/:orderId', (req, res) => {
   }
 
   const paymentStatus = getOrderPaymentStatus(orderId);
-  if (!paymentStatus || paymentStatus.paymentId !== paymentIdQuery) {
+  if (!paymentStatus || paymentStatus.paymentId !== paymentIdQuery || paymentStatus.userId !== user.id) {
     res.status(404).json({
       success: false,
       error: { code: 'PAYMENT_STATUS_NOT_FOUND', message: '決済ステータスが見つかりません' },
@@ -646,49 +612,15 @@ checkoutRouter.get('/payment-status/:orderId', (req, res) => {
 });
 
 // GET /api/checkout/orders
-checkoutRouter.get('/orders', (req, res) => {
-  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
-
+checkoutRouter.get('/orders', requireAuth, (req, res) => {
+  const user = getAuthUser(res);
   const orders = getOrdersByUserId(user.id);
   res.json({ success: true, orders: orders.map(sanitizePaymentStatusReceipt) });
 });
 
 // GET /api/checkout/orders/:orderId
-checkoutRouter.get('/orders/:orderId', (req, res) => {
-  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
-
+checkoutRouter.get('/orders/:orderId', requireAuth, (req, res) => {
+  const user = getAuthUser(res);
   const orderId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
   if (!orderId) {
     res.status(400).json({
@@ -711,17 +643,7 @@ checkoutRouter.get('/orders/:orderId', (req, res) => {
 });
 
 // POST /api/checkout/validate-coupon
-checkoutRouter.post('/validate-coupon', async (req, res) => {
-  // Require authentication to prevent coupon code enumeration
-  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
-  if (!token || !getUserBySessionToken(token)) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証が必要です' },
-    });
-    return;
-  }
-
+checkoutRouter.post('/validate-coupon', requireAuth, async (req, res) => {
   try {
     const { code } = req.body as { code?: string };
     if (!code?.trim()) {

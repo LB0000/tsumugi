@@ -3,8 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
 import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
+import { csrfProtection } from '../middleware/csrfProtection.js';
 
 export const generateRouter = Router();
+generateRouter.use(csrfProtection());
 
 const styleNameMap: Record<string, string> = {
   'baroque': 'バロック',
@@ -61,6 +63,10 @@ async function generateWithRetry<T>(
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+if (process.env.NODE_ENV === 'production' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here')) {
+  console.warn('WARNING: GEMINI_API_KEY is not configured in production');
+}
 
 // Gemini 3 Pro Image - 画像生成対応の最新モデル
 // responseModalities: ['image', 'text'] で画像出力を有効化
@@ -188,6 +194,15 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: 'Missing required fields' }
+      });
+      return;
+    }
+
+    const validCategories = ['pets', 'family', 'kids'];
+    if (!validCategories.includes(category)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CATEGORY', message: '不正なカテゴリです' }
       });
       return;
     }

@@ -1,9 +1,12 @@
+import { randomBytes } from 'crypto';
 import { Router } from 'express';
 import path from 'path';
 import { readJsonFile, writeJsonAtomic } from '../lib/persistence.js';
 import { isValidEmail } from '../lib/validation.js';
+import { csrfProtection } from '../middleware/csrfProtection.js';
 
 export const contactRouter = Router();
+contactRouter.use(csrfProtection());
 
 type ContactReason = 'order' | 'product' | 'other';
 
@@ -79,7 +82,7 @@ function isValidReason(reason: string): reason is ContactReason {
 
 function generateInquiryId(): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const rand = randomBytes(4).toString('hex').toUpperCase();
   return `INQ-${date}-${rand}`;
 }
 

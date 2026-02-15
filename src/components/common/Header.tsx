@@ -94,9 +94,11 @@ export function Header() {
                 aria-label="カート"
               >
                 <ShoppingCart className="w-5 h-5 text-foreground" />
-                <span className="absolute top-1 right-1 w-4 h-4 bg-accent-coral text-white text-[10px] rounded-full flex items-center justify-center font-medium">
-                  {Math.min(cartCount, 99)}
-                </span>
+                {cartCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-accent-coral text-white text-[10px] rounded-full flex items-center justify-center font-medium">
+                    {Math.min(cartCount, 99)}
+                  </span>
+                )}
               </Link>
 
               {/* Divider */}

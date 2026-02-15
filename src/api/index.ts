@@ -85,11 +85,11 @@ export function isPricingResponse(data: unknown): data is PricingResponse {
 }
 
 export async function generateImage(request: GenerateImageRequest): Promise<GenerateImageResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/generate-image`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 

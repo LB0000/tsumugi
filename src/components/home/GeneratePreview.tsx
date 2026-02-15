@@ -45,6 +45,7 @@ export function GeneratePreview() {
   const [currentInfoPanel, setCurrentInfoPanel] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
   const cancelledRef = useRef(false);
+  const timerIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // ステージを段階的に進める（可変 duration）
   useEffect(() => {
@@ -56,6 +57,7 @@ export function GeneratePreview() {
     }
 
     cancelledRef.current = false;
+    timerIdsRef.current = [];
 
     const scheduleNext = (currentStage: number) => {
       if (currentStage >= generationStages.length - 1) return;
@@ -66,8 +68,7 @@ export function GeneratePreview() {
         setGenerationStage(nextStage);
         scheduleNext(nextStage);
       }, generationStages[nextStage].duration);
-
-      return timeout;
+      timerIdsRef.current.push(timeout);
     };
 
     const firstTimeout = setTimeout(() => {
@@ -75,10 +76,12 @@ export function GeneratePreview() {
       setGenerationStage(1);
       scheduleNext(1);
     }, generationStages[0].duration);
+    timerIdsRef.current.push(firstTimeout);
 
     return () => {
       cancelledRef.current = true;
-      clearTimeout(firstTimeout);
+      timerIdsRef.current.forEach(id => clearTimeout(id));
+      timerIdsRef.current = [];
     };
   }, [isGenerating]);
 

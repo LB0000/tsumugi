@@ -68,7 +68,10 @@ app.use((_req, res, next) => {
 app.use(express.json({
   limit: '20mb',
   verify: (req, _res, buf) => {
-    (req as RawBodyRequest).rawBody = buf.toString('utf8');
+    // [S-10] Only store rawBody for webhook signature verification
+    if (req.url?.includes('/webhook')) {
+      (req as RawBodyRequest).rawBody = buf.toString('utf8');
+    }
   },
 }));
 
@@ -88,6 +91,19 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// [S-03] Graceful shutdown — flush pending persist queues before exit
+function gracefulShutdown(signal: string) {
+  console.log(`${signal} received, shutting down gracefully...`);
+  server.close(() => {
+    // Allow pending async writes (persistQueue) a short window to flush
+    setTimeout(() => process.exit(0), 500);
+  });
+  // Force exit after 5 seconds if server.close hangs
+  setTimeout(() => process.exit(1), 5000);
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

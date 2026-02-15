@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { csrfProtection } from '../middleware/csrfProtection.js';
 
 export const supportRouter = Router();
+supportRouter.use(csrfProtection());
 
 interface SupportChatRequestBody {
   message?: string;

@@ -11,36 +11,24 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, setGeneratedImage, setSelectedStyle, resetUpload, addToCart } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, resetUpload, addToCart, setGeneratedImage } = useAppStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
 
-  // Restore from sessionStorage if store is empty (e.g. browser back)
+  // Redirect to home if store has no data (e.g. direct navigation or page reload)
   useEffect(() => {
     if (!generatedImage || !selectedStyle) {
-      try {
-        const saved = sessionStorage.getItem(SESSION_KEY);
-        if (saved) {
-          const { image, style } = JSON.parse(saved);
-          if (image && style) {
-            setGeneratedImage(image);
-            setSelectedStyle(style);
-            return;
-          }
-        }
-      } catch { /* ignore parse errors */ }
       navigate('/');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Save to sessionStorage when data is available
+  // Save only IDs to sessionStorage (no base64 image data)
   useEffect(() => {
     if (generatedImage && selectedStyle) {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-        image: generatedImage,
-        style: selectedStyle,
-      }));
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ styleId: selectedStyle.id }));
+      } catch { /* ignore storage errors */ }
     }
   }, [generatedImage, selectedStyle]);
 

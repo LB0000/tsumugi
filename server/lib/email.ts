@@ -54,7 +54,9 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   `);
 
   if (!resend) {
-    console.log('[Email] Resend not configured. Verification URL:', verifyUrl);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Email] Resend not configured. Verification URL:', verifyUrl);
+    }
     return true;
   }
 
@@ -94,7 +96,9 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   `);
 
   if (!resend) {
-    console.log('[Email] Resend not configured. Reset URL:', resetUrl);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Email] Resend not configured. Reset URL:', resetUrl);
+    }
     return true;
   }
 

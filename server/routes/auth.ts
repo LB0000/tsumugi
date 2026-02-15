@@ -1,10 +1,9 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import {
   SESSION_TTL_MS,
-  getUserBySessionToken,
   loginUser,
   logoutSession,
   registerUser,
@@ -24,22 +23,19 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
 import {
   AUTH_CSRF_COOKIE_NAME,
   AUTH_SESSION_COOKIE_NAME,
-  areTokensEqual,
-  extractCsrfTokenFromCookie,
-  extractCsrfTokenFromHeader,
   extractSessionTokenFromHeaders,
-  isAllowedOrigin,
   type HeaderMap,
 } from '../lib/requestAuth.js';
 import { isValidEmail } from '../lib/validation.js';
+import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
+import { csrfProtection } from '../middleware/csrfProtection.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 export const authRouter = Router();
 const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL;
-const authCookieSameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
+const authCookieSameSite: 'none' | 'lax' = isProduction && process.env.COOKIE_SAME_SITE === 'none' ? 'none' : 'lax';
 const authCookieSecure = isProduction;
 const MAX_ADDRESS_LENGTH = {
   label: 40,
@@ -52,14 +48,6 @@ const MAX_ADDRESS_LENGTH = {
   city: 120,
   addressLine: 200,
 } as const;
-
-function getRequestHeaders(req: Request): HeaderMap {
-  return req.headers as HeaderMap;
-}
-
-function extractSessionToken(req: Request): string | null {
-  return extractSessionTokenFromHeaders(getRequestHeaders(req));
-}
 
 function createCsrfToken(): string {
   return randomBytes(32).toString('hex');
@@ -112,34 +100,7 @@ authRouter.get('/csrf', (_req, res) => {
   });
 });
 
-authRouter.use((req, res, next) => {
-  if (req.method !== 'POST') {
-    next();
-    return;
-  }
-
-  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  if (!isAllowedOrigin({ originHeader, frontendUrl, isProduction })) {
-    res.status(403).json({
-      success: false,
-      error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
-    });
-    return;
-  }
-
-  const headers = getRequestHeaders(req);
-  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
-  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
-  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
-    res.status(403).json({
-      success: false,
-      error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
-    });
-    return;
-  }
-
-  next();
-});
+authRouter.use(csrfProtection());
 
 authRouter.post('/register', async (req, res) => {
   try {
@@ -414,52 +375,19 @@ authRouter.post('/reset-password', async (req, res) => {
   }
 });
 
-authRouter.get('/me', (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
-
+authRouter.get('/me', requireAuth, (_req, res) => {
+  const user = getAuthUser(res);
   res.json({
     success: true,
     user,
   });
 });
 
-authRouter.post('/profile', async (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
+authRouter.post('/profile', requireAuth, async (_req, res) => {
+  const user = getAuthUser(res);
 
   try {
-    const { name } = req.body as { name?: string };
+    const { name } = _req.body as { name?: string };
     const normalizedName = typeof name === 'string' ? name.trim() : '';
 
     if (normalizedName.length < 1 || normalizedName.length > 80) {
@@ -481,27 +409,11 @@ authRouter.post('/profile', async (req, res) => {
   }
 });
 
-authRouter.post('/change-password', async (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
+authRouter.post('/change-password', requireAuth, async (_req, res) => {
+  const user = getAuthUser(res);
 
   try {
-    const { currentPassword, newPassword } = req.body as {
+    const { currentPassword, newPassword } = _req.body as {
       currentPassword?: string;
       newPassword?: string;
     };
@@ -583,24 +495,8 @@ authRouter.post('/verify-email', (req, res) => {
   res.json({ success: true, user });
 });
 
-authRouter.post('/resend-verification', (req, res) => {
-  const sessionToken = extractSessionToken(req);
-  if (!sessionToken) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(sessionToken);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
+authRouter.post('/resend-verification', requireAuth, (_req, res) => {
+  const user = getAuthUser(res);
 
   if (user.emailVerified) {
     res.json({ success: true, message: 'メールアドレスは既に認証済みです' });
@@ -623,51 +519,18 @@ authRouter.post('/resend-verification', (req, res) => {
 });
 
 // GET /api/auth/addresses
-authRouter.get('/addresses', (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
-
+authRouter.get('/addresses', requireAuth, (_req, res) => {
+  const user = getAuthUser(res);
   const addresses = getSavedAddresses(user.id);
   res.json({ success: true, addresses });
 });
 
 // POST /api/auth/addresses
-authRouter.post('/addresses', (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
+authRouter.post('/addresses', requireAuth, (_req, res) => {
+  const user = getAuthUser(res);
 
   try {
-    const body = req.body as Record<string, unknown>;
+    const body = _req.body as Record<string, unknown>;
     const label = typeof body.label === 'string' ? body.label.trim() : '';
     const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';
     const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
@@ -736,26 +599,10 @@ authRouter.post('/addresses', (req, res) => {
 });
 
 // DELETE /api/auth/addresses/:id
-authRouter.delete('/addresses/:id', (req, res) => {
-  const token = extractSessionToken(req);
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
-    });
-    return;
-  }
+authRouter.delete('/addresses/:id', requireAuth, (_req, res) => {
+  const user = getAuthUser(res);
 
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({
-      success: false,
-      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
-    });
-    return;
-  }
-
-  const addressId = typeof req.params.id === 'string' ? req.params.id.trim() : '';
+  const addressId = typeof _req.params.id === 'string' ? _req.params.id.trim() : '';
   if (!addressId) {
     res.status(400).json({
       success: false,
@@ -777,7 +624,7 @@ authRouter.delete('/addresses/:id', (req, res) => {
 });
 
 authRouter.post('/logout', (req, res) => {
-  const token = extractSessionToken(req);
+  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
   if (token) {
     logoutSession(token);
   }

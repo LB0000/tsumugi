@@ -53,6 +53,8 @@ interface AppState {
 
   // Auth
   authUser: AuthUser | null;
+  authLoading: boolean;
+  setAuthLoading: (loading: boolean) => void;
   setAuthSession: (user: AuthUser) => void;
   clearAuthSession: () => void;
 }
@@ -150,10 +152,12 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Auth
   authUser: null,
+  authLoading: true,
+  setAuthLoading: (loading) => set({ authLoading: loading }),
   setAuthSession: (user) => {
-    set({ authUser: user });
+    set({ authUser: user, authLoading: false });
   },
   clearAuthSession: () => {
-    set({ authUser: null });
+    set({ authUser: null, authLoading: false });
   }
 }));

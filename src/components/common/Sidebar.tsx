@@ -11,7 +11,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export function Sidebar() {
-  const { isSidebarOpen, closeSidebar, authUser } = useAppStore();
+  const { isSidebarOpen, closeSidebar, authUser, cartItems } = useAppStore();
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const location = useLocation();
 
   if (!isSidebarOpen) return null;
@@ -62,7 +63,11 @@ export function Sidebar() {
               >
                 <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center relative">
                   <ShoppingCart className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-coral text-white text-[10px] rounded-full flex items-center justify-center">0</span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent-coral text-white text-[10px] rounded-full flex items-center justify-center">
+                      {Math.min(cartCount, 99)}
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs">カート</span>
               </Link>
@@ -123,7 +128,7 @@ export function Sidebar() {
             <div className="flex flex-col items-center gap-2">
               <div className="font-serif text-sm text-primary tracking-wider">TSUMUGI</div>
               <p className="text-[10px] text-muted">
-                © 2024 TSUMUGI
+                © {new Date().getFullYear()} TSUMUGI
               </p>
             </div>
           </div>

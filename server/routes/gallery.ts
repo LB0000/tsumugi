@@ -1,63 +1,27 @@
 import { Router } from 'express';
 import { promises as fs } from 'fs';
-import { getUserBySessionToken } from '../lib/auth.js';
 import {
   getGalleryItems,
   getGalleryItem,
   getGalleryImagePath,
   deleteGalleryItem,
 } from '../lib/galleryState.js';
-import {
-  areTokensEqual,
-  extractCsrfTokenFromCookie,
-  extractCsrfTokenFromHeader,
-  extractSessionTokenFromHeaders,
-  isAllowedOrigin,
-  type HeaderMap,
-} from '../lib/requestAuth.js';
+import { csrfProtection } from '../middleware/csrfProtection.js';
+import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 
 export const galleryRouter = Router();
-const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL;
-
-function extractSessionToken(headers: HeaderMap): string | null {
-  return extractSessionTokenFromHeaders(headers);
-}
+galleryRouter.use(csrfProtection({ methods: ['DELETE'] }));
 
 // GET /api/gallery — list user's gallery items (metadata only)
-galleryRouter.get('/', (req, res) => {
-  const headers = req.headers as HeaderMap;
-  const token = extractSessionToken(headers);
-  if (!token) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '認証情報がありません' } });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' } });
-    return;
-  }
-
+galleryRouter.get('/', requireAuth, (req, res) => {
+  const user = getAuthUser(res);
   const items = getGalleryItems(user.id);
   res.json({ success: true, items });
 });
 
 // GET /api/gallery/:id/image — serve full image
-galleryRouter.get('/:id/image', async (req, res) => {
-  const headers = req.headers as HeaderMap;
-  const token = extractSessionToken(headers);
-  if (!token) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '認証情報がありません' } });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' } });
-    return;
-  }
-
+galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
+  const user = getAuthUser(res);
   const item = getGalleryItem(req.params.id);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
@@ -78,20 +42,8 @@ galleryRouter.get('/:id/image', async (req, res) => {
 });
 
 // GET /api/gallery/:id/thumbnail — serve thumbnail
-galleryRouter.get('/:id/thumbnail', async (req, res) => {
-  const headers = req.headers as HeaderMap;
-  const token = extractSessionToken(headers);
-  if (!token) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '認証情報がありません' } });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' } });
-    return;
-  }
-
+galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
+  const user = getAuthUser(res);
   const item = getGalleryItem(req.params.id);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
@@ -112,33 +64,8 @@ galleryRouter.get('/:id/thumbnail', async (req, res) => {
 });
 
 // DELETE /api/gallery/:id — delete a gallery item
-galleryRouter.delete('/:id', async (req, res) => {
-  const headers = req.headers as HeaderMap;
-  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  if (!isAllowedOrigin({ originHeader, frontendUrl, isProduction })) {
-    res.status(403).json({ success: false, error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' } });
-    return;
-  }
-
-  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
-  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
-  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
-    res.status(403).json({ success: false, error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' } });
-    return;
-  }
-
-  const token = extractSessionToken(headers);
-  if (!token) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: '認証情報がありません' } });
-    return;
-  }
-
-  const user = getUserBySessionToken(token);
-  if (!user) {
-    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' } });
-    return;
-  }
-
+galleryRouter.delete('/:id', requireAuth, async (req, res) => {
+  const user = getAuthUser(res);
   const deleted = await deleteGalleryItem(user.id, req.params.id);
   if (!deleted) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });

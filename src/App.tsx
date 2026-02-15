@@ -28,6 +28,13 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => (
 
 const CATEGORY_PATHS = ['/pets', '/family', '/kids'];
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { authUser, authLoading } = useAppStore();
+  if (authLoading) return <LoadingSpinner />;
+  if (!authUser) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   const prevPathname = useRef(pathname);
@@ -87,12 +94,12 @@ function AppLayout() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
               <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
               <Route path="/shipping" element={<ShippingPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/company" element={<CompanyPage />} />
-              <Route path="/account" element={<AccountPage />} />
+              <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
             </Routes>
           </Suspense>
