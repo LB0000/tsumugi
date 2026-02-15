@@ -117,8 +117,8 @@ export function ContactPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">メール</p>
-                    <a href="mailto:support@artgift.jp" className="text-sm text-primary hover:underline">
-                      support@artgift.jp
+                    <a href="mailto:support@tsumugi.jp" className="text-sm text-primary hover:underline">
+                      support@tsumugi.jp
                     </a>
                   </div>
                 </div>

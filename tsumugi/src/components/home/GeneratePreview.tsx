@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame, ScanFace, Paintbrush, Layers, Contrast } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
@@ -44,8 +44,6 @@ export function GeneratePreview() {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [currentInfoPanel, setCurrentInfoPanel] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
-  const [hasImageProcessingConsent, setHasImageProcessingConsent] = useState(false);
-
   const cancelledRef = useRef(false);
 
   // ステージを段階的に進める（可変 duration）
@@ -110,12 +108,6 @@ export function GeneratePreview() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
-  useEffect(() => {
-    if (!uploadState.previewUrl) {
-      setHasImageProcessingConsent(false);
-    }
-  }, [uploadState.previewUrl]);
-
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle) return;
 
@@ -145,7 +137,7 @@ export function GeneratePreview() {
   };
 
   const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
-  const canGenerate = hasPhoto && Boolean(selectedStyle) && hasImageProcessingConsent;
+  const canGenerate = hasPhoto && Boolean(selectedStyle);
 
   const progressColors: [string, string] = [
     selectedStyle?.colorPalette[0] || '#8B4513',
@@ -245,24 +237,7 @@ export function GeneratePreview() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {hasPhoto && selectedStyle && (
-                  <label className="flex items-start gap-3 p-3 rounded-xl bg-card/70 border border-border/60 text-left cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasImageProcessingConsent}
-                      onChange={(e) => setHasImageProcessingConsent(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary/40"
-                    />
-                    <span className="text-sm text-muted leading-relaxed">
-                      画像生成のため、アップロード画像を外部AI（Google Gemini）に送信することに同意します。
-                      <Link to="/privacy" className="ml-1 text-primary hover:underline">
-                        プライバシーポリシー
-                      </Link>
-                    </span>
-                  </label>
-                )}
-
+              <div className="space-y-4 flex flex-col items-center">
                 <button
                   onClick={handleGenerate}
                   disabled={!canGenerate || isGenerating}
@@ -296,9 +271,7 @@ export function GeneratePreview() {
                   ? '写真のアップロードとスタイル選択が必要です'
                   : !hasPhoto
                     ? '写真をアップロードしてください'
-                    : !selectedStyle
-                      ? 'スタイルを選択してください'
-                      : '生成を開始するには画像処理への同意が必要です'}
+                    : 'スタイルを選択してください'}
               </p>
             )}
 

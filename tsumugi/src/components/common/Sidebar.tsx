@@ -121,9 +121,9 @@ export function Sidebar() {
           {/* Footer */}
           <div className="p-5 border-t border-border bg-gradient-to-t from-card/50 to-transparent">
             <div className="flex flex-col items-center gap-2">
-              <div className="font-serif text-sm text-primary tracking-wider">藝術贈物</div>
+              <div className="font-serif text-sm text-primary tracking-wider">TSUMUGI</div>
               <p className="text-[10px] text-muted">
-                © 2024 Art Gift Japan
+                © 2024 TSUMUGI
               </p>
             </div>
           </div>

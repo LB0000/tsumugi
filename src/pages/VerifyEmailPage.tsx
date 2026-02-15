@@ -41,10 +41,7 @@ export function VerifyEmailPage() {
       <div className="w-full max-w-md text-center">
         <Link to="/" className="inline-block mb-8">
           <span className="font-serif text-3xl font-semibold text-primary tracking-wider">
-            藝術贈物
-          </span>
-          <span className="block text-[10px] text-secondary tracking-[0.3em] uppercase mt-1">
-            Art Gift Japan
+            TSUMUGI
           </span>
         </Link>
 

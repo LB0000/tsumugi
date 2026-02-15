@@ -60,7 +60,7 @@ export function Footer() {
                 </h2>
                 <p className="text-foreground/20 text-xs sm:text-sm tracking-[0.5em] mb-4 sm:mb-8 font-serif">TSUMUGI</p>
                 <span className="text-[10px] text-secondary tracking-[0.3em] uppercase mt-1">
-                  Art Gift Japan
+                  TSUMUGI
                 </span>
               </div>
             </Link>
@@ -83,7 +83,7 @@ export function Footer() {
             <div className="space-y-1.5 sm:space-y-2">
               <div className="flex items-center gap-2 sm:gap-3 text-background/70">
                 <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary flex-shrink-0" />
-                <span className="text-xs sm:text-sm">support@artgift.jp</span>
+                <span className="text-xs sm:text-sm">support@tsumugi.jp</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-background/70">
                 <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary flex-shrink-0" />

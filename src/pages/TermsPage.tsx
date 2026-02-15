@@ -30,7 +30,7 @@ export function TermsPage() {
             <h2 className="font-serif text-xl font-semibold text-foreground mb-4">第1条（適用）</h2>
             <div className="text-muted leading-relaxed space-y-3">
               <p>
-                本規約は、藝術贈物（以下「当社」といいます）が提供するサービス（以下「本サービス」といいます）の利用条件を定めるものです。
+                本規約は、TSUMUGI（以下「当社」といいます）が提供するサービス（以下「本サービス」といいます）の利用条件を定めるものです。
                 登録ユーザーの皆さま（以下「ユーザー」といいます）には、本規約に従って本サービスをご利用いただきます。
               </p>
             </div>

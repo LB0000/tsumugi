@@ -205,7 +205,6 @@ interface AuthResponse {
 interface ForgotPasswordResponse {
   success: true;
   message: string;
-  resetToken?: string | null;
 }
 
 interface CurrentUserResponse {
@@ -275,11 +274,9 @@ function isAuthResponse(data: unknown): data is AuthResponse {
 function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
-  const resetToken = obj.resetToken;
   return (
     obj.success === true &&
-    typeof obj.message === 'string' &&
-    (resetToken === undefined || resetToken === null || typeof resetToken === 'string')
+    typeof obj.message === 'string'
   );
 }
 
@@ -340,9 +337,10 @@ async function buildAuthActionHeaders(): Promise<Record<string, string>> {
 }
 
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/checkout/create-order`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -362,9 +360,10 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
 }
 
 export async function processPayment(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/checkout/process-payment`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });

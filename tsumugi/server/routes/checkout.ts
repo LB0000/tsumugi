@@ -13,9 +13,74 @@ import {
 import { getUserBySessionToken } from '../lib/auth.js';
 import { locationId, squareClient } from '../lib/square.js';
 import { validateCoupon, applyDiscount, useCoupon } from '../lib/coupon.js';
-import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
+import {
+  extractSessionTokenFromHeaders,
+  extractCsrfTokenFromCookie,
+  extractCsrfTokenFromHeader,
+  areTokensEqual,
+  isAllowedOrigin,
+  type HeaderMap,
+} from '../lib/requestAuth.js';
 
 export const checkoutRouter = Router();
+
+const isProductionEnv = process.env.NODE_ENV === 'production';
+const frontendUrlEnv = process.env.FRONTEND_URL;
+
+// CSRF protection for POST endpoints (except webhook which uses Square signature verification)
+checkoutRouter.use((req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  if (req.path === '/webhook') { next(); return; }
+
+  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+  if (!isAllowedOrigin({ originHeader, frontendUrl: frontendUrlEnv, isProduction: isProductionEnv })) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
+    });
+    return;
+  }
+
+  const headers = req.headers as HeaderMap;
+  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
+  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
+  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
+    });
+    return;
+  }
+
+  next();
+});
+
+function handleSquareOrServerError(
+  res: Parameters<Parameters<typeof checkoutRouter.post>[1]>[1],
+  error: unknown,
+  defaultCode: string,
+  defaultMessage: string,
+) {
+  if (error instanceof SquareError) {
+    console.error('Square API details:', {
+      statusCode: error.statusCode,
+      errors: error.errors,
+    });
+    const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 500
+      ? error.statusCode
+      : 502;
+    res.status(status).json({
+      success: false,
+      error: { code: error.errors?.[0]?.code || defaultCode, message: defaultMessage },
+    });
+    return;
+  }
+  console.error(`${defaultCode}:`, error);
+  res.status(500).json({
+    success: false,
+    error: { code: defaultCode, message: defaultMessage },
+  });
+}
 
 interface CartItemPayload {
   productId: string;
@@ -324,24 +389,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    console.error('Create order error:', error);
-    if (error instanceof SquareError) {
-      console.error('Square API details:', {
-        statusCode: error.statusCode,
-        errors: error.errors,
-      });
-      const detail = error.errors?.[0]?.detail || '注文の作成に失敗しました';
-      res.status(error.statusCode ?? 500).json({
-        success: false,
-        error: { code: error.errors?.[0]?.code || 'ORDER_CREATION_FAILED', message: detail },
-      });
-      return;
-    }
-    const message = error instanceof Error ? error.message : '注文の作成に失敗しました';
-    res.status(500).json({
-      success: false,
-      error: { code: 'ORDER_CREATION_FAILED', message },
-    });
+    handleSquareOrServerError(res, error, 'ORDER_CREATION_FAILED', '注文の作成に失敗しました');
   }
 });
 
@@ -441,24 +489,7 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       receiptUrl: sanitizedReceiptUrl,
     });
   } catch (error) {
-    console.error('Process payment error:', error);
-    if (error instanceof SquareError) {
-      console.error('Square API details:', {
-        statusCode: error.statusCode,
-        errors: error.errors,
-      });
-      const detail = error.errors?.[0]?.detail || '決済処理に失敗しました';
-      res.status(error.statusCode ?? 500).json({
-        success: false,
-        error: { code: error.errors?.[0]?.code || 'PAYMENT_FAILED', message: detail },
-      });
-      return;
-    }
-    const message = error instanceof Error ? error.message : '決済処理に失敗しました';
-    res.status(500).json({
-      success: false,
-      error: { code: 'PAYMENT_FAILED', message },
-    });
+    handleSquareOrServerError(res, error, 'PAYMENT_FAILED', '決済処理に失敗しました');
   }
 });
 

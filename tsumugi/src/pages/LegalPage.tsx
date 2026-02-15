@@ -17,7 +17,7 @@ export function LegalPage() {
             特定商取引法に基づく表記
           </h1>
           <p className="text-muted">
-            アートギフトのサービスをご利用いただくにあたり、以下の内容をご確認ください。
+            TSUMUGIのサービスをご利用いただくにあたり、以下の内容をご確認ください。
           </p>
         </div>
 

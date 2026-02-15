@@ -30,7 +30,7 @@ export function PrivacyPage() {
             <h2 className="font-serif text-xl font-semibold text-foreground mb-4">1. はじめに</h2>
             <div className="text-muted leading-relaxed space-y-3">
               <p>
-                藝術贈物（以下「当社」といいます）は、お客様の個人情報の保護を重要な責務と考え、
+                TSUMUGI（以下「当社」といいます）は、お客様の個人情報の保護を重要な責務と考え、
                 以下のプライバシーポリシーに従って個人情報を取り扱います。
               </p>
             </div>
@@ -150,8 +150,8 @@ export function PrivacyPage() {
                 本ポリシーに関するお問い合わせは、以下までご連絡ください。
               </p>
               <div className="bg-card p-4 rounded-lg border border-border mt-4">
-                <p className="font-medium text-foreground mb-2">藝術贈物 個人情報保護担当</p>
-                <p>メール: privacy@artgift.jp</p>
+                <p className="font-medium text-foreground mb-2">TSUMUGI 個人情報保護担当</p>
+                <p>メール: privacy@tsumugi.jp</p>
                 <p>電話: 0120-000-000（平日 10:00-18:00）</p>
               </div>
             </div>

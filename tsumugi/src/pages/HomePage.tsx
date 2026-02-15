@@ -1,12 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
+import { categoryMetadata } from '../data/categoryMetadata';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
 
 const RESULT_SESSION_KEY = 'tsumugi-result';
+const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
+const DEFAULT_TITLE = 'TSUMUGI - 肖像画ギフト専門店';
+const DEFAULT_DESCRIPTION = 'ペットや家族の写真をルネサンス風の肖像画に変換。世界に一つだけのギフトをお届けします。';
 
 export function HomePage() {
-  const { selectedCategory, resetUpload } = useAppStore();
+  const { selectedCategory, setSelectedCategory, resetUpload } = useAppStore();
+  const { pathname } = useLocation();
+  const segment = pathname.split('/').filter(Boolean)[0] ?? '';
+  const categoryFromUrl = VALID_CATEGORIES.includes(segment as typeof VALID_CATEGORIES[number])
+    ? (segment as typeof VALID_CATEGORIES[number])
+    : null;
+  const prevCategory = useRef(selectedCategory);
+
+  // URLからカテゴリを同期 + カテゴリ変更時にアップロードをリセット
+  useEffect(() => {
+    if (categoryFromUrl && categoryFromUrl !== selectedCategory) {
+      setSelectedCategory(categoryFromUrl);
+      if (prevCategory.current !== categoryFromUrl) {
+        resetUpload();
+      }
+    }
+    prevCategory.current = selectedCategory;
+  }, [categoryFromUrl, selectedCategory, setSelectedCategory, resetUpload]);
+
+  // SEOメタタグを動的に更新
+  useEffect(() => {
+    const meta = categoryMetadata[selectedCategory];
+    if (!meta) return;
+    document.title = meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description);
+    return () => {
+      document.title = DEFAULT_TITLE;
+      document.querySelector('meta[name="description"]')?.setAttribute('content', DEFAULT_DESCRIPTION);
+    };
+  }, [selectedCategory]);
+
   const currentCategory = categories.find(c => c.id === selectedCategory);
 
   useEffect(() => {

@@ -1,9 +1,18 @@
 import path from 'path';
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'crypto';
+
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
 
-const scrypt = promisify(scryptCallback);
+const SCRYPT_OPTIONS: ScryptOptions = { cost: 16384, blockSize: 8, parallelization: 1 };
+
+function scryptAsync(password: string, salt: string, keylen: number, options: ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keylen, options, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+}
 
 export interface SavedAddress {
   id: string;
@@ -200,7 +209,7 @@ function toPublicUser(user: UserRecord): AuthPublicUser {
 }
 
 async function hashPassword(password: string, salt: string): Promise<string> {
-  const raw = await scrypt(password, salt, 64) as Buffer;
+  const raw = await scryptAsync(password, salt, 64, SCRYPT_OPTIONS) as Buffer;
   return raw.toString('hex');
 }
 

@@ -6,8 +6,6 @@ import { logoutAuth } from '../../api';
 
 export function Header() {
   const {
-    selectedCategory,
-    setSelectedCategory,
     toggleSidebar,
     cartItems,
     clearCart,
@@ -16,7 +14,7 @@ export function Header() {
     resetUpload,
   } = useAppStore();
   const { pathname } = useLocation();
-  const isHomePage = pathname === '/';
+  const isCategoryPage = ['/pets', '/family', '/kids'].includes(pathname);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = async () => {
@@ -117,22 +115,22 @@ export function Header() {
         </div>
       </div>
 
-      {/* Category Navigation — ホームページのみ */}
-      {isHomePage && (
+      {/* Category Navigation — カテゴリページのみ */}
+      {isCategoryPage && (
         <nav className="bg-card border-b border-border">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-x-auto py-2 sm:py-3 scrollbar-thin">
               {categories.map((category) => (
-                <button
+                <Link
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${selectedCategory === category.id
+                  to={`/${category.id}`}
+                  className={`px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${pathname === `/${category.id}`
                     ? 'text-white bg-primary shadow-sm'
                     : 'text-foreground hover:text-primary hover:bg-primary/5'
                     }`}
                 >
                   {category.name}
-                </button>
+                </Link>
               ))}
             </div>
           </div>

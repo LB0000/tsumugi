@@ -129,7 +129,7 @@ export const useAppStore = create<AppState>((set) => ({
     }
 
     return {
-      cartItems: [...state.cartItems, { ...item, id: Math.random().toString(36).substring(7) }]
+      cartItems: [...state.cartItems, { ...item, id: crypto.randomUUID() }]
     };
   }),
   removeFromCart: (id) => set((state) => ({

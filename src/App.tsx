@@ -1,5 +1,5 @@
-import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary, FloatingCTA } from './components/common';
 import { getCurrentUser } from './api';
 import { useAppStore } from './stores/appStore';
@@ -26,10 +26,18 @@ const CompanyPage = lazy(() => import('./pages/CompanyPage').then(m => ({ defaul
 const AccountPage = lazy(() => import('./pages/AccountPage').then(m => ({ default: m.AccountPage })));
 const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 
+const CATEGORY_PATHS = ['/pets', '/family', '/kids'];
+
 function ScrollToTop() {
   const { pathname } = useLocation();
+  const prevPathname = useRef(pathname);
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const wasCategory = CATEGORY_PATHS.includes(prevPathname.current);
+    const isCategory = CATEGORY_PATHS.includes(pathname);
+    if (!(wasCategory && isCategory)) {
+      window.scrollTo(0, 0);
+    }
+    prevPathname.current = pathname;
   }, [pathname]);
   return null;
 }
@@ -63,7 +71,10 @@ function AppLayout() {
         <ErrorBoundary>
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<Navigate to="/pets" replace />} />
+              <Route path="/pets" element={<HomePage />} />
+              <Route path="/family" element={<HomePage />} />
+              <Route path="/kids" element={<HomePage />} />
               <Route path="/result" element={<ResultPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/support" element={<SupportPage />} />
