@@ -22,7 +22,7 @@ interface PricingResponse {
 }
 
 // Type guard for GenerateImageResponse validation
-function isGenerateImageResponse(data: unknown): data is GenerateImageResponse {
+export function isGenerateImageResponse(data: unknown): data is GenerateImageResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -37,7 +37,7 @@ function isGenerateImageResponse(data: unknown): data is GenerateImageResponse {
 }
 
 // Type guard for ErrorResponse validation
-function isErrorResponse(data: unknown): data is ErrorResponse {
+export function isErrorResponse(data: unknown): data is ErrorResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -49,7 +49,7 @@ function isErrorResponse(data: unknown): data is ErrorResponse {
 }
 
 // Type guard for ArtStyle validation
-function isArtStyle(data: unknown): data is ArtStyle {
+export function isArtStyle(data: unknown): data is ArtStyle {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -63,7 +63,7 @@ function isArtStyle(data: unknown): data is ArtStyle {
 }
 
 // Type guard for StylesResponse validation
-function isStylesResponse(data: unknown): data is StylesResponse {
+export function isStylesResponse(data: unknown): data is StylesResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -74,7 +74,7 @@ function isStylesResponse(data: unknown): data is StylesResponse {
 }
 
 // Type guard for PricingResponse validation
-function isPricingResponse(data: unknown): data is PricingResponse {
+export function isPricingResponse(data: unknown): data is PricingResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -217,7 +217,7 @@ interface CsrfResponse {
   csrfToken: string;
 }
 
-function isCreateOrderResponse(data: unknown): data is CreateOrderResponse {
+export function isCreateOrderResponse(data: unknown): data is CreateOrderResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -227,7 +227,7 @@ function isCreateOrderResponse(data: unknown): data is CreateOrderResponse {
   );
 }
 
-function isProcessPaymentResponse(data: unknown): data is ProcessPaymentResponse {
+export function isProcessPaymentResponse(data: unknown): data is ProcessPaymentResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -238,7 +238,7 @@ function isProcessPaymentResponse(data: unknown): data is ProcessPaymentResponse
   );
 }
 
-function isContactResponse(data: unknown): data is ContactResponse {
+export function isContactResponse(data: unknown): data is ContactResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -248,7 +248,7 @@ function isContactResponse(data: unknown): data is ContactResponse {
   );
 }
 
-function isSupportChatResponse(data: unknown): data is SupportChatResponse {
+export function isSupportChatResponse(data: unknown): data is SupportChatResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -258,7 +258,7 @@ function isSupportChatResponse(data: unknown): data is SupportChatResponse {
   );
 }
 
-function isAuthResponse(data: unknown): data is AuthResponse {
+export function isAuthResponse(data: unknown): data is AuthResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   const user = obj.user as Record<string, unknown> | undefined;
@@ -271,7 +271,7 @@ function isAuthResponse(data: unknown): data is AuthResponse {
   );
 }
 
-function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse {
+export function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -280,7 +280,7 @@ function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse
   );
 }
 
-function isCurrentUserResponse(data: unknown): data is CurrentUserResponse {
+export function isCurrentUserResponse(data: unknown): data is CurrentUserResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   const user = obj.user as Record<string, unknown> | undefined;
@@ -293,7 +293,7 @@ function isCurrentUserResponse(data: unknown): data is CurrentUserResponse {
   );
 }
 
-function isCsrfResponse(data: unknown): data is CsrfResponse {
+export function isCsrfResponse(data: unknown): data is CsrfResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return (
@@ -576,13 +576,13 @@ interface OrderDetailResponse {
   order: OrderHistoryItem;
 }
 
-function isOrdersResponse(data: unknown): data is OrdersResponse {
+export function isOrdersResponse(data: unknown): data is OrdersResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && Array.isArray(obj.orders);
 }
 
-function isOrderDetailResponse(data: unknown): data is OrderDetailResponse {
+export function isOrderDetailResponse(data: unknown): data is OrderDetailResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && typeof obj.order === 'object' && obj.order !== null;
@@ -749,13 +749,13 @@ interface AddressSaveResponse {
   address: SavedAddressItem;
 }
 
-function isAddressesResponse(data: unknown): data is AddressesResponse {
+export function isAddressesResponse(data: unknown): data is AddressesResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && Array.isArray(obj.addresses);
 }
 
-function isAddressSaveResponse(data: unknown): data is AddressSaveResponse {
+export function isAddressSaveResponse(data: unknown): data is AddressSaveResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && typeof obj.address === 'object' && obj.address !== null;
@@ -832,7 +832,7 @@ interface GalleryResponse {
   items: GalleryItemData[];
 }
 
-function isGalleryResponse(data: unknown): data is GalleryResponse {
+export function isGalleryResponse(data: unknown): data is GalleryResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && Array.isArray(obj.items);

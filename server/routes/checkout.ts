@@ -88,7 +88,7 @@ interface CartItemPayload {
   quantity: number;
 }
 
-interface ShippingAddressPayload {
+export interface ShippingAddressPayload {
   lastName: string;
   firstName: string;
   email: string;
@@ -105,7 +105,7 @@ interface RawBodyRequest extends Request {
 
 const MAX_ITEM_QUANTITY = 10;
 
-function sanitizeReceiptUrl(value: unknown): string | undefined {
+export function sanitizeReceiptUrl(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
 
   try {
@@ -126,12 +126,12 @@ function sanitizePaymentStatusReceipt<T extends { receiptUrl?: string }>(status:
   return { ...status, receiptUrl: sanitizedReceiptUrl };
 }
 
-function makeIdempotencyKey(prefix: string, seed: string): string {
+export function makeIdempotencyKey(prefix: string, seed: string): string {
   const hash = createHash('sha256').update(seed).digest('hex').slice(0, 36);
   return `${prefix}-${hash}`;
 }
 
-function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): ShippingAddressPayload | null {
+export function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): ShippingAddressPayload | null {
   if (!address) return null;
 
   const normalized = {
