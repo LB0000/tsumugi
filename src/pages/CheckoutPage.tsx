@@ -4,7 +4,8 @@ import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react
 import { StyledButton, Breadcrumb } from '../components/common';
 import { useAppStore } from '../stores/appStore';
 import { useSquarePayments } from '../hooks/useSquarePayments';
-import { createOrder, processPayment } from '../api';
+import { createOrder, processPayment, getAddresses } from '../api';
+import type { SavedAddressItem } from '../api';
 import type { ShippingAddress } from '../types';
 
 const PREFECTURES = [
@@ -19,13 +20,14 @@ const PREFECTURES = [
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { cartItems, clearCart } = useAppStore();
+  const { cartItems, clearCart, authUser } = useAppStore();
   const { isReady, error: squareError, attachCard, tokenize } = useSquarePayments();
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardAttached, setCardAttached] = useState(false);
   const checkoutAttemptIdRef = useRef<string | null>(null);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
   const [form, setForm] = useState<ShippingAddress>({
     lastName: '',
@@ -61,6 +63,44 @@ export function CheckoutPage() {
   useEffect(() => {
     checkoutAttemptIdRef.current = null;
   }, [cartItems]);
+
+  // Load saved addresses for logged-in users
+  useEffect(() => {
+    if (!authUser) return;
+    void getAddresses()
+      .then((addrs) => {
+        setSavedAddresses(addrs);
+        // Auto-fill with default address
+        const defaultAddr = addrs.find((a) => a.isDefault) ?? (addrs.length === 1 ? addrs[0] : null);
+        if (defaultAddr && !form.lastName) {
+          setForm({
+            lastName: defaultAddr.lastName,
+            firstName: defaultAddr.firstName,
+            email: defaultAddr.email,
+            phone: defaultAddr.phone,
+            postalCode: defaultAddr.postalCode,
+            prefecture: defaultAddr.prefecture,
+            city: defaultAddr.city,
+            addressLine: defaultAddr.addressLine,
+          });
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser]);
+
+  const applySavedAddress = (addr: SavedAddressItem) => {
+    setForm({
+      lastName: addr.lastName,
+      firstName: addr.firstName,
+      email: addr.email,
+      phone: addr.phone,
+      postalCode: addr.postalCode,
+      prefecture: addr.prefecture,
+      city: addr.city,
+      addressLine: addr.addressLine,
+    });
+  };
 
   const updateForm = (field: keyof ShippingAddress, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -157,6 +197,24 @@ export function CheckoutPage() {
                   <Truck className="w-5 h-5 text-primary" />
                   <h2 className="font-semibold text-lg text-foreground">配送先情報</h2>
                 </div>
+
+                {savedAddresses.length > 0 && (
+                  <div className="mb-4 pb-4 border-b border-border">
+                    <label className="block text-sm font-medium text-foreground mb-2">保存済み配送先から選択</label>
+                    <div className="flex flex-wrap gap-2">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => applySavedAddress(addr)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition-colors"
+                        >
+                          {addr.label}（{addr.lastName}{addr.firstName}）
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

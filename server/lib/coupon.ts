@@ -29,7 +29,11 @@ export async function validateCoupon(code: string): Promise<CouponValidation> {
       return { valid: false, error: (body as { error?: string }).error || 'クーポンの検証に失敗しました' };
     }
 
-    return await response.json() as CouponValidation;
+    const data: unknown = await response.json();
+    if (typeof data !== 'object' || data === null || typeof (data as Record<string, unknown>).valid !== 'boolean') {
+      return { valid: false, error: 'クーポンサービスから不正なレスポンスが返されました' };
+    }
+    return data as CouponValidation;
   } catch {
     return { valid: false, error: 'クーポンサービスに接続できません' };
   }

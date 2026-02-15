@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { Router } from 'express';
-import { randomBytes, timingSafeEqual } from 'crypto';
+import { randomBytes } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import {
   SESSION_TTL_MS,
@@ -16,90 +16,53 @@ import {
   createVerificationToken,
   verifyEmail,
   getUserEmailForVerification,
+  getSavedAddresses,
+  addSavedAddress,
+  deleteSavedAddress,
 } from '../lib/auth.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
+import {
+  AUTH_CSRF_COOKIE_NAME,
+  AUTH_SESSION_COOKIE_NAME,
+  areTokensEqual,
+  extractCsrfTokenFromCookie,
+  extractCsrfTokenFromHeader,
+  extractSessionTokenFromHeaders,
+  isAllowedOrigin,
+  type HeaderMap,
+} from '../lib/requestAuth.js';
+import { isValidEmail } from '../lib/validation.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 export const authRouter = Router();
-const AUTH_SESSION_COOKIE_NAME = 'fable_session';
-const AUTH_CSRF_COOKIE_NAME = 'fable_csrf';
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendUrl = process.env.FRONTEND_URL;
 const authCookieSameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
 const authCookieSecure = isProduction;
+const MAX_ADDRESS_LENGTH = {
+  label: 40,
+  lastName: 80,
+  firstName: 80,
+  email: 254,
+  phone: 30,
+  postalCode: 16,
+  prefecture: 32,
+  city: 120,
+  addressLine: 200,
+} as const;
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function extractBearerToken(authorizationHeader: string | undefined): string | null {
-  if (!authorizationHeader) return null;
-  const [scheme, token] = authorizationHeader.split(' ');
-  if (scheme !== 'Bearer' || !token) return null;
-  return token.trim();
-}
-
-function parseCookies(cookieHeader: string | undefined): Map<string, string> {
-  const cookies = new Map<string, string>();
-  if (!cookieHeader) return cookies;
-
-  for (const entry of cookieHeader.split(';')) {
-    const [rawName, ...rawValue] = entry.trim().split('=');
-    if (!rawName || rawValue.length === 0) continue;
-    const name = rawName.trim();
-    const value = rawValue.join('=').trim();
-    if (!name || !value) continue;
-
-    try {
-      cookies.set(name, decodeURIComponent(value));
-    } catch {
-      cookies.set(name, value);
-    }
-  }
-
-  return cookies;
+function getRequestHeaders(req: Request): HeaderMap {
+  return req.headers as HeaderMap;
 }
 
 function extractSessionToken(req: Request): string | null {
-  const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined;
-  const bearerToken = extractBearerToken(authorization);
-  if (bearerToken) {
-    return bearerToken;
-  }
-
-  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
-  const cookies = parseCookies(cookieHeader);
-  return cookies.get(AUTH_SESSION_COOKIE_NAME) ?? null;
-}
-
-function extractCsrfTokenFromCookie(req: Request): string | null {
-  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
-  const cookies = parseCookies(cookieHeader);
-  return cookies.get(AUTH_CSRF_COOKIE_NAME) ?? null;
-}
-
-function extractCsrfTokenFromHeader(req: Request): string | null {
-  const header = req.headers['x-csrf-token'];
-  if (typeof header === 'string' && header.trim().length > 0) {
-    return header.trim();
-  }
-  if (Array.isArray(header) && typeof header[0] === 'string' && header[0].trim().length > 0) {
-    return header[0].trim();
-  }
-  return null;
+  return extractSessionTokenFromHeaders(getRequestHeaders(req));
 }
 
 function createCsrfToken(): string {
   return randomBytes(32).toString('hex');
-}
-
-function isSameToken(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
 }
 
 function setSessionCookie(res: Response, token: string): void {
@@ -140,12 +103,6 @@ function clearCsrfCookie(res: Response): void {
   });
 }
 
-function isAllowedOrigin(originHeader: string | undefined): boolean {
-  if (!isProduction || !frontendUrl) return true;
-  if (!originHeader) return false;
-  return originHeader === frontendUrl;
-}
-
 authRouter.get('/csrf', (_req, res) => {
   const csrfToken = createCsrfToken();
   setCsrfCookie(res, csrfToken);
@@ -162,7 +119,7 @@ authRouter.use((req, res, next) => {
   }
 
   const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
-  if (!isAllowedOrigin(originHeader)) {
+  if (!isAllowedOrigin({ originHeader, frontendUrl, isProduction })) {
     res.status(403).json({
       success: false,
       error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
@@ -170,9 +127,10 @@ authRouter.use((req, res, next) => {
     return;
   }
 
-  const csrfTokenFromCookie = extractCsrfTokenFromCookie(req);
-  const csrfTokenFromHeader = extractCsrfTokenFromHeader(req);
-  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !isSameToken(csrfTokenFromCookie, csrfTokenFromHeader)) {
+  const headers = getRequestHeaders(req);
+  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
+  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
+  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
     res.status(403).json({
       success: false,
       error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
@@ -662,6 +620,160 @@ authRouter.post('/resend-verification', (req, res) => {
   void sendVerificationEmail(email, verificationToken);
 
   res.json({ success: true, message: '認証メールを再送信しました' });
+});
+
+// GET /api/auth/addresses
+authRouter.get('/addresses', (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  const addresses = getSavedAddresses(user.id);
+  res.json({ success: true, addresses });
+});
+
+// POST /api/auth/addresses
+authRouter.post('/addresses', (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  try {
+    const body = req.body as Record<string, unknown>;
+    const label = typeof body.label === 'string' ? body.label.trim() : '';
+    const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';
+    const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const postalCode = typeof body.postalCode === 'string' ? body.postalCode.trim() : '';
+    const prefecture = typeof body.prefecture === 'string' ? body.prefecture.trim() : '';
+    const city = typeof body.city === 'string' ? body.city.trim() : '';
+    const addressLine = typeof body.addressLine === 'string' ? body.addressLine.trim() : '';
+    const isDefault = body.isDefault === true;
+
+    if (!label || !lastName || !firstName || !email || !phone || !postalCode || !prefecture || !city || !addressLine) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: '配送先情報が不足しています' },
+      });
+      return;
+    }
+
+    if (
+      label.length > MAX_ADDRESS_LENGTH.label ||
+      lastName.length > MAX_ADDRESS_LENGTH.lastName ||
+      firstName.length > MAX_ADDRESS_LENGTH.firstName ||
+      email.length > MAX_ADDRESS_LENGTH.email ||
+      phone.length > MAX_ADDRESS_LENGTH.phone ||
+      postalCode.length > MAX_ADDRESS_LENGTH.postalCode ||
+      prefecture.length > MAX_ADDRESS_LENGTH.prefecture ||
+      city.length > MAX_ADDRESS_LENGTH.city ||
+      addressLine.length > MAX_ADDRESS_LENGTH.addressLine
+    ) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ADDRESS', message: '配送先情報の文字数が上限を超えています' },
+      });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_EMAIL', message: 'メールアドレスの形式が正しくありません' },
+      });
+      return;
+    }
+
+    const address = addSavedAddress(user.id, {
+      label, lastName, firstName, email, phone,
+      postalCode, prefecture, city, addressLine, isDefault,
+    });
+    res.json({ success: true, address });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'MAX_ADDRESSES_REACHED') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'MAX_ADDRESSES_REACHED', message: '保存できる配送先は最大3件です' },
+      });
+      return;
+    }
+
+    console.error('Add address error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'ADDRESS_SAVE_FAILED', message: '配送先の保存に失敗しました' },
+    });
+  }
+});
+
+// DELETE /api/auth/addresses/:id
+authRouter.delete('/addresses/:id', (req, res) => {
+  const token = extractSessionToken(req);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  const addressId = typeof req.params.id === 'string' ? req.params.id.trim() : '';
+  if (!addressId) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_ADDRESS_ID', message: '配送先IDが必要です' },
+    });
+    return;
+  }
+
+  const deleted = deleteSavedAddress(user.id, addressId);
+  if (!deleted) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'ADDRESS_NOT_FOUND', message: '配送先が見つかりません' },
+    });
+    return;
+  }
+
+  res.json({ success: true });
 });
 
 authRouter.post('/logout', (req, res) => {

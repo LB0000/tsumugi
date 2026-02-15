@@ -1,7 +1,31 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getUserBySessionToken } from '../lib/auth.js';
+import { addGalleryItem } from '../lib/galleryState.js';
+import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
 
 export const generateRouter = Router();
+
+const styleNameMap: Record<string, string> = {
+  'baroque': 'バロック',
+  'renaissance': 'ルネサンス',
+  'impressionist': '印象派',
+  'stained-glass': 'ステンドグラス',
+  'art-nouveau': 'アール・ヌーヴォー',
+  'watercolor': '水彩画',
+  'ukiyo-e': '浮世絵',
+  'sumi-e': '墨絵',
+  'anime': 'アニメ',
+  'ghibli': 'ジブリ風',
+  'pop-art': 'ポップアート',
+  'hand-drawn': '手描きスケッチ',
+  'pixel-art': 'ピクセルアート',
+  'vector': 'ベクターアート',
+  'pet-royalty': 'ロイヤル',
+  'pet-samurai': 'サムライ',
+  'pet-fairy': 'フェアリー',
+  'kids-princess': 'プリンセス',
+};
 
 // Retry configuration for handling 503 errors
 const MAX_RETRIES = 3;
@@ -188,7 +212,9 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
     const stylePrompt = getStylePrompt(styleId, category);
     const styleFocusPrompt = getStyleFocusPrompt(styleId);
     const categoryPrompt = categoryPrompts[category] || '';
-    const customPrompt = options?.customPrompt || '';
+    const customPrompt = options?.customPrompt
+      ? options.customPrompt.slice(0, 500).replace(/[\x00-\x1f\x7f]/g, '')
+      : '';
 
     const fullPrompt = `${stylePrompt}
 
@@ -214,6 +240,17 @@ CRITICAL REQUIREMENTS:
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_IMAGE', message: 'Invalid base64 image format' }
+      });
+      return;
+    }
+
+    // Validate image size (max 10MB decoded)
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+    const estimatedSize = Math.ceil(parsedImage.data.length * 3 / 4);
+    if (estimatedSize > MAX_IMAGE_SIZE) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'IMAGE_TOO_LARGE', message: '画像サイズが大きすぎます（最大10MB）' }
       });
       return;
     }
@@ -326,7 +363,7 @@ CRITICAL REQUIREMENTS:
     console.log('Image generation successful!');
 
     // Generate project ID
-    const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const projectId = `proj_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 9)}`;
 
     const apiResponse: GenerateImageResponse = {
       success: true,
@@ -337,6 +374,21 @@ CRITICAL REQUIREMENTS:
       creditsUsed: 1,
       creditsRemaining: 4
     };
+
+    // Auto-save to gallery for logged-in users (non-blocking)
+    const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
+    const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
+    if (sessionUser) {
+      void addGalleryItem({
+        userId: sessionUser.id,
+        imageDataUrl: generatedImage,
+        thumbnailDataUrl: generatedImage,
+        artStyleId: styleId,
+        artStyleName: styleNameMap[styleId] || styleId,
+      }).catch((err) => {
+        console.error('Failed to save to gallery:', err);
+      });
+    }
 
     res.json(apiResponse);
   } catch (error) {
@@ -365,7 +417,7 @@ async function generateMockResponse(styleId: string): Promise<GenerateImageRespo
   // Simulate processing delay
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  const projectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const projectId = `proj_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 9)}`;
   const mockImage = generateMockPortrait(styleId);
 
   return {

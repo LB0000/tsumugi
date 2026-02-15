@@ -1,6 +1,24 @@
 import path from 'path';
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
 
+export interface OrderItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface OrderShippingAddress {
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  addressLine: string;
+}
+
 export interface OrderPaymentStatus {
   orderId: string;
   paymentId: string;
@@ -9,6 +27,11 @@ export interface OrderPaymentStatus {
   userId?: string;
   totalAmount?: number;
   createdAt?: string;
+  items?: OrderItem[];
+  shippingAddress?: OrderShippingAddress;
+  receiptUrl?: string;
+  couponCode?: string;
+  couponUsed?: boolean;
 }
 
 export interface ProcessedWebhookEvent {
@@ -141,6 +164,20 @@ export function getOrdersByUserId(userId: string): OrderPaymentStatus[] {
     const dateB = b.createdAt || b.updatedAt;
     return dateB.localeCompare(dateA);
   });
+}
+
+export function getAllOrdersGroupedByUserId(): Map<string, OrderPaymentStatus[]> {
+  const grouped = new Map<string, OrderPaymentStatus[]>();
+  for (const status of paymentStatusByOrderId.values()) {
+    if (!status.userId) continue;
+    const list = grouped.get(status.userId);
+    if (list) {
+      list.push(status);
+    } else {
+      grouped.set(status.userId, [status]);
+    }
+  }
+  return grouped;
 }
 
 hydrateCheckoutState();

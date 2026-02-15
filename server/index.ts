@@ -10,6 +10,7 @@ import { checkoutRouter } from './routes/checkout.js';
 import { contactRouter } from './routes/contact.js';
 import { supportRouter } from './routes/support.js';
 import { authRouter } from './routes/auth.js';
+import { galleryRouter } from './routes/gallery.js';
 import { internalRouter } from './routes/internal.js';
 
 const app = express();
@@ -58,6 +59,10 @@ app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'");
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
   next();
 });
 app.use(express.json({
@@ -75,6 +80,7 @@ app.use('/api/checkout', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefi
 app.use('/api/contact', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'contact' }), contactRouter);
 app.use('/api/support', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'support' }), supportRouter);
 app.use('/api/auth', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'auth' }), authRouter);
+app.use('/api/gallery', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'gallery' }), galleryRouter);
 app.use('/api/internal', internalRouter);
 
 // Health check

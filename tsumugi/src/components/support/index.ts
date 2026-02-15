@@ -1,1 +1,0 @@
-export { SupportChat } from './SupportChat';

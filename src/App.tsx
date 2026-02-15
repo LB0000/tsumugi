@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary, FloatingCTA } from './components/common';
+import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary } from './components/common';
 import { getCurrentUser } from './api';
 import { useAppStore } from './stores/appStore';
 
@@ -99,7 +99,6 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
       <Footer />
-      <FloatingCTA />
     </div>
   );
 }

@@ -11,9 +11,20 @@ interface OrderState {
   shippingAddress: ShippingAddress;
 }
 
+function getSafeReceiptUrl(url?: string): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function OrderConfirmationPage() {
   const location = useLocation();
   const state = location.state as OrderState | null;
+  const safeReceiptUrl = getSafeReceiptUrl(state?.receiptUrl);
 
   if (!state?.orderId) {
     return <Navigate to="/" replace />;
@@ -72,9 +83,9 @@ export function OrderConfirmationPage() {
           </div>
 
           {/* Receipt Link */}
-          {state.receiptUrl && (
+          {safeReceiptUrl && (
             <a
-              href={state.receiptUrl}
+              href={safeReceiptUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-primary hover:underline"

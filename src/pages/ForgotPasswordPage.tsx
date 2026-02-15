@@ -9,7 +9,6 @@ export function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [resetToken, setResetToken] = useState<string | null>(null);
   const [submittedMessage, setSubmittedMessage] = useState('メールを送信しました');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +19,6 @@ export function ForgotPasswordPage() {
     try {
       const response = await forgotPassword({ email: email.trim() });
       setSubmittedMessage(response.message);
-      setResetToken(response.resetToken ?? null);
       setIsSubmitted(true);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '送信に失敗しました');
@@ -43,19 +41,6 @@ export function ForgotPasswordPage() {
             {email} 宛にパスワードリセット用のリンクを送信しました。
             メールをご確認ください。
           </p>
-          {resetToken && (
-            <div className="mb-6 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-left">
-              <p className="text-xs text-muted mb-2">
-                開発環境用: メール送信の代わりにリセットリンクを表示しています。
-              </p>
-              <Link
-                to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
-                className="text-sm text-primary hover:underline break-all"
-              >
-                /reset-password?token={resetToken}
-              </Link>
-            </div>
-          )}
           <Link to="/login">
             <StyledButton>ログインページに戻る</StyledButton>
           </Link>

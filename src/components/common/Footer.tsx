@@ -106,17 +106,17 @@ export function Footer() {
               </h3>
               <ul className="space-y-2 sm:space-y-3">
                 <li>
-                  <Link to="/?category=pets" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
+                  <Link to="/pets" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
                     ペット肖像画
                   </Link>
                 </li>
                 <li>
-                  <Link to="/?category=family" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
+                  <Link to="/family" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
                     ファミリー
                   </Link>
                 </li>
                 <li>
-                  <Link to="/?category=kids" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
+                  <Link to="/kids" className="text-xs sm:text-sm text-background/70 hover:text-secondary transition-colors">
                     キッズ肖像画
                   </Link>
                 </li>

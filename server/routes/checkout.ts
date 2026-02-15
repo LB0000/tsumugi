@@ -1,8 +1,9 @@
 import { createHash } from 'crypto';
 import { Router } from 'express';
 import type { Request } from 'express';
-import { WebhooksHelper } from 'square';
+import { SquareError, WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
+import { isValidEmail } from '../lib/validation.js';
 import {
   getOrderPaymentStatus,
   getOrdersByUserId,
@@ -12,8 +13,75 @@ import {
 } from '../lib/checkoutState.js';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { locationId, squareClient } from '../lib/square.js';
+import { validateCoupon, applyDiscount, useCoupon } from '../lib/coupon.js';
+import {
+  extractSessionTokenFromHeaders,
+  extractCsrfTokenFromCookie,
+  extractCsrfTokenFromHeader,
+  areTokensEqual,
+  isAllowedOrigin,
+  type HeaderMap,
+} from '../lib/requestAuth.js';
 
 export const checkoutRouter = Router();
+
+const isProductionEnv = process.env.NODE_ENV === 'production';
+const frontendUrlEnv = process.env.FRONTEND_URL;
+
+// CSRF protection for POST endpoints (except webhook which uses Square signature verification)
+checkoutRouter.use((req, res, next) => {
+  if (req.method !== 'POST') { next(); return; }
+  if (req.path === '/webhook') { next(); return; }
+
+  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+  if (!isAllowedOrigin({ originHeader, frontendUrl: frontendUrlEnv, isProduction: isProductionEnv })) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'ORIGIN_FORBIDDEN', message: '許可されていないオリジンです' },
+    });
+    return;
+  }
+
+  const headers = req.headers as HeaderMap;
+  const csrfTokenFromCookie = extractCsrfTokenFromCookie(headers);
+  const csrfTokenFromHeader = extractCsrfTokenFromHeader(headers);
+  if (!csrfTokenFromCookie || !csrfTokenFromHeader || !areTokensEqual(csrfTokenFromCookie, csrfTokenFromHeader)) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'CSRF_TOKEN_INVALID', message: 'CSRFトークンが無効です' },
+    });
+    return;
+  }
+
+  next();
+});
+
+function handleSquareOrServerError(
+  res: Parameters<Parameters<typeof checkoutRouter.post>[1]>[1],
+  error: unknown,
+  defaultCode: string,
+  defaultMessage: string,
+) {
+  if (error instanceof SquareError) {
+    console.error('Square API details:', {
+      statusCode: error.statusCode,
+      errors: error.errors,
+    });
+    const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 500
+      ? error.statusCode
+      : 502;
+    res.status(status).json({
+      success: false,
+      error: { code: error.errors?.[0]?.code || defaultCode, message: defaultMessage },
+    });
+    return;
+  }
+  console.error(`${defaultCode}:`, error);
+  res.status(500).json({
+    success: false,
+    error: { code: defaultCode, message: defaultMessage },
+  });
+}
 
 interface CartItemPayload {
   productId: string;
@@ -35,25 +103,28 @@ interface RawBodyRequest extends Request {
   rawBody?: string;
 }
 
-function extractSessionToken(req: Request): string | null {
-  const authorization = typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined;
-  if (authorization) {
-    const [scheme, token] = authorization.split(' ');
-    if (scheme === 'Bearer' && token) return token.trim();
+const MAX_ITEM_QUANTITY = 10;
+
+function sanitizeReceiptUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== 'https:') return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
   }
-  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
-  if (!cookieHeader) return null;
-  for (const entry of cookieHeader.split(';')) {
-    const [rawName, ...rawValue] = entry.trim().split('=');
-    if (rawName?.trim() === 'fable_session') {
-      const value = rawValue.join('=').trim();
-      try { return decodeURIComponent(value); } catch { return value; }
-    }
-  }
-  return null;
 }
 
-const MAX_ITEM_QUANTITY = 10;
+function sanitizePaymentStatusReceipt<T extends { receiptUrl?: string }>(status: T): T {
+  const sanitizedReceiptUrl = sanitizeReceiptUrl(status.receiptUrl);
+  if (!sanitizedReceiptUrl) {
+    const { receiptUrl: _unsafe, ...rest } = status;
+    return rest as T;
+  }
+  return { ...status, receiptUrl: sanitizedReceiptUrl };
+}
 
 function makeIdempotencyKey(prefix: string, seed: string): string {
   const hash = createHash('sha256').update(seed).digest('hex').slice(0, 36);
@@ -82,17 +153,14 @@ function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): Sh
   return normalized;
 }
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
 // POST /api/checkout/create-order
 checkoutRouter.post('/create-order', async (req, res) => {
   try {
-    const { items, shippingAddress, clientRequestId } = req.body as {
+    const { items, shippingAddress, clientRequestId, couponCode } = req.body as {
       items: CartItemPayload[];
       shippingAddress?: Partial<ShippingAddressPayload>;
       clientRequestId?: string;
+      couponCode?: string;
     };
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -164,7 +232,25 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    const shippingCost = requiresShipping && subtotal < SHIPPING_FREE_THRESHOLD ? SHIPPING_FLAT_FEE : 0;
+    // Validate coupon if provided
+    let appliedCoupon: { code: string; discountType: 'percentage' | 'fixed'; discountValue: number } | null = null;
+    if (typeof couponCode === 'string' && couponCode.trim().length > 0) {
+      const couponResult = await validateCoupon(couponCode);
+      if (couponResult.valid && couponResult.discountType && couponResult.discountValue !== undefined) {
+        appliedCoupon = {
+          code: couponResult.code!,
+          discountType: couponResult.discountType,
+          discountValue: couponResult.discountValue,
+        };
+      }
+      // Silently ignore invalid coupons -- don't block the order
+    }
+
+    const discountedSubtotal = appliedCoupon
+      ? applyDiscount(subtotal, appliedCoupon.discountType, appliedCoupon.discountValue)
+      : subtotal;
+
+    const shippingCost = requiresShipping && discountedSubtotal < SHIPPING_FREE_THRESHOLD ? SHIPPING_FLAT_FEE : 0;
 
     const lineItems = normalizedItems.map((item) => ({
       name: item.name,
@@ -203,10 +289,22 @@ checkoutRouter.post('/create-order', async (req, res) => {
           shippingAddress: normalizedAddress,
         });
 
+    // Build Square discount if coupon is applied
+    const discounts = appliedCoupon ? [{
+      name: `クーポン: ${appliedCoupon.code}`,
+      type: 'FIXED_AMOUNT' as const,
+      amountMoney: {
+        amount: BigInt(subtotal - discountedSubtotal),
+        currency: 'JPY' as const,
+      },
+      scope: 'ORDER' as const,
+    }] : undefined;
+
     const response = await squareClient.orders.create({
       order: {
         locationId,
         lineItems,
+        ...(discounts && { discounts }),
         ...(normalizedAddress && {
           fulfillments: [
             {
@@ -239,19 +337,22 @@ checkoutRouter.post('/create-order', async (req, res) => {
     }
 
     // Link order to user if logged in
-    const sessionToken = extractSessionToken(req);
+    const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
     const totalAmount = Number(order.totalMoney?.amount ?? 0);
 
-    if (sessionUser && order.id) {
+    if (order.id) {
       updateOrderPaymentStatus({
         orderId: order.id,
         paymentId: '',
         status: 'PENDING',
         updatedAt: new Date().toISOString(),
-        userId: sessionUser.id,
+        userId: sessionUser?.id,
         totalAmount,
         createdAt: new Date().toISOString(),
+        items: normalizedItems,
+        shippingAddress: normalizedAddress ?? undefined,
+        couponCode: appliedCoupon?.code,
       });
     }
 
@@ -285,12 +386,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    console.error('Create order error:', error);
-    const message = error instanceof Error ? error.message : '注文の作成に失敗しました';
-    res.status(500).json({
-      success: false,
-      error: { code: 'ORDER_CREATION_FAILED', message },
-    });
+    handleSquareOrServerError(res, error, 'ORDER_CREATION_FAILED', '注文の作成に失敗しました');
   }
 });
 
@@ -356,9 +452,17 @@ checkoutRouter.post('/process-payment', async (req, res) => {
     if (typeof paymentId !== 'string' || typeof paymentStatus !== 'string') {
       throw new Error('Payment creation failed: invalid payment fields');
     }
+    const sanitizedReceiptUrl = sanitizeReceiptUrl(payment.receiptUrl);
 
-    // Preserve existing userId/totalAmount/createdAt when updating payment status
+    // Preserve existing fields when updating payment status
     const existingStatus = getOrderPaymentStatus(normalizedOrderId);
+    let couponUsed = existingStatus?.couponUsed ?? false;
+
+    // Mark coupon as used on successful payment
+    if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && !existingStatus.couponUsed) {
+      couponUsed = await useCoupon(existingStatus.couponCode);
+    }
+
     updateOrderPaymentStatus({
       orderId: normalizedOrderId,
       paymentId,
@@ -367,6 +471,11 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       userId: existingStatus?.userId,
       totalAmount: existingStatus?.totalAmount ?? Number(orderAmount),
       createdAt: existingStatus?.createdAt ?? new Date().toISOString(),
+      items: existingStatus?.items,
+      shippingAddress: existingStatus?.shippingAddress,
+      receiptUrl: sanitizedReceiptUrl ?? sanitizeReceiptUrl(existingStatus?.receiptUrl),
+      couponCode: existingStatus?.couponCode,
+      couponUsed,
     });
 
     res.json({
@@ -374,15 +483,10 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       paymentId,
       orderId: normalizedOrderId,
       status: paymentStatus,
-      receiptUrl: payment.receiptUrl,
+      receiptUrl: sanitizedReceiptUrl,
     });
   } catch (error) {
-    console.error('Process payment error:', error);
-    const message = error instanceof Error ? error.message : '決済処理に失敗しました';
-    res.status(500).json({
-      success: false,
-      error: { code: 'PAYMENT_FAILED', message },
-    });
+    handleSquareOrServerError(res, error, 'PAYMENT_FAILED', '決済処理に失敗しました');
   }
 });
 
@@ -461,6 +565,13 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
 
     if (orderId && paymentId && paymentStatus) {
       const existingStatus = getOrderPaymentStatus(orderId);
+      let couponUsed = existingStatus?.couponUsed ?? false;
+
+      // Fallback: mark coupon as used via webhook if not already done
+      if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && !existingStatus.couponUsed) {
+        couponUsed = await useCoupon(existingStatus.couponCode);
+      }
+
       updateOrderPaymentStatus({
         orderId,
         paymentId,
@@ -469,6 +580,11 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
         userId: existingStatus?.userId,
         totalAmount: existingStatus?.totalAmount,
         createdAt: existingStatus?.createdAt,
+        items: existingStatus?.items,
+        shippingAddress: existingStatus?.shippingAddress,
+        receiptUrl: sanitizeReceiptUrl(existingStatus?.receiptUrl),
+        couponCode: existingStatus?.couponCode,
+        couponUsed,
       });
     }
 
@@ -525,13 +641,13 @@ checkoutRouter.get('/payment-status/:orderId', (req, res) => {
 
   res.json({
     success: true,
-    paymentStatus,
+    paymentStatus: sanitizePaymentStatusReceipt(paymentStatus),
   });
 });
 
 // GET /api/checkout/orders
 checkoutRouter.get('/orders', (req, res) => {
-  const token = extractSessionToken(req);
+  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
   if (!token) {
     res.status(401).json({
       success: false,
@@ -550,5 +666,95 @@ checkoutRouter.get('/orders', (req, res) => {
   }
 
   const orders = getOrdersByUserId(user.id);
-  res.json({ success: true, orders });
+  res.json({ success: true, orders: orders.map(sanitizePaymentStatusReceipt) });
+});
+
+// GET /api/checkout/orders/:orderId
+checkoutRouter.get('/orders/:orderId', (req, res) => {
+  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証情報がありません' },
+    });
+    return;
+  }
+
+  const user = getUserBySessionToken(token);
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'セッションが無効です' },
+    });
+    return;
+  }
+
+  const orderId = typeof req.params.orderId === 'string' ? req.params.orderId.trim() : '';
+  if (!orderId) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_ORDER_ID', message: '注文IDが必要です' },
+    });
+    return;
+  }
+
+  const orderStatus = getOrderPaymentStatus(orderId);
+  if (!orderStatus || orderStatus.userId !== user.id) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'ORDER_NOT_FOUND', message: '注文が見つかりません' },
+    });
+    return;
+  }
+
+  res.json({ success: true, order: sanitizePaymentStatusReceipt(orderStatus) });
+});
+
+// POST /api/checkout/validate-coupon
+checkoutRouter.post('/validate-coupon', async (req, res) => {
+  // Require authentication to prevent coupon code enumeration
+  const token = extractSessionTokenFromHeaders(req.headers as HeaderMap);
+  if (!token || !getUserBySessionToken(token)) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: '認証が必要です' },
+    });
+    return;
+  }
+
+  try {
+    const { code } = req.body as { code?: string };
+    if (!code?.trim()) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CODE', message: 'クーポンコードを入力してください' },
+      });
+      return;
+    }
+
+    const result = await validateCoupon(code);
+
+    if (!result.valid) {
+      res.json({
+        success: false,
+        error: { code: 'INVALID_COUPON', message: result.error || '無効なクーポンです' },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      coupon: {
+        code: result.code,
+        discountType: result.discountType,
+        discountValue: result.discountValue,
+      },
+    });
+  } catch (error) {
+    console.error('Validate coupon error:', error);
+    res.status(500).json({
+      success: false,
+      error: { code: 'COUPON_ERROR', message: 'クーポンの検証に失敗しました' },
+    });
+  }
 });

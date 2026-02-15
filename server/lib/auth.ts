@@ -1,9 +1,33 @@
 import path from 'path';
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'crypto';
-import { promisify } from 'util';
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'crypto';
+
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
 
-const scrypt = promisify(scryptCallback);
+const SCRYPT_OPTIONS: ScryptOptions = { cost: 16384, blockSize: 8, parallelization: 1 };
+
+function scryptAsync(password: string, salt: string, keylen: number, options: ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, keylen, options, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+}
+
+export interface SavedAddress {
+  id: string;
+  label: string;
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  addressLine: string;
+  isDefault: boolean;
+  createdAt: string;
+}
 
 interface UserRecord {
   id: string;
@@ -13,6 +37,7 @@ interface UserRecord {
   passwordHash: string;
   authProvider: 'email' | 'google';
   emailVerified: boolean;
+  savedAddresses?: SavedAddress[];
   createdAt: string;
   updatedAt: string;
 }
@@ -184,7 +209,7 @@ function toPublicUser(user: UserRecord): AuthPublicUser {
 }
 
 async function hashPassword(password: string, salt: string): Promise<string> {
-  const raw = await scrypt(password, salt, 64) as Buffer;
+  const raw = await scryptAsync(password, salt, 64, SCRYPT_OPTIONS) as Buffer;
   return raw.toString('hex');
 }
 
@@ -484,6 +509,55 @@ export function getAllPublicUsers(): AuthPublicUser[] {
 
 export function getUserCreatedAt(userId: string): string | null {
   return usersById.get(userId)?.createdAt ?? null;
+}
+
+const MAX_SAVED_ADDRESSES = 3;
+
+export function getSavedAddresses(userId: string): SavedAddress[] {
+  const user = usersById.get(userId);
+  return user?.savedAddresses ?? [];
+}
+
+export function addSavedAddress(userId: string, address: Omit<SavedAddress, 'id' | 'createdAt'>): SavedAddress {
+  const user = usersById.get(userId);
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  if (!user.savedAddresses) user.savedAddresses = [];
+
+  if (user.savedAddresses.length >= MAX_SAVED_ADDRESSES) {
+    throw new Error('MAX_ADDRESSES_REACHED');
+  }
+
+  // If this is set as default, unset others
+  if (address.isDefault) {
+    for (const addr of user.savedAddresses) {
+      addr.isDefault = false;
+    }
+  }
+
+  const saved: SavedAddress = {
+    ...address,
+    id: createId('addr'),
+    createdAt: new Date().toISOString(),
+  };
+
+  user.savedAddresses.push(saved);
+  user.updatedAt = new Date().toISOString();
+  persistAuthState();
+  return saved;
+}
+
+export function deleteSavedAddress(userId: string, addressId: string): boolean {
+  const user = usersById.get(userId);
+  if (!user || !user.savedAddresses) return false;
+
+  const idx = user.savedAddresses.findIndex((a) => a.id === addressId);
+  if (idx === -1) return false;
+
+  user.savedAddresses.splice(idx, 1);
+  user.updatedAt = new Date().toISOString();
+  persistAuthState();
+  return true;
 }
 
 hydrateAuthState();

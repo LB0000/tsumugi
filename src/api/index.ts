@@ -205,7 +205,6 @@ interface AuthResponse {
 interface ForgotPasswordResponse {
   success: true;
   message: string;
-  resetToken?: string | null;
 }
 
 interface CurrentUserResponse {
@@ -275,11 +274,9 @@ function isAuthResponse(data: unknown): data is AuthResponse {
 function isForgotPasswordResponse(data: unknown): data is ForgotPasswordResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
-  const resetToken = obj.resetToken;
   return (
     obj.success === true &&
-    typeof obj.message === 'string' &&
-    (resetToken === undefined || resetToken === null || typeof resetToken === 'string')
+    typeof obj.message === 'string'
   );
 }
 
@@ -340,9 +337,10 @@ async function buildAuthActionHeaders(): Promise<Record<string, string>> {
 }
 
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/checkout/create-order`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -362,9 +360,10 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
 }
 
 export async function processPayment(request: ProcessPaymentRequest): Promise<ProcessPaymentResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetch(`${API_BASE}/checkout/process-payment`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
     body: JSON.stringify(request),
   });
@@ -537,6 +536,24 @@ export async function getCurrentUser(): Promise<AuthUser> {
   return data.user;
 }
 
+export interface OrderItemDetail {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface OrderShippingAddress {
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  addressLine: string;
+}
+
 export interface OrderHistoryItem {
   orderId: string;
   paymentId: string;
@@ -544,6 +561,9 @@ export interface OrderHistoryItem {
   totalAmount?: number;
   createdAt?: string;
   updatedAt: string;
+  items?: OrderItemDetail[];
+  shippingAddress?: OrderShippingAddress;
+  receiptUrl?: string;
 }
 
 interface OrdersResponse {
@@ -551,10 +571,21 @@ interface OrdersResponse {
   orders: OrderHistoryItem[];
 }
 
+interface OrderDetailResponse {
+  success: true;
+  order: OrderHistoryItem;
+}
+
 function isOrdersResponse(data: unknown): data is OrdersResponse {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
   return obj.success === true && Array.isArray(obj.orders);
+}
+
+function isOrderDetailResponse(data: unknown): data is OrderDetailResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.success === true && typeof obj.order === 'object' && obj.order !== null;
 }
 
 export async function getOrders(): Promise<OrderHistoryItem[]> {
@@ -574,6 +605,25 @@ export async function getOrders(): Promise<OrderHistoryItem[]> {
   }
 
   return data.orders;
+}
+
+export async function getOrderDetail(orderId: string): Promise<OrderHistoryItem> {
+  const response = await fetch(`${API_BASE}/checkout/orders/${encodeURIComponent(orderId)}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '注文詳細の取得に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isOrderDetailResponse(data)) {
+    throw new Error('Invalid order detail response format');
+  }
+
+  return data.order;
 }
 
 export async function updateProfile(request: { name: string }): Promise<AuthResponse> {
@@ -670,6 +720,162 @@ export async function resendVerification(): Promise<void> {
   const data: unknown = await response.json();
   if (!response.ok || isErrorResponse(data)) {
     const errorMessage = isErrorResponse(data) ? data.error.message : '認証メール再送信に失敗しました';
+    throw new Error(errorMessage);
+  }
+}
+
+export interface SavedAddressItem {
+  id: string;
+  label: string;
+  lastName: string;
+  firstName: string;
+  email: string;
+  phone: string;
+  postalCode: string;
+  prefecture: string;
+  city: string;
+  addressLine: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+interface AddressesResponse {
+  success: true;
+  addresses: SavedAddressItem[];
+}
+
+interface AddressSaveResponse {
+  success: true;
+  address: SavedAddressItem;
+}
+
+function isAddressesResponse(data: unknown): data is AddressesResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.success === true && Array.isArray(obj.addresses);
+}
+
+function isAddressSaveResponse(data: unknown): data is AddressSaveResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.success === true && typeof obj.address === 'object' && obj.address !== null;
+}
+
+export async function getAddresses(): Promise<SavedAddressItem[]> {
+  const response = await fetch(`${API_BASE}/auth/addresses`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '配送先の取得に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAddressesResponse(data)) {
+    throw new Error('Invalid addresses response format');
+  }
+
+  return data.addresses;
+}
+
+export async function saveAddress(address: Omit<SavedAddressItem, 'id' | 'createdAt'>): Promise<SavedAddressItem> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetch(`${API_BASE}/auth/addresses`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(address),
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '配送先の保存に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isAddressSaveResponse(data)) {
+    throw new Error('Invalid address save response format');
+  }
+
+  return data.address;
+}
+
+export async function deleteAddress(addressId: string): Promise<void> {
+  const headers = await buildAuthActionHeaders();
+  const response = await fetch(`${API_BASE}/auth/addresses/${encodeURIComponent(addressId)}`, {
+    method: 'DELETE',
+    headers,
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '配送先の削除に失敗しました';
+    throw new Error(errorMessage);
+  }
+}
+
+export interface GalleryItemData {
+  id: string;
+  userId: string;
+  imageFileName: string;
+  thumbnailFileName: string;
+  artStyleId: string;
+  artStyleName: string;
+  createdAt: string;
+}
+
+interface GalleryResponse {
+  success: true;
+  items: GalleryItemData[];
+}
+
+function isGalleryResponse(data: unknown): data is GalleryResponse {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.success === true && Array.isArray(obj.items);
+}
+
+export async function getGallery(): Promise<GalleryItemData[]> {
+  const response = await fetch(`${API_BASE}/gallery`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : 'ギャラリーの取得に失敗しました';
+    throw new Error(errorMessage);
+  }
+
+  if (!isGalleryResponse(data)) {
+    throw new Error('Invalid gallery response format');
+  }
+
+  return data.items;
+}
+
+export function getGalleryImageUrl(itemId: string): string {
+  return `${API_BASE}/gallery/${encodeURIComponent(itemId)}/image`;
+}
+
+export function getGalleryThumbnailUrl(itemId: string): string {
+  return `${API_BASE}/gallery/${encodeURIComponent(itemId)}/thumbnail`;
+}
+
+export async function deleteGalleryItem(itemId: string): Promise<void> {
+  const headers = await buildAuthActionHeaders();
+  const response = await fetch(`${API_BASE}/gallery/${encodeURIComponent(itemId)}`, {
+    method: 'DELETE',
+    headers,
+    credentials: 'include',
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '作品の削除に失敗しました';
     throw new Error(errorMessage);
   }
 }

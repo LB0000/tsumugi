@@ -8,4 +8,4 @@ export { Breadcrumb } from './Breadcrumb';
 export type { BreadcrumbItem } from './Breadcrumb';
 export { SearchBar } from './SearchBar';
 export { TrustBadges } from './TrustBadges';
-export { FloatingCTA } from './FloatingCTA';
+
