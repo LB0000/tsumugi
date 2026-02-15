@@ -149,6 +149,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 
 export async function sendWelcomeEmail(to: string, userName: string): Promise<boolean> {
   const shopUrl = `${FRONTEND_URL}/pricing`;
+  const safeShopUrl = escapeHtmlAttribute(shopUrl);
   const html = wrapHtml(`
     <h2 style="font-size:18px;color:#2C2418;margin:0 0 16px;">ようこそ、${escapeHtml(userName)}さん！</h2>
     <p style="font-size:14px;color:#5A5148;line-height:1.8;margin:0 0 16px;">
@@ -165,7 +166,7 @@ export async function sendWelcomeEmail(to: string, userName: string): Promise<bo
     </table>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:8px 0 24px;">
-        <a href="${shopUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
+        <a href="${safeShopUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
           さっそく肖像画を作る
         </a>
       </td></tr>
@@ -268,6 +269,7 @@ export async function sendOrderConfirmationEmail(to: string, order: {
 
 export async function sendShippingNotificationEmail(to: string, orderId: string, trackingNumber: string): Promise<boolean> {
   const trackingUrl = `https://trackings.post.japanpost.jp/services/srv/search/?requestNo1=${encodeURIComponent(trackingNumber)}`;
+  const safeTrackingUrl = escapeHtmlAttribute(trackingUrl);
   const html = wrapHtml(`
     <h2 style="font-size:18px;color:#2C2418;margin:0 0 16px;">商品を発送しました</h2>
     <p style="font-size:14px;color:#5A5148;line-height:1.8;margin:0 0 16px;">
@@ -281,7 +283,7 @@ export async function sendShippingNotificationEmail(to: string, orderId: string,
     </div>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:8px 0 24px;">
-        <a href="${trackingUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
+        <a href="${safeTrackingUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
           配送状況を確認する
         </a>
       </td></tr>
@@ -315,6 +317,7 @@ export async function sendShippingNotificationEmail(to: string, orderId: string,
 
 export async function sendReviewRequestEmail(to: string, orderId: string, userName: string): Promise<boolean> {
   const reviewUrl = `${FRONTEND_URL}/account`;
+  const safeReviewUrl = escapeHtmlAttribute(reviewUrl);
   const stars = '★★★★★';
   const html = wrapHtml(`
     <h2 style="font-size:18px;color:#2C2418;margin:0 0 16px;">${escapeHtml(userName)}さん、ご感想をお聞かせください</h2>
@@ -330,7 +333,7 @@ export async function sendReviewRequestEmail(to: string, orderId: string, userNa
     </p>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:8px 0 24px;">
-        <a href="${reviewUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
+        <a href="${safeReviewUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
           レビューを投稿する
         </a>
       </td></tr>
@@ -363,6 +366,7 @@ export async function sendReviewRequestEmail(to: string, orderId: string, userNa
 
 export async function sendCartAbandonmentEmail(to: string, items: { name: string; price: number }[]): Promise<boolean> {
   const cartUrl = `${FRONTEND_URL}/cart`;
+  const safeCartUrl = escapeHtmlAttribute(cartUrl);
   const itemList = items.map(item =>
     `<tr>
       <td style="padding:8px 12px;border-bottom:1px solid #E8E0D4;font-size:13px;color:#5A5148;">${escapeHtml(item.name)}</td>
@@ -385,7 +389,7 @@ export async function sendCartAbandonmentEmail(to: string, items: { name: string
     </table>
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:8px 0 24px;">
-        <a href="${cartUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
+        <a href="${safeCartUrl}" style="display:inline-block;background:#8B6914;color:#FFFFFF;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.05em;">
           お買い物を続ける
         </a>
       </td></tr>
