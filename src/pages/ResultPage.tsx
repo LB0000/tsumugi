@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft, Palette } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
@@ -12,7 +12,7 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved } = useAppStore();
   const { addToCart } = useCartStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
@@ -164,6 +164,16 @@ export function ResultPage() {
               <ArrowRight className="w-4 h-4 text-primary rotate-90" />
             </div>
           </div>
+
+          {/* Gallery save failure warning */}
+          {gallerySaved === false && (
+            <div className="max-w-2xl mx-auto mt-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                ギャラリーへの保存に失敗しました。画像をダウンロードして保存してください。
+              </p>
+            </div>
+          )}
 
           {/* Retry with different style */}
           <div className="flex justify-center mt-8">

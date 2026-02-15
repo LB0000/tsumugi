@@ -4,6 +4,7 @@ import path from 'path';
 import { readJsonFile, writeJsonAtomic } from '../lib/persistence.js';
 import { isValidEmail } from '../lib/validation.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
+import { logger } from '../lib/logger.js';
 
 export const contactRouter = Router();
 contactRouter.use(csrfProtection());
@@ -72,7 +73,7 @@ function persistInquiries(): void {
   persistQueue = persistQueue
     .then(() => writeJsonAtomic(CONTACT_STORE_PATH, snapshot))
     .catch((error) => {
-      console.error('Failed to persist inquiries:', error);
+      logger.error('Failed to persist inquiries', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 
@@ -152,7 +153,7 @@ contactRouter.post('/', (req, res) => {
   }
   persistInquiries();
 
-  console.log(`Contact inquiry received: ${inquiryId} (${reason})`);
+  logger.info('Contact inquiry received', { inquiryId, reason, requestId: req.requestId });
 
   res.json({
     success: true,

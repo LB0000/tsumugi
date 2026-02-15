@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
+import { logger } from '../lib/logger.js';
 import {
   SESSION_TTL_MS,
   loginUser,
@@ -39,6 +40,7 @@ import {
 } from '../lib/schemas.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
+import { createRateLimiter } from '../lib/rateLimit.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -112,6 +114,8 @@ authRouter.get('/csrf', (_req, res) => {
 
 authRouter.use(csrfProtection());
 
+const forgotPasswordLimiter = createRateLimiter({ windowMs: 60_000, max: 3, keyPrefix: 'forgot-password' });
+
 authRouter.post('/register', async (req, res) => {
   try {
     const parsed = validate(registerSchema, req.body);
@@ -150,7 +154,7 @@ authRouter.post('/register', async (req, res) => {
       return;
     }
 
-    console.error('Register error:', error);
+    logger.error('Register error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'REGISTER_FAILED', message: '登録処理に失敗しました' },
@@ -199,7 +203,7 @@ authRouter.post('/login', async (req, res) => {
       return;
     }
 
-    console.error('Login error:', error);
+    logger.error('Login error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'LOGIN_FAILED', message: 'ログインに失敗しました' },
@@ -271,7 +275,7 @@ authRouter.post('/google', async (req, res) => {
       return;
     }
 
-    console.error('Google login error:', error);
+    logger.error('Google login error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(401).json({
       success: false,
       error: { code: 'GOOGLE_LOGIN_FAILED', message: 'Googleログインに失敗しました' },
@@ -279,7 +283,7 @@ authRouter.post('/google', async (req, res) => {
   }
 });
 
-authRouter.post('/forgot-password', (req, res) => {
+authRouter.post('/forgot-password', forgotPasswordLimiter, (req, res) => {
   const parsed = validate(forgotPasswordSchema, req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -335,7 +339,7 @@ authRouter.post('/reset-password', async (req, res) => {
       return;
     }
 
-    console.error('Reset password error:', error);
+    logger.error('Reset password error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'RESET_PASSWORD_FAILED', message: 'パスワード再設定に失敗しました' },
@@ -367,7 +371,7 @@ authRouter.post('/profile', requireAuth, async (_req, res) => {
     const updatedUser = await updateUserProfile(user.id, { name: parsed.data.name.trim() });
     res.json({ success: true, user: updatedUser });
   } catch (error) {
-    console.error('Update profile error:', error);
+    logger.error('Update profile error', { error: error instanceof Error ? error.message : String(error), requestId: _req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'UPDATE_FAILED', message: 'プロフィールの更新に失敗しました' },
@@ -414,7 +418,7 @@ authRouter.post('/change-password', requireAuth, async (_req, res) => {
       return;
     }
 
-    console.error('Change password error:', error);
+    logger.error('Change password error', { error: error instanceof Error ? error.message : String(error), requestId: _req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'CHANGE_PASSWORD_FAILED', message: 'パスワード変更に失敗しました' },
@@ -541,7 +545,7 @@ authRouter.post('/addresses', requireAuth, (_req, res) => {
       return;
     }
 
-    console.error('Add address error:', error);
+    logger.error('Add address error', { error: error instanceof Error ? error.message : String(error), requestId: _req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'ADDRESS_SAVE_FAILED', message: '配送先の保存に失敗しました' },

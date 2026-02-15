@@ -1,5 +1,6 @@
 import path from 'path';
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { logger } from './logger.js';
 
 export interface OrderItem {
   productId: string;
@@ -90,7 +91,7 @@ function persistCheckoutState(): void {
   persistQueue = persistQueue
     .then(() => writeJsonAtomic(CHECKOUT_STATE_PATH, snapshot))
     .catch((error) => {
-      console.error('Failed to persist checkout state:', error);
+      logger.error('Failed to persist checkout state', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 
@@ -150,6 +151,23 @@ export function updateOrderPaymentStatus(status: OrderPaymentStatus): void {
 
 export function getOrderPaymentStatus(orderId: string): OrderPaymentStatus | null {
   return paymentStatusByOrderId.get(orderId) ?? null;
+}
+
+export function claimCouponUsage(orderId: string): boolean {
+  const status = getOrderPaymentStatus(orderId);
+  if (!status || status.couponUsed || !status.couponCode) return false;
+  // Synchronously set the flag (safe in Node.js single-threaded model)
+  status.couponUsed = true;
+  persistCheckoutState();
+  return true;
+}
+
+export function unclaimCouponUsage(orderId: string): void {
+  const status = getOrderPaymentStatus(orderId);
+  if (status) {
+    status.couponUsed = false;
+    persistCheckoutState();
+  }
 }
 
 export function getOrdersByUserId(userId: string): OrderPaymentStatus[] {

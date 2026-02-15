@@ -6,16 +6,19 @@ import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/
 import { isValidEmail } from '../lib/validation.js';
 import { validate } from '../lib/schemas.js';
 import { z } from 'zod';
+import { logger } from '../lib/logger.js';
 
 const processPaymentInputSchema = z.object({
   sourceId: z.string().min(1),
   orderId: z.string().min(1),
 });
 import {
+  claimCouponUsage,
   getOrderPaymentStatus,
   getOrdersByUserId,
   hasProcessedWebhookEvent,
   markProcessedWebhookEvent,
+  unclaimCouponUsage,
   updateOrderPaymentStatus,
 } from '../lib/checkoutState.js';
 import { getUserBySessionToken } from '../lib/auth.js';
@@ -33,11 +36,13 @@ function handleSquareOrServerError(
   error: unknown,
   defaultCode: string,
   defaultMessage: string,
+  requestId?: string,
 ) {
   if (error instanceof SquareError) {
-    console.error('Square API details:', {
+    logger.error('Square API error', {
       statusCode: error.statusCode,
       errors: error.errors,
+      requestId,
     });
     const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 500
       ? error.statusCode
@@ -48,7 +53,7 @@ function handleSquareOrServerError(
     });
     return;
   }
-  console.error(`${defaultCode}:`, error);
+  logger.error(defaultCode, { error: error instanceof Error ? error.message : String(error), requestId });
   res.status(500).json({
     success: false,
     error: { code: defaultCode, message: defaultMessage },
@@ -358,7 +363,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    handleSquareOrServerError(res, error, 'ORDER_CREATION_FAILED', '注文の作成に失敗しました');
+    handleSquareOrServerError(res, error, 'ORDER_CREATION_FAILED', '注文の作成に失敗しました', req.requestId);
   }
 });
 
@@ -429,9 +434,13 @@ checkoutRouter.post('/process-payment', async (req, res) => {
     const existingStatus = getOrderPaymentStatus(normalizedOrderId);
     let couponUsed = existingStatus?.couponUsed ?? false;
 
-    // Mark coupon as used on successful payment
-    if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && !existingStatus.couponUsed) {
-      couponUsed = await useCoupon(existingStatus.couponCode);
+    // Mark coupon as used on successful payment (claim first, then call remote API)
+    if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && claimCouponUsage(normalizedOrderId)) {
+      const used = await useCoupon(existingStatus.couponCode);
+      if (!used) {
+        unclaimCouponUsage(normalizedOrderId);
+      }
+      couponUsed = used;
     }
 
     updateOrderPaymentStatus({
@@ -457,7 +466,7 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       receiptUrl: sanitizedReceiptUrl,
     });
   } catch (error) {
-    handleSquareOrServerError(res, error, 'PAYMENT_FAILED', '決済処理に失敗しました');
+    handleSquareOrServerError(res, error, 'PAYMENT_FAILED', '決済処理に失敗しました', req.requestId);
   }
 });
 
@@ -538,9 +547,13 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
       const existingStatus = getOrderPaymentStatus(orderId);
       let couponUsed = existingStatus?.couponUsed ?? false;
 
-      // Fallback: mark coupon as used via webhook if not already done
-      if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && !existingStatus.couponUsed) {
-        couponUsed = await useCoupon(existingStatus.couponCode);
+      // Fallback: mark coupon as used via webhook if not already done (claim first)
+      if (paymentStatus === 'COMPLETED' && existingStatus?.couponCode && claimCouponUsage(orderId)) {
+        const used = await useCoupon(existingStatus.couponCode);
+        if (!used) {
+          unclaimCouponUsage(orderId);
+        }
+        couponUsed = used;
       }
 
       updateOrderPaymentStatus({
@@ -570,11 +583,11 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
       });
     }
 
-    console.log('Square webhook processed', { eventType, eventId, orderId, paymentStatus });
+    logger.info('Square webhook processed', { eventType, eventId, orderId, paymentStatus, requestId: req.requestId });
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    logger.error('Webhook processing error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'WEBHOOK_PROCESSING_FAILED', message: 'Webhook処理に失敗しました' },
@@ -679,7 +692,7 @@ checkoutRouter.post('/validate-coupon', requireAuth, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Validate coupon error:', error);
+    logger.error('Validate coupon error', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
     res.status(500).json({
       success: false,
       error: { code: 'COUPON_ERROR', message: 'クーポンの検証に失敗しました' },

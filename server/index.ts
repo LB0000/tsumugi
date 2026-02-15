@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import type { Request } from 'express';
 import { config } from './config.js';
+import { logger } from './lib/logger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { createRateLimiter } from './lib/rateLimit.js';
 import { generateRouter } from './routes/generate.js';
@@ -27,7 +28,7 @@ if (isProduction) {
       throw new Error('FRONTEND_URL must use https: in production');
     }
   } catch (e) {
-    console.error('Invalid FRONTEND_URL:', e);
+    logger.error('Invalid FRONTEND_URL', { error: e instanceof Error ? e.message : String(e) });
     process.exit(1);
   }
 }
@@ -103,12 +104,12 @@ app.get('/api/health', (_req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`);
 });
 
 // [S-03] Graceful shutdown — flush pending persist queues before exit
 function gracefulShutdown(signal: string) {
-  console.log(`${signal} received, shutting down gracefully...`);
+  logger.info(`${signal} received, shutting down gracefully`);
   server.close(() => {
     // Allow pending async writes (persistQueue) a short window to flush
     setTimeout(() => process.exit(0), 500);

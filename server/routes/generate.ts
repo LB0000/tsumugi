@@ -5,6 +5,7 @@ import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
 import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
+import { logger } from '../lib/logger.js';
 
 export const generateRouter = Router();
 generateRouter.use(csrfProtection());
@@ -75,7 +76,7 @@ async function generateWithRetry<T>(
       }
 
       const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-      console.log(`Attempt ${attempt} failed with 503, retrying in ${delay}ms...`);
+      logger.info(`Attempt ${attempt} failed with 503, retrying in ${delay}ms...`);
       await sleep(delay);
     }
   }
@@ -86,7 +87,7 @@ async function generateWithRetry<T>(
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 if (process.env.NODE_ENV === 'production' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here')) {
-  console.warn('WARNING: GEMINI_API_KEY is not configured in production');
+  logger.warn('GEMINI_API_KEY is not configured in production');
 }
 
 // Gemini 3 Pro Image - 画像生成対応の最新モデル
@@ -109,6 +110,7 @@ interface GenerateImageResponse {
   watermarked: boolean;
   creditsUsed: number;
   creditsRemaining: number;
+  gallerySaved?: boolean;
 }
 
 // Style prompts for each art style (improved with technique-specific details and negative instructions)
@@ -227,7 +229,7 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     // Check if API key is configured
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
       if (allowMockGeneration) {
-        console.log('No Gemini API key configured, using mock generation');
+        logger.info('No Gemini API key configured, using mock generation', { requestId: req.requestId });
         const response = await generateMockResponse(styleId);
         res.json(response);
         return;
@@ -273,7 +275,7 @@ CRITICAL REQUIREMENTS:
       data: req.file.buffer.toString('base64'),
     };
 
-    console.log('Generating image with Gemini 3 Pro Image...', { styleId, category });
+    logger.info('Generating image with Gemini 3 Pro Image', { styleId, category, requestId: req.requestId });
 
     // Generate image using Gemini 3 Pro Image with retry for 503 errors
     const result = await generateWithRetry(() =>
@@ -294,26 +296,26 @@ CRITICAL REQUIREMENTS:
     let generatedImage = '';
     let textResponse = '';
 
-    console.log('Gemini response received, checking for image...');
+    logger.info('Gemini response received, checking for image', { requestId: req.requestId });
 
     if (response.candidates && response.candidates[0]?.content?.parts) {
-      console.log(`Found ${response.candidates[0].content.parts.length} parts in response`);
+      logger.info('Found parts in response', { count: response.candidates[0].content.parts.length, requestId: req.requestId });
 
       for (const part of response.candidates[0].content.parts) {
         if ('inlineData' in part && part.inlineData) {
           // Clean base64 data: remove any whitespace/newlines that might corrupt the data URL
           const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
-          console.log(`Found image: ${part.inlineData.mimeType}, size: ${cleanBase64.length} bytes`);
+          logger.info('Found image in response', { mimeType: part.inlineData.mimeType, size: cleanBase64.length, requestId: req.requestId });
 
           // Validate base64 data
           if (cleanBase64.length === 0) {
-            console.error('Empty image data received from Gemini');
+            logger.error('Empty image data received from Gemini', { requestId: req.requestId });
             continue;
           }
 
           // Ensure valid base64 characters
           if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
-            console.error('Invalid base64 characters detected');
+            logger.error('Invalid base64 characters detected', { requestId: req.requestId });
             continue;
           }
 
@@ -321,26 +323,25 @@ CRITICAL REQUIREMENTS:
         }
         if ('text' in part && part.text) {
           textResponse = part.text;
-          console.log(`Found text response: ${textResponse.substring(0, 100)}...`);
+          logger.info('Found text response', { preview: textResponse.substring(0, 100), requestId: req.requestId });
         }
       }
     } else {
-      console.log('No candidates or parts in response');
+      logger.info('No candidates or parts in response', { requestId: req.requestId });
       // Log safety feedback for debugging
       const feedback = response.promptFeedback;
       if (feedback) {
-        console.log('Prompt feedback:', JSON.stringify(feedback));
+        logger.info('Prompt feedback', { feedback, requestId: req.requestId });
       }
       const candidate = response.candidates?.[0];
       if (candidate) {
-        console.log('Candidate finishReason:', candidate.finishReason);
-        console.log('Candidate safetyRatings:', JSON.stringify(candidate.safetyRatings));
+        logger.info('Candidate details', { finishReason: candidate.finishReason, safetyRatings: candidate.safetyRatings, requestId: req.requestId });
       }
     }
 
     if (!generatedImage) {
       // Retry once with simplified prompt when Gemini returns no image (often a transient safety filter issue)
-      console.log('No image in first attempt, retrying with simplified prompt...');
+      logger.info('No image in first attempt, retrying with simplified prompt', { requestId: req.requestId });
       const retryPrompt = `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`;
       const retryResult = await generateWithRetry(() =>
         model.generateContent([
@@ -361,7 +362,7 @@ CRITICAL REQUIREMENTS:
             const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
             if (cleanBase64.length > 0 && /^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
               generatedImage = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
-              console.log('Retry successful! Image generated.');
+              logger.info('Retry successful, image generated', { requestId: req.requestId });
             }
           }
           if ('text' in part && part.text) {
@@ -370,7 +371,7 @@ CRITICAL REQUIREMENTS:
         }
       } else {
         const retryFeedback = retryResponse.promptFeedback;
-        if (retryFeedback) console.log('Retry prompt feedback:', JSON.stringify(retryFeedback));
+        if (retryFeedback) logger.info('Retry prompt feedback', { feedback: retryFeedback, requestId: req.requestId });
       }
     }
 
@@ -378,7 +379,7 @@ CRITICAL REQUIREMENTS:
       throw new Error(`Gemini returned no image output. Text response: ${textResponse.slice(0, 300)}`);
     }
 
-    console.log('Image generation successful!');
+    logger.info('Image generation successful', { requestId: req.requestId });
 
     // Generate project ID
     const projectId = `proj_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 9)}`;
@@ -393,24 +394,28 @@ CRITICAL REQUIREMENTS:
       creditsRemaining: 4
     };
 
-    // Auto-save to gallery for logged-in users (non-blocking)
+    // Auto-save to gallery for logged-in users
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
     if (sessionUser) {
-      void addGalleryItem({
-        userId: sessionUser.id,
-        imageDataUrl: generatedImage,
-        thumbnailDataUrl: generatedImage,
-        artStyleId: styleId,
-        artStyleName: styleNameMap[styleId] || styleId,
-      }).catch((err) => {
-        console.error('Failed to save to gallery:', err);
-      });
+      try {
+        await addGalleryItem({
+          userId: sessionUser.id,
+          imageDataUrl: generatedImage,
+          thumbnailDataUrl: generatedImage,
+          artStyleId: styleId,
+          artStyleName: styleNameMap[styleId] || styleId,
+        });
+        apiResponse.gallerySaved = true;
+      } catch (err) {
+        logger.error('Failed to save to gallery', { error: err instanceof Error ? err.message : String(err), requestId: req.requestId });
+        apiResponse.gallerySaved = false;
+      }
     }
 
     res.json(apiResponse);
   } catch (error) {
-    console.error('Error generating image:', error);
+    logger.error('Error generating image', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
 
     if (allowMockGeneration) {
       try {

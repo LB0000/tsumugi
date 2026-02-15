@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 export interface CouponValidation {
   valid: boolean;
   code?: string;
@@ -65,7 +67,7 @@ export async function useCoupon(code: string): Promise<boolean> {
 
     return response.ok;
   } catch {
-    console.error('Failed to mark coupon as used:', code);
+    logger.error('Failed to mark coupon as used', { code });
     return false;
   }
 }

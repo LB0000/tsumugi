@@ -23,7 +23,10 @@ export interface GenerateImageParams {
   };
 }
 
-export async function generateImage(params: GenerateImageParams): Promise<GenerateImageResponse> {
+export async function generateImage(
+  params: GenerateImageParams,
+  signal?: AbortSignal,
+): Promise<GenerateImageResponse> {
   const csrfToken = await getFreshCsrfToken();
 
   const formData = new FormData();
@@ -41,6 +44,7 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
     },
     credentials: 'include',
     body: formData,
+    signal,
   }, 60000);
 
   const data: unknown = await response.json();

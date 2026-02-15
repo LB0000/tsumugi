@@ -32,7 +32,9 @@ interface AppState {
 
   // Generated Image
   generatedImage: string | null;
+  gallerySaved: boolean | null;
   setGeneratedImage: (image: string | null) => void;
+  setGallerySaved: (saved: boolean | null) => void;
 
   // Sidebar
   isSidebarOpen: boolean;
@@ -84,12 +86,15 @@ export const useAppStore = create<AppState>((set) => ({
   resetUpload: () => set({
     uploadState: initialUploadState,
     generatedImage: null,
+    gallerySaved: null,
     currentStep: 'upload'
   }),
 
   // Generated Image
   generatedImage: null,
+  gallerySaved: null,
   setGeneratedImage: (image) => set({ generatedImage: image }),
+  setGallerySaved: (saved) => set({ gallerySaved: saved }),
 
   // Sidebar
   isSidebarOpen: false,

@@ -124,6 +124,7 @@ export interface GenerateImageResponse {
   watermarked: boolean;
   creditsUsed: number;
   creditsRemaining: number;
+  gallerySaved?: boolean;
 }
 
 export interface CartItem {

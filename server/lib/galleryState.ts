@@ -2,6 +2,7 @@ import path from 'path';
 import { randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { logger } from './logger.js';
 
 export interface GalleryItem {
   id: string;
@@ -39,7 +40,7 @@ function persistGalleryState(): void {
   persistQueue = persistQueue
     .then(() => writeJsonAtomic(GALLERY_STATE_PATH, snapshot))
     .catch((error) => {
-      console.error('Failed to persist gallery state:', error);
+      logger.error('Failed to persist gallery state', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 

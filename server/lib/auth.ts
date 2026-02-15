@@ -2,6 +2,7 @@ import path from 'path';
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'crypto';
 
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { logger } from './logger.js';
 
 const SCRYPT_OPTIONS: ScryptOptions = { cost: 16384, blockSize: 8, parallelization: 1 };
 
@@ -144,7 +145,7 @@ function persistAuthState(): void {
   persistQueue = persistQueue
     .then(() => writeJsonAtomic(AUTH_STORE_PATH, snapshot))
     .catch((error) => {
-      console.error('Failed to persist auth store:', error);
+      logger.error('Failed to persist auth store', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 

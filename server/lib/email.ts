@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { logger } from './logger.js';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@example.com';
@@ -55,7 +56,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
 
   if (!resend) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('[Email] Resend not configured. Verification URL:', verifyUrl);
+      logger.info('Resend not configured, verification URL generated', { verifyUrl });
     }
     return true;
   }
@@ -69,7 +70,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     });
     return true;
   } catch (error) {
-    console.error('Failed to send verification email:', error);
+    logger.error('Failed to send verification email', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -97,7 +98,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
 
   if (!resend) {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('[Email] Resend not configured. Reset URL:', resetUrl);
+      logger.info('Resend not configured, reset URL generated', { resetUrl });
     }
     return true;
   }
@@ -111,7 +112,7 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     });
     return true;
   } catch (error) {
-    console.error('Failed to send password reset email:', error);
+    logger.error('Failed to send password reset email', { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { CartItem } from '../types';
 
 interface CartState {
@@ -9,7 +10,7 @@ interface CartState {
   clearCart: () => void;
 }
 
-export const useCartStore = create<CartState>((set) => ({
+export const useCartStore = create<CartState>()(persist((set) => ({
   cartItems: [],
   addToCart: (item) => set((state) => {
     // 同じ商品・スタイル・オプションのアイテムがあれば数量を増やす
@@ -47,4 +48,7 @@ export const useCartStore = create<CartState>((set) => ({
     };
   }),
   clearCart: () => set({ cartItems: [] }),
+}), {
+  name: 'tsumugi-cart',
+  version: 1,
 }));

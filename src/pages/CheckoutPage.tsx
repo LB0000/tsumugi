@@ -23,13 +23,16 @@ type CheckoutState = {
   isProcessing: boolean;
   error: string | null;
   cardAttached: boolean;
+  isLoadingAddresses: boolean;
 };
 
 type CheckoutAction =
   | { type: 'START_PROCESSING' }
   | { type: 'FINISH_PROCESSING' }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CARD_ATTACHED' };
+  | { type: 'CARD_ATTACHED' }
+  | { type: 'LOADING_ADDRESSES' }
+  | { type: 'ADDRESSES_LOADED' };
 
 function checkoutReducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
   switch (action.type) {
@@ -41,6 +44,10 @@ function checkoutReducer(state: CheckoutState, action: CheckoutAction): Checkout
       return { ...state, isProcessing: false, error: action.payload };
     case 'CARD_ATTACHED':
       return { ...state, cardAttached: true };
+    case 'LOADING_ADDRESSES':
+      return { ...state, isLoadingAddresses: true };
+    case 'ADDRESSES_LOADED':
+      return { ...state, isLoadingAddresses: false };
     default:
       return state;
   }
@@ -56,9 +63,11 @@ export function CheckoutPage() {
     isProcessing: false,
     error: null,
     cardAttached: false,
+    isLoadingAddresses: false,
   });
   const checkoutAttemptIdRef = useRef<string | null>(null);
   const formTouchedRef = useRef(false);
+  const cardInitRef = useRef(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
   const [form, setForm] = useState<ShippingAddress>({
@@ -88,10 +97,14 @@ export function CheckoutPage() {
 
   // Attach Square card form when SDK is ready
   useEffect(() => {
-    if (isReady && !state.cardAttached) {
+    if (isReady && !state.cardAttached && !cardInitRef.current) {
+      cardInitRef.current = true;
       attachCard('#card-container')
         .then(() => dispatch({ type: 'CARD_ATTACHED' }))
-        .catch((e) => dispatch({ type: 'SET_ERROR', payload: e instanceof Error ? e.message : 'カード入力の初期化に失敗しました' }));
+        .catch((e) => {
+          cardInitRef.current = false;
+          dispatch({ type: 'SET_ERROR', payload: e instanceof Error ? e.message : 'カード入力の初期化に失敗しました' });
+        });
     }
   }, [isReady, state.cardAttached, attachCard]);
 
@@ -102,6 +115,7 @@ export function CheckoutPage() {
   // Load saved addresses for logged-in users
   useEffect(() => {
     if (!authUser) return;
+    dispatch({ type: 'LOADING_ADDRESSES' });
     void getAddresses()
       .then((addrs) => {
         setSavedAddresses(addrs);
@@ -122,6 +136,9 @@ export function CheckoutPage() {
       })
       .catch(() => {
         dispatch({ type: 'SET_ERROR', payload: '保存済み配送先の読み込みに失敗しました' });
+      })
+      .finally(() => {
+        dispatch({ type: 'ADDRESSES_LOADED' });
       });
   }, [authUser]);
 
@@ -235,7 +252,12 @@ export function CheckoutPage() {
                   <h2 className="font-semibold text-lg text-foreground">配送先情報</h2>
                 </div>
 
-                {savedAddresses.length > 0 && (
+                {state.isLoadingAddresses ? (
+                  <div className="mb-4 pb-4 border-b border-border flex items-center gap-2 text-muted">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>保存済み配送先を読み込み中...</span>
+                  </div>
+                ) : savedAddresses.length > 0 ? (
                   <div className="mb-4 pb-4 border-b border-border">
                     <label className="block text-sm font-medium text-foreground mb-2">保存済み配送先から選択</label>
                     <div className="flex flex-wrap gap-2">
@@ -251,7 +273,7 @@ export function CheckoutPage() {
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

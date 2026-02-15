@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { logger } from './logger.js';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -35,7 +36,7 @@ export function createRateLimiter(options: RateLimitOptions) {
     const key = `${keyPrefix}:${ip}`;
 
     if (buckets.size >= MAX_ENTRIES * 0.9) {
-      console.warn('[RateLimit] Bucket count at 90% capacity:', buckets.size);
+      logger.warn('RateLimit bucket count at 90% capacity', { size: buckets.size });
     }
 
     const current = buckets.get(key);

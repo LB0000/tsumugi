@@ -34,7 +34,7 @@ function CheckoutErrorFallback() {
       <div className="text-center">
         <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
         <p className="text-gray-600 mb-6">決済処理中にエラーが発生しました。</p>
-        <a href="/checkout" className="text-blue-600 hover:underline">カートに戻る</a>
+        <a href="/cart" className="text-blue-600 hover:underline">カートに戻る</a>
       </div>
     </div>
   );
@@ -46,6 +46,18 @@ function ResultErrorFallback() {
       <div className="text-center">
         <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
         <p className="text-gray-600 mb-6">結果の表示中にエラーが発生しました。</p>
+        <a href="/" className="text-blue-600 hover:underline">トップに戻る</a>
+      </div>
+    </div>
+  );
+}
+
+function PageErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center">
+        <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
+        <p className="text-gray-600 mb-6">ページの表示中にエラーが発生しました。</p>
         <a href="/" className="text-blue-600 hover:underline">トップに戻る</a>
       </div>
     </div>
@@ -103,15 +115,15 @@ function AppLayout() {
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<Navigate to="/pets" replace />} />
-              <Route path="/pets" element={<HomePage />} />
-              <Route path="/family" element={<HomePage />} />
-              <Route path="/kids" element={<HomePage />} />
+              <Route path="/pets" element={<ErrorBoundary fallback={<PageErrorFallback />}><HomePage /></ErrorBoundary>} />
+              <Route path="/family" element={<ErrorBoundary fallback={<PageErrorFallback />}><HomePage /></ErrorBoundary>} />
+              <Route path="/kids" element={<ErrorBoundary fallback={<PageErrorFallback />}><HomePage /></ErrorBoundary>} />
               <Route path="/result" element={<ErrorBoundary fallback={<ResultErrorFallback />}><ResultPage /></ErrorBoundary>} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/legal" element={<LegalPage />} />
               <Route path="/faq" element={<FaqPage />} />
-              <Route path="/cart" element={<CartPage />} />
+              <Route path="/cart" element={<ErrorBoundary fallback={<PageErrorFallback />}><CartPage /></ErrorBoundary>} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -123,7 +135,7 @@ function AppLayout() {
               <Route path="/shipping" element={<ShippingPage />} />
               <Route path="/returns" element={<ReturnsPage />} />
               <Route path="/company" element={<CompanyPage />} />
-              <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+              <Route path="/account" element={<ErrorBoundary fallback={<PageErrorFallback />}><ProtectedRoute><AccountPage /></ProtectedRoute></ErrorBoundary>} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
             </Routes>
           </Suspense>

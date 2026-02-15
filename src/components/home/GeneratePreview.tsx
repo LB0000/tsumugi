@@ -34,6 +34,7 @@ export function GeneratePreview() {
     selectedCategory,
     generatedImage,
     setGeneratedImage,
+    setGallerySaved,
     resetUpload
   } = useAppStore();
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export function GeneratePreview() {
   const [currentFact, setCurrentFact] = useState(0);
   const cancelledRef = useRef(false);
   const timerIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
 
   // ステージを段階的に進める（可変 duration）
   useEffect(() => {
@@ -111,8 +113,19 @@ export function GeneratePreview() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  // アンマウント時に進行中のリクエストをキャンセル
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle || !uploadState.rawFile) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsGenerating(true);
     setError(null);
@@ -124,11 +137,14 @@ export function GeneratePreview() {
         file: uploadState.rawFile,
         styleId: selectedStyle.id,
         category: selectedCategory
-      });
+      }, controller.signal);
 
       setGeneratedImage(result.generatedImage);
+      setGallerySaved(result.gallerySaved ?? null);
       navigate('/result');
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : '画像の生成に失敗しました');
     } finally {
       setIsGenerating(false);

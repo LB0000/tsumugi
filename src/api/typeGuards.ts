@@ -18,7 +18,8 @@ export function isGenerateImageResponse(data: unknown): data is GenerateImageRes
     typeof obj.thumbnailImage === 'string' &&
     typeof obj.watermarked === 'boolean' &&
     typeof obj.creditsUsed === 'number' &&
-    typeof obj.creditsRemaining === 'number'
+    typeof obj.creditsRemaining === 'number' &&
+    (obj.gallerySaved === undefined || typeof obj.gallerySaved === 'boolean')
   );
 }
 
