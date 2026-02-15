@@ -5,6 +5,7 @@ import { StyledButton } from '../components/common/StyledButton';
 import { loginAuth, registerAuth, loginWithGoogle } from '../api';
 import { useAuthStore } from '../stores/authStore';
 import { config } from '../config';
+import { trackEvent } from '../lib/analytics';
 
 const GOOGLE_CLIENT_ID = config.googleClientId;
 
@@ -107,6 +108,7 @@ export function LoginPage() {
           password,
         });
         setAuthSession(response.user);
+        trackEvent('login');
         navigate('/', { replace: true });
       } else {
         const normalizedName = name.trim();
@@ -120,6 +122,7 @@ export function LoginPage() {
           password,
         });
         setAuthSession(response.user);
+        trackEvent('sign_up');
         setSuccessMessage('登録完了！確認メールを送信しました。メールのリンクをクリックして認証を完了してください。');
         setTimeout(() => navigate('/', { replace: true }), 3000);
       }

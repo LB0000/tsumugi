@@ -6,3 +6,5 @@ export * from './image';
 export * from './gallery';
 export * from './addresses';
 export * from './support';
+export * from './reviews';
+export * from './cart';

@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { faqs } from '../data/legal';
 import { Breadcrumb, SearchBar } from '../components/common';
+import { injectJsonLd, updateMetaTags } from '../lib/seo';
 
 const categoryLabels: Record<string, string> = {
   all: 'すべて',
@@ -16,6 +17,33 @@ export function FaqPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [openId, setOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // SEO: page meta + FAQPage JSON-LD
+  useEffect(() => {
+    const cleanupMeta = updateMetaTags({
+      title: 'よくある質問 | TSUMUGI',
+      description: 'TSUMUGIの肖像画ギフトに関するよくある質問。注文方法、配送、返品、お支払い方法などをご確認いただけます。',
+      ogUrl: 'https://tsumugi.jp/faq',
+    });
+
+    const cleanupJsonLd = injectJsonLd('faq-page', {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(faq => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    });
+
+    return () => {
+      cleanupMeta();
+      cleanupJsonLd();
+    };
+  }, []);
 
   const filteredFaqs = useMemo(() => {
     let result = selectedCategory === 'all'

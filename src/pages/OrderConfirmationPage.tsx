@@ -1,6 +1,7 @@
 import { useLocation, Link, Navigate } from 'react-router-dom';
 import { CheckCircle, Package, Mail, ExternalLink } from 'lucide-react';
-import { StyledButton, Breadcrumb } from '../components/common';
+import { StyledButton, Breadcrumb, ShareButtons } from '../components/common';
+import { ReviewForm } from '../components/reviews/ReviewForm';
 import type { ShippingAddress } from '../types';
 
 interface OrderState {
@@ -94,6 +95,23 @@ export function OrderConfirmationPage() {
               領収書を表示
             </a>
           )}
+        </div>
+
+        {/* Review Form */}
+        <div className="mt-8">
+          <ReviewForm orderId={state.orderId} />
+        </div>
+
+        {/* Share section */}
+        <div className="mt-10 text-center">
+          <p className="text-muted text-sm mb-4">
+            TSUMUGIの体験を友達にも教えてあげましょう
+          </p>
+          <ShareButtons
+            url={window.location.origin}
+            title="TSUMUGIでペットの肖像画を作りました！ #TSUMUGI"
+            className="justify-center"
+          />
         </div>
 
         <div className="mt-8 text-center">

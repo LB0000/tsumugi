@@ -7,6 +7,8 @@ import { isValidEmail } from '../lib/validation.js';
 import { validate } from '../lib/schemas.js';
 import { z } from 'zod';
 import { logger } from '../lib/logger.js';
+import { sendOrderConfirmationEmail } from '../lib/email.js';
+import { scheduleReviewRequestEmail } from '../lib/scheduledEmails.js';
 
 const processPaymentInputSchema = z.object({
   sourceId: z.string().min(1),
@@ -97,8 +99,9 @@ export function sanitizeReceiptUrl(value: unknown): string | undefined {
 function sanitizePaymentStatusReceipt<T extends { receiptUrl?: string }>(status: T): T {
   const sanitizedReceiptUrl = sanitizeReceiptUrl(status.receiptUrl);
   if (!sanitizedReceiptUrl) {
-    const { receiptUrl: _unsafe, ...rest } = status;
-    return rest as T;
+    const rest = { ...status } as T;
+    delete (rest as { receiptUrl?: string }).receiptUrl;
+    return rest;
   }
   return { ...status, receiptUrl: sanitizedReceiptUrl };
 }
@@ -130,14 +133,28 @@ export function normalizeShippingAddress(address?: Partial<ShippingAddressPayloa
   return normalized;
 }
 
+interface GiftOptionsPayload {
+  isGift: boolean;
+  wrappingId?: 'standard' | 'premium' | 'noshi';
+  noshiType?: string;
+  messageCard?: string;
+  recipientAddress?: Partial<ShippingAddressPayload>;
+}
+
+const GIFT_WRAPPING_PRICES: Record<string, { price: number; label: string }> = {
+  premium: { price: 500, label: 'ギフトラッピング（プレミアム）' },
+  noshi: { price: 300, label: 'のし紙' },
+};
+
 // POST /api/checkout/create-order
 checkoutRouter.post('/create-order', async (req, res) => {
   try {
-    const { items, shippingAddress, clientRequestId, couponCode } = req.body as {
+    const { items, shippingAddress, clientRequestId, couponCode, giftOptions } = req.body as {
       items: CartItemPayload[];
       shippingAddress?: Partial<ShippingAddressPayload>;
       clientRequestId?: string;
       couponCode?: string;
+      giftOptions?: GiftOptionsPayload;
     };
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -256,6 +273,24 @@ checkoutRouter.post('/create-order', async (req, res) => {
       });
     }
 
+    // Add gift wrapping as a line item if applicable
+    if (giftOptions?.isGift && giftOptions.wrappingId) {
+      const wrapping = GIFT_WRAPPING_PRICES[giftOptions.wrappingId];
+      if (wrapping && wrapping.price > 0) {
+        lineItems.push({
+          name: wrapping.label,
+          quantity: '1',
+          basePriceMoney: {
+            amount: BigInt(wrapping.price),
+            currency: 'JPY' as const,
+          },
+          metadata: {
+            productId: `gift-wrapping-${giftOptions.wrappingId}`,
+          },
+        });
+      }
+    }
+
     const idempotencySeed = typeof clientRequestId === 'string' && clientRequestId.trim().length > 0
       ? clientRequestId.trim()
       : JSON.stringify({
@@ -277,26 +312,40 @@ checkoutRouter.post('/create-order', async (req, res) => {
       scope: 'ORDER' as const,
     }] : undefined;
 
+    // Determine shipping destination: use recipient address if gift with different recipient
+    let recipientAddress: ReturnType<typeof normalizeShippingAddress> = null;
+    if (giftOptions?.isGift && giftOptions.recipientAddress) {
+      recipientAddress = normalizeShippingAddress(giftOptions.recipientAddress);
+      if (!recipientAddress) {
+        res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_RECIPIENT_ADDRESS', message: 'ギフト送り先の住所情報が不足しています' },
+        });
+        return;
+      }
+    }
+    const shippingDestination = recipientAddress ?? normalizedAddress;
+
     const response = await squareClient.orders.create({
       order: {
         locationId,
         lineItems,
         ...(discounts && { discounts }),
-        ...(normalizedAddress && {
+        ...(shippingDestination && {
           fulfillments: [
             {
               type: 'SHIPMENT',
               state: 'PROPOSED',
               shipmentDetails: {
                 recipient: {
-                  displayName: `${normalizedAddress.lastName} ${normalizedAddress.firstName}`,
-                  emailAddress: normalizedAddress.email,
-                  phoneNumber: normalizedAddress.phone,
+                  displayName: `${shippingDestination.lastName} ${shippingDestination.firstName}`,
+                  emailAddress: shippingDestination.email,
+                  phoneNumber: shippingDestination.phone,
                   address: {
-                    postalCode: normalizedAddress.postalCode,
-                    administrativeDistrictLevel1: normalizedAddress.prefecture,
-                    locality: normalizedAddress.city,
-                    addressLine1: normalizedAddress.addressLine,
+                    postalCode: shippingDestination.postalCode,
+                    administrativeDistrictLevel1: shippingDestination.prefecture,
+                    locality: shippingDestination.city,
+                    addressLine1: shippingDestination.addressLine,
                     country: 'JP',
                   },
                 },
@@ -318,6 +367,14 @@ checkoutRouter.post('/create-order', async (req, res) => {
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
     const totalAmount = Number(order.totalMoney?.amount ?? 0);
 
+    // Build gift info metadata
+    const giftInfo = giftOptions?.isGift ? {
+      wrappingId: giftOptions.wrappingId,
+      noshiType: giftOptions.wrappingId === 'noshi' ? giftOptions.noshiType : undefined,
+      messageCard: typeof giftOptions.messageCard === 'string' ? giftOptions.messageCard.slice(0, 200) : undefined,
+      recipientAddress: recipientAddress ?? undefined,
+    } : undefined;
+
     if (order.id) {
       updateOrderPaymentStatus({
         orderId: order.id,
@@ -330,6 +387,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
         items: normalizedItems,
         shippingAddress: normalizedAddress ?? undefined,
         couponCode: appliedCoupon?.code,
+        giftInfo,
       });
     }
 
@@ -456,7 +514,24 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       receiptUrl: sanitizedReceiptUrl ?? sanitizeReceiptUrl(existingStatus?.receiptUrl),
       couponCode: existingStatus?.couponCode,
       couponUsed,
+      giftInfo: existingStatus?.giftInfo,
     });
+
+    // Send order confirmation email and schedule review request on successful payment
+    if (paymentStatus === 'COMPLETED' && normalizedBuyerEmail) {
+      void sendOrderConfirmationEmail(normalizedBuyerEmail, {
+        orderId: normalizedOrderId,
+        items: existingStatus?.items ?? [],
+        totalAmount: Number(orderAmount),
+        shippingAddress: existingStatus?.shippingAddress,
+      });
+      const buyerName = existingStatus?.shippingAddress
+        ? `${existingStatus.shippingAddress.lastName} ${existingStatus.shippingAddress.firstName}`
+        : '';
+      if (buyerName) {
+        scheduleReviewRequestEmail(normalizedBuyerEmail, normalizedOrderId, buyerName);
+      }
+    }
 
     res.json({
       success: true,
@@ -569,6 +644,7 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
         receiptUrl: sanitizeReceiptUrl(existingStatus?.receiptUrl),
         couponCode: existingStatus?.couponCode,
         couponUsed,
+        giftInfo: existingStatus?.giftInfo,
       });
     }
 

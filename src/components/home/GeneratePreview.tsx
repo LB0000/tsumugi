@@ -6,6 +6,7 @@ import { generateImage } from '../../api';
 import { StyledButton } from '../common/StyledButton';
 import { CircularProgress } from './CircularProgress';
 import { StyleInfoPanel } from './StyleInfoPanel';
+import { trackEvent } from '../../lib/analytics';
 
 // 9段階マイクロステージ
 const generationStages = [
@@ -141,6 +142,7 @@ export function GeneratePreview() {
 
       setGeneratedImage(result.generatedImage);
       setGallerySaved(result.gallerySaved ?? null);
+      trackEvent('image_generate');
       navigate('/result');
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;

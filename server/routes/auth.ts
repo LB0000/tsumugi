@@ -20,7 +20,7 @@ import {
   addSavedAddress,
   deleteSavedAddress,
 } from '../lib/auth.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email.js';
+import { sendVerificationEmail, sendPasswordResetEmail, sendWelcomeEmail } from '../lib/email.js';
 import {
   AUTH_CSRF_COOKIE_NAME,
   AUTH_SESSION_COOKIE_NAME,
@@ -112,7 +112,7 @@ authRouter.get('/csrf', (_req, res) => {
   });
 });
 
-authRouter.use(csrfProtection());
+authRouter.use(csrfProtection({ methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }));
 
 const forgotPasswordLimiter = createRateLimiter({ windowMs: 60_000, max: 3, keyPrefix: 'forgot-password' });
 
@@ -140,6 +140,7 @@ authRouter.post('/register', async (req, res) => {
     // Send verification email (non-blocking)
     const verificationToken = createVerificationToken(result.user.id);
     void sendVerificationEmail(email.trim(), verificationToken);
+    void sendWelcomeEmail(email.trim(), name.trim());
 
     res.json({
       success: true,

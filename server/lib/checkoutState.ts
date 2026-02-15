@@ -20,6 +20,13 @@ export interface OrderShippingAddress {
   addressLine: string;
 }
 
+export interface OrderGiftInfo {
+  wrappingId?: string;
+  noshiType?: string;
+  messageCard?: string;
+  recipientAddress?: OrderShippingAddress;
+}
+
 export interface OrderPaymentStatus {
   orderId: string;
   paymentId: string;
@@ -33,6 +40,7 @@ export interface OrderPaymentStatus {
   receiptUrl?: string;
   couponCode?: string;
   couponUsed?: boolean;
+  giftInfo?: OrderGiftInfo;
 }
 
 export interface ProcessedWebhookEvent {
@@ -54,8 +62,32 @@ const CHECKOUT_STATE_PATH = path.resolve(process.cwd(), 'server', '.data', 'chec
 const MAX_STORED_EVENTS = 5000;
 const processedEventIds = new Set<string>();
 const processedEventsQueue: ProcessedWebhookEvent[] = [];
+let processedEventsHead = 0;
 const paymentStatusByOrderId = new Map<string, OrderPaymentStatus>();
 let persistQueue: Promise<void> = Promise.resolve();
+
+function processedEventsSize(): number {
+  return processedEventsQueue.length - processedEventsHead;
+}
+
+function getPersistedProcessedEvents(): ProcessedWebhookEvent[] {
+  return processedEventsHead === 0
+    ? processedEventsQueue
+    : processedEventsQueue.slice(processedEventsHead);
+}
+
+function popOldestProcessedEvent(): ProcessedWebhookEvent | undefined {
+  if (processedEventsHead >= processedEventsQueue.length) return undefined;
+  const oldest = processedEventsQueue[processedEventsHead];
+  processedEventsHead += 1;
+
+  // Compact occasionally to keep memory bounded and array operations fast.
+  if (processedEventsHead > 1024 && processedEventsHead * 2 >= processedEventsQueue.length) {
+    processedEventsQueue.splice(0, processedEventsHead);
+    processedEventsHead = 0;
+  }
+  return oldest;
+}
 
 function isProcessedWebhookEvent(value: unknown): value is ProcessedWebhookEvent {
   if (typeof value !== 'object' || value === null) return false;
@@ -84,7 +116,7 @@ function isOrderPaymentStatus(value: unknown): value is OrderPaymentStatus {
 function persistCheckoutState(): void {
   const snapshot: PersistedCheckoutState = {
     version: 1,
-    processedEvents: processedEventsQueue,
+    processedEvents: [...getPersistedProcessedEvents()],
     paymentStatuses: [...paymentStatusByOrderId.values()],
   };
 
@@ -109,13 +141,10 @@ function hydrateCheckoutState(): void {
     processedEventsQueue.push(event);
   }
 
-  if (processedEventsQueue.length > MAX_STORED_EVENTS) {
-    const overflow = processedEventsQueue.length - MAX_STORED_EVENTS;
-    for (let i = 0; i < overflow; i += 1) {
-      const removed = processedEventsQueue.shift();
-      if (removed) {
-        processedEventIds.delete(removed.eventId);
-      }
+  while (processedEventsSize() > MAX_STORED_EVENTS) {
+    const removed = popOldestProcessedEvent();
+    if (removed) {
+      processedEventIds.delete(removed.eventId);
     }
   }
 
@@ -134,8 +163,8 @@ export function markProcessedWebhookEvent(event: ProcessedWebhookEvent): void {
   processedEventIds.add(event.eventId);
   processedEventsQueue.push(event);
 
-  if (processedEventsQueue.length > MAX_STORED_EVENTS) {
-    const removed = processedEventsQueue.shift();
+  if (processedEventsSize() > MAX_STORED_EVENTS) {
+    const removed = popOldestProcessedEvent();
     if (removed) {
       processedEventIds.delete(removed.eventId);
     }

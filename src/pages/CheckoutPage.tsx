@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef, useReducer, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
+import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2, Gift } from 'lucide-react';
 import { StyledButton, Breadcrumb } from '../components/common';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
+import { useAppStore } from '../stores/appStore';
 import { useSquarePayments } from '../hooks/useSquarePayments';
 import { createOrder, processPayment, getAddresses } from '../api';
 import type { SavedAddressItem } from '../api';
 import type { ShippingAddress } from '../types';
+import { trackEvent } from '../lib/analytics';
+import { giftWrappingOptions, noshiTypes } from '../data/giftOptions';
 
 const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
@@ -70,6 +73,19 @@ export function CheckoutPage() {
   const cardInitRef = useRef(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
+  const { giftOptions, setGiftOptions, clearGiftOptions } = useAppStore();
+  const [differentRecipient, setDifferentRecipient] = useState(false);
+  const [recipientForm, setRecipientForm] = useState<ShippingAddress>({
+    lastName: '',
+    firstName: '',
+    email: '',
+    phone: '',
+    postalCode: '',
+    prefecture: '',
+    city: '',
+    addressLine: '',
+  });
+
   const [form, setForm] = useState<ShippingAddress>({
     lastName: '',
     firstName: '',
@@ -81,12 +97,22 @@ export function CheckoutPage() {
     addressLine: '',
   });
 
+  const wrappingPrice = useMemo(() => {
+    if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
+    const option = giftWrappingOptions.find((o) => o.id === giftOptions.wrappingId);
+    return option?.price ?? 0;
+  }, [giftOptions]);
+
   const { subtotal, shipping, total } = useMemo(() => {
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shipping = subtotal >= 5000 ? 0 : 500;
-    const total = subtotal + shipping;
+    const total = subtotal + shipping + wrappingPrice;
     return { subtotal, shipping, total };
-  }, [cartItems]);
+  }, [cartItems, wrappingPrice]);
+
+  useEffect(() => {
+    trackEvent('begin_checkout');
+  }, []);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -160,6 +186,10 @@ export function CheckoutPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const updateRecipientForm = (field: keyof ShippingAddress, value: string) => {
+    setRecipientForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   const validateForm = (): string | null => {
     if (!form.lastName || !form.firstName) return 'お名前を入力してください';
     if (!form.email || !form.email.includes('@')) return '有効なメールアドレスを入力してください';
@@ -198,6 +228,15 @@ export function CheckoutPage() {
         })),
         shippingAddress: form,
         clientRequestId,
+        ...(giftOptions?.isGift && {
+          giftOptions: {
+            isGift: true,
+            wrappingId: giftOptions.wrappingId ?? undefined,
+            noshiType: giftOptions.noshiType ?? undefined,
+            messageCard: giftOptions.messageCard || undefined,
+            ...(differentRecipient && { recipientAddress: recipientForm }),
+          },
+        }),
       });
 
       // 3. Process payment
@@ -210,6 +249,7 @@ export function CheckoutPage() {
 
       // 4. Success - navigate to confirmation
       clearCart();
+      clearGiftOptions();
       checkoutAttemptIdRef.current = null;
       navigate('/order-confirmation', {
         state: {
@@ -245,6 +285,224 @@ export function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Forms */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Gift Options */}
+              <section className="bg-card rounded-xl border border-border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-primary" />
+                    <h2 className="font-semibold text-lg text-foreground">ギフトオプション</h2>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={giftOptions?.isGift ?? false}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setGiftOptions({ isGift: true, wrappingId: 'standard', noshiType: null, messageCard: '' });
+                        } else {
+                          clearGiftOptions();
+                          setDifferentRecipient(false);
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
+                    <span className="ml-2 text-sm text-foreground">ギフトとして購入する</span>
+                  </label>
+                </div>
+
+                {giftOptions?.isGift && (
+                  <div className="space-y-5 pt-2 border-t border-border mt-2">
+                    {/* Wrapping Selection */}
+                    <div className="pt-4">
+                      <label className="block text-sm font-medium text-foreground mb-3">ラッピング選択</label>
+                      <div className="space-y-2">
+                        {giftWrappingOptions.map((option) => (
+                          <label
+                            key={option.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                              giftOptions.wrappingId === option.id
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="wrapping"
+                              value={option.id}
+                              checked={giftOptions.wrappingId === option.id}
+                              onChange={() => setGiftOptions({
+                                ...giftOptions,
+                                wrappingId: option.id,
+                                noshiType: option.id === 'noshi' ? giftOptions.noshiType ?? 'oiwai' : null,
+                              })}
+                              className="accent-primary"
+                            />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-foreground">{option.name}</span>
+                                <span className="text-sm text-primary font-medium">
+                                  {option.price === 0 ? '無料' : `+¥${option.price.toLocaleString()}`}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted mt-0.5">{option.description}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Noshi Type - only when wrapping is 'noshi' */}
+                    {giftOptions.wrappingId === 'noshi' && (
+                      <div>
+                        <label htmlFor="noshiType" className="block text-sm font-medium text-foreground mb-1">のし紙の表書き</label>
+                        <select
+                          id="noshiType"
+                          value={giftOptions.noshiType ?? 'oiwai'}
+                          onChange={(e) => setGiftOptions({ ...giftOptions, noshiType: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                          {noshiTypes.map((type) => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Message Card */}
+                    <div>
+                      <label htmlFor="messageCard" className="block text-sm font-medium text-foreground mb-1">メッセージカード</label>
+                      <textarea
+                        id="messageCard"
+                        value={giftOptions.messageCard}
+                        onChange={(e) => {
+                          if (e.target.value.length <= 200) {
+                            setGiftOptions({ ...giftOptions, messageCard: e.target.value });
+                          }
+                        }}
+                        placeholder="お祝いのメッセージを入力してください（任意）"
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                      />
+                      <p className="text-xs text-muted text-right mt-1">{giftOptions.messageCard.length}/200</p>
+                    </div>
+
+                    {/* Different Recipient */}
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={differentRecipient}
+                          onChange={(e) => setDifferentRecipient(e.target.checked)}
+                          className="accent-primary w-4 h-4"
+                        />
+                        <span className="text-sm text-foreground">送り先は自分と異なる</span>
+                      </label>
+
+                      {differentRecipient && (
+                        <div className="mt-4 p-4 rounded-lg border border-border bg-background/50">
+                          <p className="text-sm font-medium text-foreground mb-3">お届け先情報</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="recipientLastName" className="block text-sm font-medium text-foreground mb-1">姓</label>
+                              <input
+                                id="recipientLastName"
+                                type="text"
+                                value={recipientForm.lastName}
+                                onChange={(e) => updateRecipientForm('lastName', e.target.value)}
+                                placeholder="山田"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="recipientFirstName" className="block text-sm font-medium text-foreground mb-1">名</label>
+                              <input
+                                id="recipientFirstName"
+                                type="text"
+                                value={recipientForm.firstName}
+                                onChange={(e) => updateRecipientForm('firstName', e.target.value)}
+                                placeholder="太郎"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="recipientEmail" className="block text-sm font-medium text-foreground mb-1">メールアドレス</label>
+                              <input
+                                id="recipientEmail"
+                                type="email"
+                                value={recipientForm.email}
+                                onChange={(e) => updateRecipientForm('email', e.target.value)}
+                                placeholder="example@email.com"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="recipientPhone" className="block text-sm font-medium text-foreground mb-1">電話番号</label>
+                              <input
+                                id="recipientPhone"
+                                type="tel"
+                                value={recipientForm.phone}
+                                onChange={(e) => updateRecipientForm('phone', e.target.value)}
+                                placeholder="090-1234-5678"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="recipientPostalCode" className="block text-sm font-medium text-foreground mb-1">郵便番号</label>
+                              <input
+                                id="recipientPostalCode"
+                                type="text"
+                                value={recipientForm.postalCode}
+                                onChange={(e) => updateRecipientForm('postalCode', e.target.value)}
+                                placeholder="100-0001"
+                                maxLength={8}
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="recipientPrefecture" className="block text-sm font-medium text-foreground mb-1">都道府県</label>
+                              <select
+                                id="recipientPrefecture"
+                                value={recipientForm.prefecture}
+                                onChange={(e) => updateRecipientForm('prefecture', e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              >
+                                <option value="">選択してください</option>
+                                {PREFECTURES.map((pref) => (
+                                  <option key={pref} value={pref}>{pref}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label htmlFor="recipientCity" className="block text-sm font-medium text-foreground mb-1">市区町村</label>
+                              <input
+                                id="recipientCity"
+                                type="text"
+                                value={recipientForm.city}
+                                onChange={(e) => updateRecipientForm('city', e.target.value)}
+                                placeholder="千代田区"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label htmlFor="recipientAddressLine" className="block text-sm font-medium text-foreground mb-1">番地・建物名</label>
+                              <input
+                                id="recipientAddressLine"
+                                type="text"
+                                value={recipientForm.addressLine}
+                                onChange={(e) => updateRecipientForm('addressLine', e.target.value)}
+                                placeholder="千代田1-1 〇〇ビル 101号室"
+                                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+
               {/* Shipping Address */}
               <section className="bg-card rounded-xl border border-border p-6">
                 <div className="flex items-center gap-2 mb-6">
@@ -432,6 +690,12 @@ export function CheckoutPage() {
                       )}
                     </span>
                   </div>
+                  {wrappingPrice > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">ギフトラッピング</span>
+                      <span className="text-foreground">¥{wrappingPrice.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between mb-6">

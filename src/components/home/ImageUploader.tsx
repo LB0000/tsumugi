@@ -3,6 +3,7 @@ import { Upload, FileImage, HardDrive, Info, ImageIcon } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
+import { trackEvent } from '../../lib/analytics';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -57,6 +58,7 @@ export function ImageUploader() {
         previewUrl: reader.result as string,
         rawFile: file
       });
+      trackEvent('image_upload');
       setCurrentStep('preview');
 
       // Step2へ自動スクロール（少し遅延させてUIの更新を待つ）

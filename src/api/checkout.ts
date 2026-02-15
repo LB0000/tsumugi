@@ -2,10 +2,19 @@ import type { ShippingAddress } from '../types';
 import { API_BASE, buildAuthPostHeaders, fetchWithTimeout } from './common';
 import { isErrorResponse, isCreateOrderResponse, isProcessPaymentResponse, isOrdersResponse, isOrderDetailResponse } from './typeGuards';
 
+export interface GiftOptionsPayload {
+  isGift: boolean;
+  wrappingId?: string;
+  noshiType?: string;
+  messageCard?: string;
+  recipientAddress?: ShippingAddress;
+}
+
 export interface CreateOrderRequest {
   items: Array<{ productId: string; quantity: number }>;
   shippingAddress: ShippingAddress;
   clientRequestId?: string;
+  giftOptions?: GiftOptionsPayload;
 }
 
 export interface CreateOrderResponse {

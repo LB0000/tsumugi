@@ -3,12 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { categoryMetadata } from '../data/categoryMetadata';
+import { updateMetaTags } from '../lib/seo';
 import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
 
 const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
-const DEFAULT_TITLE = 'TSUMUGI - 肖像画ギフト専門店';
-const DEFAULT_DESCRIPTION = 'ペットや家族の写真をルネサンス風の肖像画に変換。世界に一つだけのギフトをお届けします。';
 
 export function HomePage() {
   const { selectedCategory, setSelectedCategory, resetUpload } = useAppStore();
@@ -34,12 +33,11 @@ export function HomePage() {
   useEffect(() => {
     const meta = categoryMetadata[selectedCategory];
     if (!meta) return;
-    document.title = meta.title;
-    document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description);
-    return () => {
-      document.title = DEFAULT_TITLE;
-      document.querySelector('meta[name="description"]')?.setAttribute('content', DEFAULT_DESCRIPTION);
-    };
+    return updateMetaTags({
+      title: meta.title,
+      description: meta.description,
+      ogUrl: `https://tsumugi.jp/${selectedCategory}`,
+    });
   }, [selectedCategory]);
 
   const currentCategory = categories.find(c => c.id === selectedCategory);

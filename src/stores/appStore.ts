@@ -45,6 +45,16 @@ interface AppState {
   // Current Step
   currentStep: 'upload' | 'preview' | 'download';
   setCurrentStep: (step: 'upload' | 'preview' | 'download') => void;
+
+  // Gift Options
+  giftOptions: {
+    isGift: boolean;
+    wrappingId: string | null;
+    noshiType: string | null;
+    messageCard: string;
+  } | null;
+  setGiftOptions: (options: AppState['giftOptions']) => void;
+  clearGiftOptions: () => void;
 }
 
 const initialUploadState: UploadState = {
@@ -105,4 +115,9 @@ export const useAppStore = create<AppState>((set) => ({
   // Current Step
   currentStep: 'upload',
   setCurrentStep: (step) => set({ currentStep: step }),
+
+  // Gift Options
+  giftOptions: null,
+  setGiftOptions: (options) => set({ giftOptions: options }),
+  clearGiftOptions: () => set({ giftOptions: null }),
 }));

@@ -3,6 +3,7 @@ import { Check, Sparkles, ChevronRight, ChevronLeft, Crown, Leaf, Monitor } from
 import { useAppStore } from '../../stores/appStore';
 import { artStyles, getStyleThumbnail } from '../../data/artStyles';
 import type { ArtStyle } from '../../types';
+import { trackEvent } from '../../lib/analytics';
 
 function ColorPaletteStrip({ colors }: { colors: string[] }) {
   if (colors.length === 0) return null;
@@ -184,6 +185,7 @@ function StyleSectionBase() {
 
   const handleStyleClick = (style: ArtStyle) => {
     setSelectedStyle(style);
+    trackEvent('style_select', { styleId: style.id });
     openStyleModal();
   };
 

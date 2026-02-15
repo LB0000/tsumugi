@@ -15,6 +15,10 @@ import { supportRouter } from './routes/support.js';
 import { authRouter } from './routes/auth.js';
 import { galleryRouter } from './routes/gallery.js';
 import { internalRouter } from './routes/internal.js';
+import { reviewRouter } from './routes/reviews.js';
+import { cartRouter } from './routes/cart.js';
+import { startCartAbandonmentChecker } from './lib/cartAbandonment.js';
+import { startScheduledEmailChecker } from './lib/scheduledEmails.js';
 
 const app = express();
 const PORT = config.PORT;
@@ -96,6 +100,8 @@ app.use('/api/contact', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix
 app.use('/api/support', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'support' }), supportRouter);
 app.use('/api/auth', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'auth' }), authRouter);
 app.use('/api/gallery', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'gallery' }), galleryRouter);
+app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'reviews' }), reviewRouter);
+app.use('/api/cart', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'cart' }), cartRouter);
 app.use('/api/internal', internalRouter);
 
 // Health check
@@ -105,6 +111,8 @@ app.get('/api/health', (_req, res) => {
 
 const server = app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
+  startCartAbandonmentChecker();
+  startScheduledEmailChecker();
 });
 
 // [S-03] Graceful shutdown — flush pending persist queues before exit

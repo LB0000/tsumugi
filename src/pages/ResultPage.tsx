@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle, Share2 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
+import { ShareButtons } from '../components/common/ShareButtons';
+import { trackEvent } from '../lib/analytics';
+import { updateMetaTags } from '../lib/seo';
 
 type ProductOption = (typeof products)[number];
 
@@ -17,6 +20,18 @@ export function ResultPage() {
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
+  const [showFab, setShowFab] = useState(false);
+  const [fabExpanded, setFabExpanded] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    setShowFab(window.scrollY > 200);
+    if (window.scrollY <= 200) setFabExpanded(false);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // Redirect to home if store has no data (e.g. direct navigation or page reload)
   const mountCheckRef = useRef(false);
@@ -37,9 +52,20 @@ export function ResultPage() {
     }
   }, [generatedImage, selectedStyle]);
 
+  // Update OGP meta tags with generated image
+  useEffect(() => {
+    if (!generatedImage || !selectedStyle) return;
+    return updateMetaTags({
+      title: `${selectedStyle.name}スタイルの肖像画 | TSUMUGI`,
+      description: `AIが生成した${selectedStyle.name}スタイルの肖像画。TSUMUGIで世界に一つだけのアートを。`,
+      ogUrl: 'https://tsumugi.jp/result',
+    });
+  }, [generatedImage, selectedStyle]);
+
   if (!generatedImage || !selectedStyle) return null;
 
   const handleAddToCart = (product: ProductOption) => {
+    trackEvent('add_to_cart', { productId: product.id, price: product.price });
     addToCart({
       productId: product.id,
       name: product.name,
@@ -185,6 +211,18 @@ export function ResultPage() {
               別のスタイルで試す
             </button>
           </div>
+
+          {/* Share section */}
+          <div className="mt-10 text-center">
+            <h2 className="font-serif text-lg font-semibold text-foreground mb-4">
+              この作品をシェアする
+            </h2>
+            <ShareButtons
+              url={window.location.href}
+              title={`「${selectedStyle.name}」スタイルで肖像画を作りました！ #TSUMUGI #AI肖像画`}
+              className="justify-center"
+            />
+          </div>
         </div>
       </div>
 
@@ -260,6 +298,27 @@ export function ResultPage() {
           ))}
         </div>
       </div>
+
+      {/* Floating share FAB */}
+      {showFab && (
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+          {fabExpanded && (
+            <div className="bg-card rounded-2xl shadow-xl border border-border p-3 animate-fade-in">
+              <ShareButtons
+                url={window.location.href}
+                title={`「${selectedStyle.name}」スタイルで肖像画を作りました！ #TSUMUGI #AI肖像画`}
+              />
+            </div>
+          )}
+          <button
+            onClick={() => setFabExpanded((prev) => !prev)}
+            aria-label="シェアメニューを開く"
+            className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-110"
+          >
+            <Share2 className="w-6 h-6" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

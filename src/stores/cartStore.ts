@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CartItem } from '../types';
+import { saveCart } from '../api/cart';
+import { useAuthStore } from './authStore';
 
 interface CartState {
   cartItems: CartItem[];
@@ -52,3 +54,22 @@ export const useCartStore = create<CartState>()(persist((set) => ({
   name: 'tsumugi-cart',
   version: 1,
 }));
+
+// Debounced server-side cart sync for logged-in users
+let saveCartTimer: ReturnType<typeof setTimeout> | null = null;
+
+useCartStore.subscribe((state) => {
+  if (saveCartTimer) clearTimeout(saveCartTimer);
+  saveCartTimer = setTimeout(() => {
+    const authUser = useAuthStore.getState().authUser;
+    if (!authUser) return;
+    const items = state.cartItems.map(item => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    }));
+    saveCart(items).catch(() => {
+      // Silently ignore save errors — local storage is the primary persistence
+    });
+  }, 30_000);
+});

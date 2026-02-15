@@ -3,6 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary } from './components/common';
 import { getCurrentUser } from './api';
 import { useAuthStore } from './stores/authStore';
+import { config } from './config';
+import { initGTM, trackPageView } from './lib/analytics';
+import { injectJsonLd } from './lib/seo';
+import { legalInfo } from './data/legal';
+import { products } from './data/products';
 
 // Code Splitting: ページコンポーネントを遅延読み込み
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -85,8 +90,79 @@ function ScrollToTop() {
   return null;
 }
 
+function AnalyticsTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    trackPageView(pathname, document.title);
+  }, [pathname]);
+  return null;
+}
+
 function AppLayout() {
   const { setAuthSession, clearAuthSession } = useAuthStore();
+
+  useEffect(() => {
+    initGTM(config.gtmId);
+  }, []);
+
+  // Inject global JSON-LD structured data (Organization, WebSite, Product)
+  useEffect(() => {
+    const cleanups = [
+      injectJsonLd('organization', {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: legalInfo['販売業者'],
+        url: 'https://tsumugi.jp',
+        logo: 'https://tsumugi.jp/images/ogp-default.jpg',
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: '神宮前1-2-3 アートビル5F',
+          addressLocality: '渋谷区',
+          addressRegion: '東京都',
+          postalCode: '150-0001',
+          addressCountry: 'JP',
+        },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          telephone: '03-1234-5678',
+          email: legalInfo['メールアドレス'],
+          contactType: 'customer service',
+          availableLanguage: 'Japanese',
+        },
+      }),
+      injectJsonLd('website', {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'TSUMUGI',
+        url: 'https://tsumugi.jp',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: 'https://tsumugi.jp/faq?q={search_term_string}',
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+      ...products.map((product) =>
+        injectJsonLd(`product-${product.id}`, {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          description: product.description,
+          url: 'https://tsumugi.jp/pricing',
+          image: 'https://tsumugi.jp/images/ogp-default.jpg',
+          brand: { '@type': 'Brand', name: 'TSUMUGI' },
+          offers: {
+            '@type': 'Offer',
+            price: product.price,
+            priceCurrency: 'JPY',
+            availability: 'https://schema.org/InStock',
+            url: 'https://tsumugi.jp/pricing',
+            seller: { '@type': 'Organization', name: legalInfo['販売業者'] },
+          },
+        })
+      ),
+    ];
+    return () => cleanups.forEach(fn => fn());
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -150,6 +226,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <AnalyticsTracker />
       <AppLayout />
     </BrowserRouter>
   );
