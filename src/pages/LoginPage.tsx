@@ -3,13 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2 } from 'lucide-react';
 import { StyledButton } from '../components/common/StyledButton';
 import { loginAuth, registerAuth, loginWithGoogle } from '../api';
-import { useAppStore } from '../stores/appStore';
+import { useAuthStore } from '../stores/authStore';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { authUser, setAuthSession } = useAppStore();
+  const { authUser, setAuthSession } = useAuthStore();
 
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -175,7 +175,7 @@ export function LoginPage() {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
             {/* Name (Register only) */}
             {!isLogin && (
               <div>

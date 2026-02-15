@@ -54,7 +54,8 @@ export function ImageUploader() {
       setUploadState({
         status: 'complete',
         progress: 100,
-        previewUrl: reader.result as string
+        previewUrl: reader.result as string,
+        rawFile: file
       });
       setCurrentStep('preview');
 

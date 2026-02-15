@@ -113,16 +113,7 @@ export interface UploadState {
   progress: number;
   previewUrl: string | null;
   errorMessage: string | null;
-}
-
-export interface GenerateImageRequest {
-  baseImage: string;
-  styleId: string;
-  category: 'pets' | 'family' | 'kids';
-  options?: {
-    gender?: 'masculine' | 'feminine' | 'neutral';
-    customPrompt?: string;
-  };
+  rawFile: File | null;
 }
 
 export interface GenerateImageResponse {

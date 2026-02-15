@@ -3,12 +3,12 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 import { StyledButton } from '../components/common/StyledButton';
 import { resetPassword } from '../api';
-import { useAppStore } from '../stores/appStore';
+import { useAuthStore } from '../stores/authStore';
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setAuthSession } = useAppStore();
+  const { setAuthSession } = useAuthStore();
 
   const token = useMemo(() => searchParams.get('token')?.trim() ?? '', [searchParams]);
   const [newPassword, setNewPassword] = useState('');

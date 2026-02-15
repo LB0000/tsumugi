@@ -1,4 +1,4 @@
-import type { GenerateImageRequest, GenerateImageResponse, ArtStyle, PricingPlan, PrintSize, ShippingAddress, AuthUser } from '../types';
+import type { GenerateImageResponse, ArtStyle, PricingPlan, PrintSize, ShippingAddress, AuthUser } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -84,13 +84,34 @@ export function isPricingResponse(data: unknown): data is PricingResponse {
   );
 }
 
-export async function generateImage(request: GenerateImageRequest): Promise<GenerateImageResponse> {
-  const headers = await buildAuthPostHeaders();
+interface GenerateImageParams {
+  file: File;
+  styleId: string;
+  category: 'pets' | 'family' | 'kids';
+  options?: {
+    gender?: 'masculine' | 'feminine' | 'neutral';
+    customPrompt?: string;
+  };
+}
+
+export async function generateImage(params: GenerateImageParams): Promise<GenerateImageResponse> {
+  const csrfToken = await getFreshCsrfToken();
+
+  const formData = new FormData();
+  formData.append('image', params.file);
+  formData.append('styleId', params.styleId);
+  formData.append('category', params.category);
+  if (params.options) {
+    formData.append('options', JSON.stringify(params.options));
+  }
+
   const response = await fetch(`${API_BASE}/generate-image`, {
     method: 'POST',
-    headers,
+    headers: {
+      'X-CSRF-Token': csrfToken,
+    },
     credentials: 'include',
-    body: JSON.stringify(request),
+    body: formData,
   });
 
   const data: unknown = await response.json();

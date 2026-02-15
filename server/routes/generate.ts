@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
@@ -7,6 +8,26 @@ import { csrfProtection } from '../middleware/csrfProtection.js';
 
 export const generateRouter = Router();
 generateRouter.use(csrfProtection());
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+]);
+
+class FileTypeError extends Error {
+  constructor() {
+    super('Only image files are accepted');
+    this.name = 'FileTypeError';
+  }
+}
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1, fields: 5, fieldSize: 2048 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_IMAGE_TYPES.has(file.mimetype)) cb(null, true);
+    else cb(new FileTypeError());
+  },
+});
 
 const styleNameMap: Record<string, string> = {
   'baroque': 'バロック',
@@ -79,16 +100,6 @@ const model = genAI.getGenerativeModel({
 });
 
 const allowMockGeneration = process.env.ALLOW_MOCK_GENERATION === 'true' && process.env.NODE_ENV !== 'production';
-
-interface GenerateImageRequest {
-  baseImage: string;
-  styleId: string;
-  category: 'pets' | 'family' | 'kids';
-  options?: {
-    gender?: 'masculine' | 'feminine' | 'neutral';
-    customPrompt?: string;
-  };
-}
 
 interface GenerateImageResponse {
   success: boolean;
@@ -171,26 +182,23 @@ const categoryPrompts: Record<string, string> = {
   'kids': 'SUBJECT: The subject is a child. Preserve their innocent expression, youthful features, and natural energy. Use gentle, warm treatment appropriate for a child\'s portrait. Do not make the child look older or significantly different.'
 };
 
-function parseImageDataUrl(baseImage: string): { mimeType: string; data: string } {
-  const dataUrlMatch = baseImage.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-  if (!dataUrlMatch) {
-    throw new Error('Invalid image data URL');
-  }
-
-  const mimeType = dataUrlMatch[1];
-  const data = dataUrlMatch[2].replace(/[\s\n\r]/g, '');
-  if (!data || !/^[A-Za-z0-9+/=]+$/.test(data)) {
-    throw new Error('Invalid base64 image data');
-  }
-
-  return { mimeType, data };
-}
-
-generateRouter.post('/', async (req: Request<object, object, GenerateImageRequest>, res: Response) => {
+generateRouter.post('/', upload.single('image'), async (req: Request, res: Response) => {
   try {
-    const { baseImage, styleId, category, options } = req.body;
+    const styleId = typeof req.body.styleId === 'string' ? req.body.styleId : '';
+    const category = typeof req.body.category === 'string' ? req.body.category : '';
 
-    if (!baseImage || !styleId || !category) {
+    let options: { customPrompt?: string } | undefined;
+    try {
+      options = req.body.options ? JSON.parse(req.body.options) : undefined;
+    } catch {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_OPTIONS', message: 'オプションの形式が不正です' }
+      });
+      return;
+    }
+
+    if (!req.file || !styleId || !category) {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: 'Missing required fields' }
@@ -203,6 +211,15 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_CATEGORY', message: '不正なカテゴリです' }
+      });
+      return;
+    }
+
+    const validStyleIds = new Set([...Object.keys(stylePrompts), ...Object.keys(petStylePrompts)]);
+    if (!validStyleIds.has(styleId)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_STYLE', message: '不正なスタイルIDです' }
       });
       return;
     }
@@ -227,8 +244,11 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
     const stylePrompt = getStylePrompt(styleId, category);
     const styleFocusPrompt = getStyleFocusPrompt(styleId);
     const categoryPrompt = categoryPrompts[category] || '';
-    const customPrompt = options?.customPrompt
-      ? options.customPrompt.slice(0, 500).replace(/[\x00-\x1f\x7f]/g, '')
+    const customPrompt = typeof options?.customPrompt === 'string'
+      ? options.customPrompt.slice(0, 500).split('').filter(ch => {
+          const code = ch.charCodeAt(0);
+          return code > 0x1f && code !== 0x7f;
+        }).join('')
       : '';
 
     const fullPrompt = `${stylePrompt}
@@ -247,28 +267,11 @@ CRITICAL REQUIREMENTS:
 - BACKGROUND: Create an appropriate artistic background that complements the chosen style. Do NOT keep the original photo background.
 - AVOID: Do not produce photorealistic results. Do not add text or watermarks. Do not crop or change the framing significantly.`;
 
-    // Extract base64 image data
-    let parsedImage: { mimeType: string; data: string };
-    try {
-      parsedImage = parseImageDataUrl(baseImage);
-    } catch {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_IMAGE', message: 'Invalid base64 image format' }
-      });
-      return;
-    }
-
-    // Validate image size (max 10MB decoded)
-    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-    const estimatedSize = Math.ceil(parsedImage.data.length * 3 / 4);
-    if (estimatedSize > MAX_IMAGE_SIZE) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'IMAGE_TOO_LARGE', message: '画像サイズが大きすぎます（最大10MB）' }
-      });
-      return;
-    }
+    // Extract image data from uploaded file (multer handles size validation)
+    const parsedImage = {
+      mimeType: req.file.mimetype,
+      data: req.file.buffer.toString('base64'),
+    };
 
     console.log('Generating image with Gemini 3 Pro Image...', { styleId, category });
 
@@ -425,6 +428,32 @@ CRITICAL REQUIREMENTS:
       error: { code: 'GENERATION_UPSTREAM_FAILED', message: 'Failed to generate image' }
     });
   }
+});
+
+// Multer error handling middleware
+generateRouter.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'IMAGE_TOO_LARGE', message: '画像サイズが大きすぎます（最大10MB）' }
+      });
+      return;
+    }
+    res.status(400).json({
+      success: false,
+      error: { code: 'UPLOAD_ERROR', message: err.message }
+    });
+    return;
+  }
+  if (err instanceof FileTypeError) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_FILE_TYPE', message: '画像ファイルのみアップロード可能です' }
+    });
+    return;
+  }
+  next(err);
 });
 
 // Mock response generator (fallback when API is not available)

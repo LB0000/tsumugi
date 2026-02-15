@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { verifyEmailToken } from '../api';
-import { useAppStore } from '../stores/appStore';
+import { useAuthStore } from '../stores/authStore';
 
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
-  const { setAuthSession } = useAppStore();
+  const { setAuthSession } = useAuthStore();
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');

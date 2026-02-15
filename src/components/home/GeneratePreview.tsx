@@ -112,7 +112,7 @@ export function GeneratePreview() {
   }, [isGenerating]);
 
   const handleGenerate = async () => {
-    if (!uploadState.previewUrl || !selectedStyle) return;
+    if (!uploadState.previewUrl || !selectedStyle || !uploadState.rawFile) return;
 
     setIsGenerating(true);
     setError(null);
@@ -121,7 +121,7 @@ export function GeneratePreview() {
 
     try {
       const result = await generateImage({
-        baseImage: uploadState.previewUrl,
+        file: uploadState.rawFile,
         styleId: selectedStyle.id,
         category: selectedCategory
       });
@@ -140,7 +140,7 @@ export function GeneratePreview() {
   };
 
   const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
-  const canGenerate = hasPhoto && Boolean(selectedStyle);
+  const canGenerate = hasPhoto && Boolean(selectedStyle) && Boolean(uploadState.rawFile);
 
   const progressColors: [string, string] = [
     selectedStyle?.colorPalette[0] || '#8B4513',
@@ -242,7 +242,7 @@ export function GeneratePreview() {
             ) : (
               <div className="space-y-4 flex flex-col items-center">
                 <button
-                  onClick={handleGenerate}
+                  onClick={() => void handleGenerate()}
                   disabled={!canGenerate || isGenerating}
                   className={`group relative min-w-[260px] px-8 py-4 text-base font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-xl shadow-primary/25 transition-all duration-300 overflow-hidden flex items-center justify-center gap-2 ${
                     canGenerate

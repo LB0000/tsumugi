@@ -66,7 +66,7 @@ app.use((_req, res, next) => {
   next();
 });
 app.use(express.json({
-  limit: '20mb',
+  limit: '1mb',
   verify: (req, _res, buf) => {
     // [S-10] Only store rawBody for webhook signature verification
     if (req.url?.includes('/webhook')) {
@@ -76,7 +76,7 @@ app.use(express.json({
 }));
 
 // Routes
-app.use('/api/generate-image', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'generate-image' }), generateRouter);
+app.use('/api/generate-image', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'generate-image' }), generateRouter);
 app.use('/api/styles', stylesRouter);
 app.use('/api/pricing', pricingRouter);
 app.use('/api/checkout', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'checkout' }), checkoutRouter);

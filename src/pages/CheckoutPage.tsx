@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { StyledButton, Breadcrumb } from '../components/common';
-import { useAppStore } from '../stores/appStore';
+import { useCartStore } from '../stores/cartStore';
+import { useAuthStore } from '../stores/authStore';
 import { useSquarePayments } from '../hooks/useSquarePayments';
 import { createOrder, processPayment, getAddresses } from '../api';
 import type { SavedAddressItem } from '../api';
@@ -20,13 +21,15 @@ const PREFECTURES = [
 
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const { cartItems, clearCart, authUser } = useAppStore();
+  const { cartItems, clearCart } = useCartStore();
+  const { authUser } = useAuthStore();
   const { isReady, error: squareError, attachCard, tokenize } = useSquarePayments();
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardAttached, setCardAttached] = useState(false);
   const checkoutAttemptIdRef = useRef<string | null>(null);
+  const formTouchedRef = useRef(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
   const [form, setForm] = useState<ShippingAddress>({
@@ -72,7 +75,7 @@ export function CheckoutPage() {
         setSavedAddresses(addrs);
         // Auto-fill with default address
         const defaultAddr = addrs.find((a) => a.isDefault) ?? (addrs.length === 1 ? addrs[0] : null);
-        if (defaultAddr && !form.lastName) {
+        if (defaultAddr && !formTouchedRef.current) {
           setForm({
             lastName: defaultAddr.lastName,
             firstName: defaultAddr.firstName,
@@ -85,8 +88,9 @@ export function CheckoutPage() {
           });
         }
       })
-      .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {
+        setError('保存済み配送先の読み込みに失敗しました');
+      });
   }, [authUser]);
 
   const applySavedAddress = (addr: SavedAddressItem) => {
@@ -103,6 +107,7 @@ export function CheckoutPage() {
   };
 
   const updateForm = (field: keyof ShippingAddress, value: string) => {
+    formTouchedRef.current = true;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -187,7 +192,7 @@ export function CheckoutPage() {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="font-serif text-3xl font-semibold text-foreground mb-8">お支払い</h1>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => void handleSubmit(e)}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Forms */}
             <div className="lg:col-span-2 space-y-8">

@@ -2,7 +2,7 @@ import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary } from './components/common';
 import { getCurrentUser } from './api';
-import { useAppStore } from './stores/appStore';
+import { useAuthStore } from './stores/authStore';
 
 // Code Splitting: ページコンポーネントを遅延読み込み
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
@@ -29,7 +29,7 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => (
 const CATEGORY_PATHS = ['/pets', '/family', '/kids'];
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { authUser, authLoading } = useAppStore();
+  const { authUser, authLoading } = useAuthStore();
   if (authLoading) return <LoadingSpinner />;
   if (!authUser) return <Navigate to="/login" replace />;
   return <>{children}</>;
@@ -50,7 +50,7 @@ function ScrollToTop() {
 }
 
 function AppLayout() {
-  const { setAuthSession, clearAuthSession } = useAppStore();
+  const { setAuthSession, clearAuthSession } = useAuthStore();
 
   useEffect(() => {
     let isCancelled = false;

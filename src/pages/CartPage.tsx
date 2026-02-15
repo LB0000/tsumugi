@@ -2,11 +2,11 @@ import { ShoppingCart, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
-import { useAppStore } from '../stores/appStore';
+import { useCartStore } from '../stores/cartStore';
 
 export function CartPage() {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateCartItemQuantity } = useAppStore();
+  const { cartItems, removeFromCart, updateCartItemQuantity } = useCartStore();
   const isEmpty = cartItems.length === 0;
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);

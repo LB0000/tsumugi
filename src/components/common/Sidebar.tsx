@@ -1,6 +1,8 @@
 import { X, Home, LogIn, HelpCircle, FileText, User, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
+import { useCartStore } from '../../stores/cartStore';
+import { useAuthStore } from '../../stores/authStore';
 import { navigation } from '../../data/navigation';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -11,7 +13,9 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export function Sidebar() {
-  const { isSidebarOpen, closeSidebar, authUser, cartItems } = useAppStore();
+  const { isSidebarOpen, closeSidebar } = useAppStore();
+  const { cartItems } = useCartStore();
+  const { authUser } = useAuthStore();
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const location = useLocation();
 

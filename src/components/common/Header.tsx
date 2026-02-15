@@ -1,18 +1,15 @@
 import { LogOut, Menu, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
+import { useCartStore } from '../../stores/cartStore';
+import { useAuthStore } from '../../stores/authStore';
 import { categories } from '../../data/categories';
 import { logoutAuth } from '../../api';
 
 export function Header() {
-  const {
-    toggleSidebar,
-    cartItems,
-    clearCart,
-    authUser,
-    clearAuthSession,
-    resetUpload,
-  } = useAppStore();
+  const { toggleSidebar, resetUpload } = useAppStore();
+  const { cartItems, clearCart } = useCartStore();
+  const { authUser, clearAuthSession } = useAuthStore();
   const { pathname } = useLocation();
   const isCategoryPage = ['/pets', '/family', '/kids'].includes(pathname);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);

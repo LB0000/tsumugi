@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, ArrowLeft, Palette } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
+import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
 
@@ -11,17 +12,21 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, resetUpload, addToCart, setGeneratedImage } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage } = useAppStore();
+  const { addToCart } = useCartStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
 
   // Redirect to home if store has no data (e.g. direct navigation or page reload)
+  const mountCheckRef = useRef(false);
   useEffect(() => {
+    if (mountCheckRef.current) return;
+    mountCheckRef.current = true;
     if (!generatedImage || !selectedStyle) {
       navigate('/');
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [generatedImage, selectedStyle, navigate]);
 
   // Save only IDs to sessionStorage (no base64 image data)
   useEffect(() => {
