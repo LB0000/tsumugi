@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 
 interface Testimonial {
@@ -154,7 +154,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   );
 }
 
-export function TestimonialTicker() {
+function TestimonialTickerBase() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     () => (typeof window !== 'undefined')
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -217,3 +217,5 @@ export function TestimonialTicker() {
     </section>
   );
 }
+
+export const TestimonialTicker = memo(TestimonialTickerBase);

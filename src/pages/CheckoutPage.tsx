@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useReducer, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CreditCard, Truck, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
 import { StyledButton, Breadcrumb } from '../components/common';
@@ -19,15 +19,44 @@ const PREFECTURES = [
   '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県',
 ];
 
+type CheckoutState = {
+  isProcessing: boolean;
+  error: string | null;
+  cardAttached: boolean;
+};
+
+type CheckoutAction =
+  | { type: 'START_PROCESSING' }
+  | { type: 'FINISH_PROCESSING' }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'CARD_ATTACHED' };
+
+function checkoutReducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
+  switch (action.type) {
+    case 'START_PROCESSING':
+      return { ...state, isProcessing: true, error: null };
+    case 'FINISH_PROCESSING':
+      return { ...state, isProcessing: false };
+    case 'SET_ERROR':
+      return { ...state, isProcessing: false, error: action.payload };
+    case 'CARD_ATTACHED':
+      return { ...state, cardAttached: true };
+    default:
+      return state;
+  }
+}
+
 export function CheckoutPage() {
   const navigate = useNavigate();
   const { cartItems, clearCart } = useCartStore();
   const { authUser } = useAuthStore();
-  const { isReady, error: squareError, attachCard, tokenize } = useSquarePayments();
+  const { isReady, error: squareError, attachCard, tokenize, retry } = useSquarePayments();
 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cardAttached, setCardAttached] = useState(false);
+  const [state, dispatch] = useReducer(checkoutReducer, {
+    isProcessing: false,
+    error: null,
+    cardAttached: false,
+  });
   const checkoutAttemptIdRef = useRef<string | null>(null);
   const formTouchedRef = useRef(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
@@ -43,9 +72,12 @@ export function CheckoutPage() {
     addressLine: '',
   });
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal >= 5000 ? 0 : 500;
-  const total = subtotal + shipping;
+  const { subtotal, shipping, total } = useMemo(() => {
+    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shipping = subtotal >= 5000 ? 0 : 500;
+    const total = subtotal + shipping;
+    return { subtotal, shipping, total };
+  }, [cartItems]);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -56,12 +88,12 @@ export function CheckoutPage() {
 
   // Attach Square card form when SDK is ready
   useEffect(() => {
-    if (isReady && !cardAttached) {
+    if (isReady && !state.cardAttached) {
       attachCard('#card-container')
-        .then(() => setCardAttached(true))
-        .catch((e) => setError(e instanceof Error ? e.message : 'カード入力の初期化に失敗しました'));
+        .then(() => dispatch({ type: 'CARD_ATTACHED' }))
+        .catch((e) => dispatch({ type: 'SET_ERROR', payload: e instanceof Error ? e.message : 'カード入力の初期化に失敗しました' }));
     }
-  }, [isReady, cardAttached, attachCard]);
+  }, [isReady, state.cardAttached, attachCard]);
 
   useEffect(() => {
     checkoutAttemptIdRef.current = null;
@@ -89,7 +121,7 @@ export function CheckoutPage() {
         }
       })
       .catch(() => {
-        setError('保存済み配送先の読み込みに失敗しました');
+        dispatch({ type: 'SET_ERROR', payload: '保存済み配送先の読み込みに失敗しました' });
       });
   }, [authUser]);
 
@@ -124,15 +156,15 @@ export function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    dispatch({ type: 'SET_ERROR', payload: null });
 
     const validationError = validateForm();
     if (validationError) {
-      setError(validationError);
+      dispatch({ type: 'SET_ERROR', payload: validationError });
       return;
     }
 
-    setIsProcessing(true);
+    dispatch({ type: 'START_PROCESSING' });
 
     try {
       const clientRequestId = checkoutAttemptIdRef.current ?? crypto.randomUUID();
@@ -172,9 +204,9 @@ export function CheckoutPage() {
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : '決済処理中にエラーが発生しました');
+      dispatch({ type: 'SET_ERROR', payload: err instanceof Error ? err.message : '決済処理中にエラーが発生しました' });
     } finally {
-      setIsProcessing(false);
+      dispatch({ type: 'FINISH_PROCESSING' });
     }
   };
 
@@ -325,7 +357,12 @@ export function CheckoutPage() {
                 </div>
 
                 {squareError ? (
-                  <p className="text-sale text-sm">{squareError}</p>
+                  <div>
+                    <p className="text-sale text-sm">{squareError}</p>
+                    <button onClick={retry} className="text-blue-600 hover:underline text-sm mt-2">
+                      再試行
+                    </button>
+                  </div>
                 ) : !isReady ? (
                   <div className="flex items-center gap-2 text-muted py-4">
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -380,9 +417,9 @@ export function CheckoutPage() {
                   <span className="text-xl font-bold text-primary">¥{total.toLocaleString()}</span>
                 </div>
 
-                {error && (
+                {state.error && (
                   <div className="mb-4 p-3 bg-sale/10 border border-sale/20 rounded-lg text-sm text-sale">
-                    {error}
+                    {state.error}
                   </div>
                 )}
 
@@ -390,9 +427,9 @@ export function CheckoutPage() {
                   type="submit"
                   className="w-full mb-4"
                   size="lg"
-                  disabled={isProcessing || !cardAttached}
+                  disabled={state.isProcessing || !state.cardAttached}
                 >
-                  {isProcessing ? (
+                  {state.isProcessing ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       処理中...

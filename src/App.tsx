@@ -28,6 +28,30 @@ const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage').then(m => (
 
 const CATEGORY_PATHS = ['/pets', '/family', '/kids'];
 
+function CheckoutErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center">
+        <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
+        <p className="text-gray-600 mb-6">決済処理中にエラーが発生しました。</p>
+        <a href="/checkout" className="text-blue-600 hover:underline">カートに戻る</a>
+      </div>
+    </div>
+  );
+}
+
+function ResultErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="text-center">
+        <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
+        <p className="text-gray-600 mb-6">結果の表示中にエラーが発生しました。</p>
+        <a href="/" className="text-blue-600 hover:underline">トップに戻る</a>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { authUser, authLoading } = useAuthStore();
   if (authLoading) return <LoadingSpinner />;
@@ -82,7 +106,7 @@ function AppLayout() {
               <Route path="/pets" element={<HomePage />} />
               <Route path="/family" element={<HomePage />} />
               <Route path="/kids" element={<HomePage />} />
-              <Route path="/result" element={<ResultPage />} />
+              <Route path="/result" element={<ErrorBoundary fallback={<ResultErrorFallback />}><ResultPage /></ErrorBoundary>} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/legal" element={<LegalPage />} />
@@ -94,7 +118,7 @@ function AppLayout() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ErrorBoundary fallback={<CheckoutErrorFallback />}><ProtectedRoute><CheckoutPage /></ProtectedRoute></ErrorBoundary>} />
               <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
               <Route path="/shipping" element={<ShippingPage />} />
               <Route path="/returns" element={<ReturnsPage />} />

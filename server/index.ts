@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import type { Request } from 'express';
+import { config } from './config.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
 import { createRateLimiter } from './lib/rateLimit.js';
 import { generateRouter } from './routes/generate.js';
 import { stylesRouter } from './routes/styles.js';
@@ -14,12 +16,20 @@ import { galleryRouter } from './routes/gallery.js';
 import { internalRouter } from './routes/internal.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const isProduction = process.env.NODE_ENV === 'production';
+const PORT = config.PORT;
+const isProduction = config.NODE_ENV === 'production';
 const trustProxyEnv = process.env.TRUST_PROXY;
 
-if (isProduction && !process.env.FRONTEND_URL) {
-  throw new Error('FRONTEND_URL is required in production');
+if (isProduction) {
+  try {
+    const url = new URL(config.FRONTEND_URL || '');
+    if (url.protocol !== 'https:') {
+      throw new Error('FRONTEND_URL must use https: in production');
+    }
+  } catch (e) {
+    console.error('Invalid FRONTEND_URL:', e);
+    process.exit(1);
+  }
 }
 
 if (trustProxyEnv && trustProxyEnv.trim().length > 0) {
@@ -43,7 +53,7 @@ if (trustProxyEnv && trustProxyEnv.trim().length > 0) {
 // CORS configuration
 const corsOptions = {
   origin: isProduction
-    ? process.env.FRONTEND_URL
+    ? config.FRONTEND_URL
     : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:5178'],
   credentials: true,
 };
@@ -55,11 +65,12 @@ interface RawBodyRequest extends Request {
 // Middleware
 app.disable('x-powered-by');
 app.use(cors(corsOptions));
+app.use(requestIdMiddleware);
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://accounts.google.com https://web.squarecdn.com https://sandbox.web.squarecdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com; img-src 'self' data: blob:; connect-src 'self' https://pax.google.com https://connect.squareup.com https://connect.squareupsandbox.com; font-src 'self' https://fonts.gstatic.com; frame-src https://accounts.google.com https://web.squarecdn.com https://sandbox.web.squarecdn.com; object-src 'none'; frame-ancestors 'none'");
   if (isProduction) {
     res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }

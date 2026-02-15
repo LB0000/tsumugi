@@ -4,8 +4,9 @@ import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2 } from 'lucide-react
 import { StyledButton } from '../components/common/StyledButton';
 import { loginAuth, registerAuth, loginWithGoogle } from '../api';
 import { useAuthStore } from '../stores/authStore';
+import { config } from '../config';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = config.googleClientId;
 
 export function LoginPage() {
   const navigate = useNavigate();

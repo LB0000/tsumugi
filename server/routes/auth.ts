@@ -27,6 +27,16 @@ import {
   type HeaderMap,
 } from '../lib/requestAuth.js';
 import { isValidEmail } from '../lib/validation.js';
+import {
+  validate,
+  registerSchema,
+  loginSchema,
+  googleLoginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  profileUpdateSchema,
+  changePasswordSchema,
+} from '../lib/schemas.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 
@@ -104,51 +114,28 @@ authRouter.use(csrfProtection());
 
 authRouter.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body as {
-      name?: string;
-      email?: string;
-      password?: string;
-    };
-
-    const normalizedName = typeof name === 'string' ? name.trim() : '';
-    const normalizedEmail = typeof email === 'string' ? email.trim() : '';
-    const normalizedPassword = typeof password === 'string' ? password : '';
-
-    if (normalizedName.length < 1 || normalizedName.length > 80) {
+    const parsed = validate(registerSchema, req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_NAME', message: 'お名前を正しく入力してください' },
+        error: { code: parsed.code || 'INVALID_REQUEST', message: parsed.error },
       });
       return;
     }
 
-    if (!isValidEmail(normalizedEmail)) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_EMAIL', message: 'メールアドレスの形式が正しくありません' },
-      });
-      return;
-    }
-
-    if (normalizedPassword.length < 8 || normalizedPassword.length > 128) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PASSWORD', message: 'パスワードは8文字以上128文字以内で入力してください' },
-      });
-      return;
-    }
+    const { name, email, password } = parsed.data;
 
     const result = await registerUser({
-      name: normalizedName,
-      email: normalizedEmail,
-      password: normalizedPassword,
+      name: name.trim(),
+      email: email.trim(),
+      password,
     });
     setSessionCookie(res, result.token);
     setCsrfCookie(res, createCsrfToken());
 
     // Send verification email (non-blocking)
     const verificationToken = createVerificationToken(result.user.id);
-    void sendVerificationEmail(normalizedEmail, verificationToken);
+    void sendVerificationEmail(email.trim(), verificationToken);
 
     res.json({
       success: true,
@@ -173,15 +160,8 @@ authRouter.post('/register', async (req, res) => {
 
 authRouter.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body as {
-      email?: string;
-      password?: string;
-    };
-
-    const normalizedEmail = typeof email === 'string' ? email.trim() : '';
-    const normalizedPassword = typeof password === 'string' ? password : '';
-
-    if (!isValidEmail(normalizedEmail) || normalizedPassword.length === 0) {
+    const parsed = validate(loginSchema, req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: 'メールアドレスとパスワードを入力してください' },
@@ -189,9 +169,11 @@ authRouter.post('/login', async (req, res) => {
       return;
     }
 
+    const { email, password } = parsed.data;
+
     const result = await loginUser({
-      email: normalizedEmail,
-      password: normalizedPassword,
+      email: email.trim(),
+      password,
     });
     setSessionCookie(res, result.token);
     setCsrfCookie(res, createCsrfToken());
@@ -235,14 +217,16 @@ authRouter.post('/google', async (req, res) => {
       return;
     }
 
-    const { credential } = req.body as { credential?: string };
-    if (!credential || typeof credential !== 'string') {
+    const parsed = validate(googleLoginSchema, req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: 'Google認証情報が必要です' },
       });
       return;
     }
+
+    const { credential } = parsed.data;
 
     const ticket = await googleOAuthClient.verifyIdToken({
       idToken: credential,
@@ -296,17 +280,16 @@ authRouter.post('/google', async (req, res) => {
 });
 
 authRouter.post('/forgot-password', (req, res) => {
-  const { email } = req.body as { email?: string };
-  const normalizedEmail = typeof email === 'string' ? email.trim() : '';
-
-  if (!isValidEmail(normalizedEmail)) {
+  const parsed = validate(forgotPasswordSchema, req.body);
+  if (!parsed.success) {
     res.status(400).json({
       success: false,
-      error: { code: 'INVALID_EMAIL', message: 'メールアドレスの形式が正しくありません' },
+      error: { code: parsed.code || 'INVALID_EMAIL', message: 'メールアドレスの形式が正しくありません' },
     });
     return;
   }
 
+  const normalizedEmail = parsed.data.email.trim();
   const resetToken = requestPasswordReset(normalizedEmail);
   setCsrfCookie(res, createCsrfToken());
 
@@ -323,33 +306,18 @@ authRouter.post('/forgot-password', (req, res) => {
 
 authRouter.post('/reset-password', async (req, res) => {
   try {
-    const { token, newPassword } = req.body as {
-      token?: string;
-      newPassword?: string;
-    };
-
-    const normalizedToken = typeof token === 'string' ? token.trim() : '';
-    const normalizedPassword = typeof newPassword === 'string' ? newPassword : '';
-
-    if (normalizedToken.length === 0) {
+    const parsed = validate(resetPasswordSchema, req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_TOKEN', message: 'リセットトークンが必要です' },
-      });
-      return;
-    }
-
-    if (normalizedPassword.length < 8 || normalizedPassword.length > 128) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PASSWORD', message: 'パスワードは8文字以上128文字以内で入力してください' },
+        error: { code: parsed.code || 'INVALID_REQUEST', message: parsed.error },
       });
       return;
     }
 
     const result = await resetPassword({
-      token: normalizedToken,
-      newPassword: normalizedPassword,
+      token: parsed.data.token.trim(),
+      newPassword: parsed.data.password,
     });
     setSessionCookie(res, result.token);
     setCsrfCookie(res, createCsrfToken());
@@ -387,18 +355,16 @@ authRouter.post('/profile', requireAuth, async (_req, res) => {
   const user = getAuthUser(res);
 
   try {
-    const { name } = _req.body as { name?: string };
-    const normalizedName = typeof name === 'string' ? name.trim() : '';
-
-    if (normalizedName.length < 1 || normalizedName.length > 80) {
+    const parsed = validate(profileUpdateSchema, _req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_NAME', message: 'お名前を正しく入力してください' },
+        error: { code: parsed.code || 'INVALID_NAME', message: 'お名前を正しく入力してください' },
       });
       return;
     }
 
-    const updatedUser = await updateUserProfile(user.id, { name: normalizedName });
+    const updatedUser = await updateUserProfile(user.id, { name: parsed.data.name.trim() });
     res.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -413,33 +379,18 @@ authRouter.post('/change-password', requireAuth, async (_req, res) => {
   const user = getAuthUser(res);
 
   try {
-    const { currentPassword, newPassword } = _req.body as {
-      currentPassword?: string;
-      newPassword?: string;
-    };
-
-    const normalizedCurrent = typeof currentPassword === 'string' ? currentPassword : '';
-    const normalizedNew = typeof newPassword === 'string' ? newPassword : '';
-
-    if (normalizedCurrent.length === 0) {
+    const parsed = validate(changePasswordSchema, _req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_REQUEST', message: '現在のパスワードを入力してください' },
-      });
-      return;
-    }
-
-    if (normalizedNew.length < 8 || normalizedNew.length > 128) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PASSWORD', message: '新しいパスワードは8文字以上128文字以内で入力してください' },
+        error: { code: parsed.code || 'INVALID_REQUEST', message: parsed.error },
       });
       return;
     }
 
     const result = await changeUserPassword(user.id, {
-      currentPassword: normalizedCurrent,
-      newPassword: normalizedNew,
+      currentPassword: parsed.data.currentPassword,
+      newPassword: parsed.data.newPassword,
     });
 
     setSessionCookie(res, result.token);

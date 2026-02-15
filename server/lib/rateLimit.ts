@@ -11,6 +11,7 @@ interface RateLimitBucket {
   resetAt: number;
 }
 
+const MAX_ENTRIES = 10_000;
 const buckets = new Map<string, RateLimitBucket>();
 
 function getClientIp(req: Request): string {
@@ -33,8 +34,26 @@ export function createRateLimiter(options: RateLimitOptions) {
     const ip = getClientIp(req);
     const key = `${keyPrefix}:${ip}`;
 
+    if (buckets.size >= MAX_ENTRIES * 0.9) {
+      console.warn('[RateLimit] Bucket count at 90% capacity:', buckets.size);
+    }
+
     const current = buckets.get(key);
     if (!current || current.resetAt <= now) {
+      if (!buckets.has(key) && buckets.size >= MAX_ENTRIES) {
+        pruneExpiredBuckets(now);
+        if (buckets.size >= MAX_ENTRIES) {
+          let oldestKey: string | undefined;
+          let oldestResetAt = Infinity;
+          for (const [k, b] of buckets.entries()) {
+            if (b.resetAt < oldestResetAt) {
+              oldestResetAt = b.resetAt;
+              oldestKey = k;
+            }
+          }
+          if (oldestKey) buckets.delete(oldestKey);
+        }
+      }
       buckets.set(key, { count: 1, resetAt: now + windowMs });
       res.setHeader('X-RateLimit-Limit', String(max));
       res.setHeader('X-RateLimit-Remaining', String(max - 1));

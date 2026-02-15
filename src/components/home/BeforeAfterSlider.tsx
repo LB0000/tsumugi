@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BeforeAfterSliderProps {
@@ -10,7 +10,7 @@ interface BeforeAfterSliderProps {
   className?: string;
 }
 
-export function BeforeAfterSlider({
+function BeforeAfterSliderBase({
   beforeImage,
   afterImage,
   beforeLabel = 'Before',
@@ -175,3 +175,5 @@ export function BeforeAfterSlider({
     </div>
   );
 }
+
+export const BeforeAfterSlider = memo(BeforeAfterSliderBase);

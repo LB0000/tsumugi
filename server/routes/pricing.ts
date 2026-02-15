@@ -79,6 +79,7 @@ const printSizes = [
 ];
 
 pricingRouter.get('/', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
   res.json({
     success: true,
     plans: pricingPlans,

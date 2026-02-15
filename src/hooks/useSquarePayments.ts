@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { config } from '../config';
 
-const APP_ID = import.meta.env.VITE_SQUARE_APPLICATION_ID || '';
-const LOCATION_ID = import.meta.env.VITE_SQUARE_LOCATION_ID || '';
-const SQUARE_ENVIRONMENT = import.meta.env.VITE_SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox';
+const APP_ID = config.squareAppId;
+const LOCATION_ID = config.squareLocationId;
+const SQUARE_ENVIRONMENT = config.squareEnvironment;
 const SQUARE_SDK_URL = SQUARE_ENVIRONMENT === 'production'
   ? 'https://web.squarecdn.com/v1/square.js'
   : 'https://sandbox.web.squarecdn.com/v1/square.js';
@@ -40,14 +41,39 @@ function loadSquareSdk(): Promise<void> {
   return squareSdkPromise;
 }
 
+async function loadSquareSdkWithRetry(maxAttempts = 3): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Reset the cached promise on retry so a fresh load is attempted
+      if (attempt > 1) {
+        squareSdkPromise = null;
+      }
+      await loadSquareSdk();
+      return;
+    } catch (e) {
+      lastError = e;
+      if (attempt < maxAttempts) {
+        const delay = 1000 * Math.pow(2, attempt - 1); // 1000, 2000, 4000
+        console.warn(`Square SDK load attempt ${attempt} failed, retrying in ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export function useSquarePayments() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const cardRef = useRef<SquareCard | null>(null);
   const paymentsRef = useRef<SquarePayments | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setError(null);
+    setIsReady(false);
 
     async function init() {
       if (!APP_ID || !LOCATION_ID) {
@@ -56,7 +82,7 @@ export function useSquarePayments() {
       }
 
       try {
-        await loadSquareSdk();
+        await loadSquareSdkWithRetry();
         if (!window.Square) {
           throw new Error('Square SDK が利用できません');
         }
@@ -79,7 +105,7 @@ export function useSquarePayments() {
         cardRef.current = null;
       }
     };
-  }, []);
+  }, [retryCount]);
 
   const attachCard = useCallback(async (selector: string) => {
     if (!paymentsRef.current) {
@@ -118,5 +144,10 @@ export function useSquarePayments() {
     }
   }, []);
 
-  return { isReady, error, attachCard, tokenize, destroyCard };
+  const retry = useCallback(() => {
+    squareSdkPromise = null;
+    setRetryCount((c) => c + 1);
+  }, []);
+
+  return { isReady, error, attachCard, tokenize, destroyCard, retry };
 }

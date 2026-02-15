@@ -4,6 +4,13 @@ import type { Request } from 'express';
 import { SquareError, WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
 import { isValidEmail } from '../lib/validation.js';
+import { validate } from '../lib/schemas.js';
+import { z } from 'zod';
+
+const processPaymentInputSchema = z.object({
+  sourceId: z.string().min(1),
+  orderId: z.string().min(1),
+});
 import {
   getOrderPaymentStatus,
   getOrdersByUserId,
@@ -358,14 +365,8 @@ checkoutRouter.post('/create-order', async (req, res) => {
 // POST /api/checkout/process-payment
 checkoutRouter.post('/process-payment', async (req, res) => {
   try {
-    const { sourceId, orderId, buyerEmail, clientRequestId } = req.body as {
-      sourceId: string;
-      orderId: string;
-      buyerEmail?: string;
-      clientRequestId?: string;
-    };
-
-    if (typeof sourceId !== 'string' || sourceId.trim().length === 0 || typeof orderId !== 'string' || orderId.trim().length === 0) {
+    const parsed = validate(processPaymentInputSchema, req.body);
+    if (!parsed.success) {
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_REQUEST', message: '決済情報が不足しています' },
@@ -373,8 +374,13 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       return;
     }
 
-    const normalizedSourceId = sourceId.trim();
-    const normalizedOrderId = orderId.trim();
+    const { buyerEmail, clientRequestId } = req.body as {
+      buyerEmail?: string;
+      clientRequestId?: string;
+    };
+
+    const normalizedSourceId = parsed.data.sourceId.trim();
+    const normalizedOrderId = parsed.data.orderId.trim();
 
     const orderResponse = await squareClient.orders.get({ orderId: normalizedOrderId });
     const order = orderResponse.order;

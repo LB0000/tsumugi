@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, memo } from 'react';
 import { X, Check, Search, Grid3X3, Crown, Leaf, Sparkles, Wand2, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles, getStyleThumbnail } from '../../data/artStyles';
@@ -10,7 +10,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Grid3X3, Crown, Leaf, Sparkles, Wand2, Monitor
 };
 
-export function StyleModal() {
+function StyleModalBase() {
   const {
     isStyleModalOpen,
     closeStyleModal,
@@ -320,3 +320,5 @@ export function StyleModal() {
     </>
   );
 }
+
+export const StyleModal = memo(StyleModalBase);

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback, memo } from 'react';
 import { Check, Sparkles, ChevronRight, ChevronLeft, Crown, Leaf, Monitor } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { artStyles, getStyleThumbnail } from '../../data/artStyles';
@@ -128,7 +128,7 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
   );
 }
 
-export function StyleSection() {
+function StyleSectionBase() {
   const { selectedStyle, setSelectedStyle, openStyleModal, selectedCategory } = useAppStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -318,3 +318,5 @@ export function StyleSection() {
     </section>
   );
 }
+
+export const StyleSection = memo(StyleSectionBase);

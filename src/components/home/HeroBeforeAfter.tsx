@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { Star, Sparkles, ImageIcon, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
@@ -245,7 +245,7 @@ function FloatingParticles() {
   );
 }
 
-export function HeroBeforeAfter() {
+function HeroBeforeAfterBase() {
   const { selectedCategory } = useAppStore();
   const displayCategory = selectedCategory;
 
@@ -453,3 +453,5 @@ export function HeroBeforeAfter() {
     </section>
   );
 }
+
+export const HeroBeforeAfter = memo(HeroBeforeAfterBase);
