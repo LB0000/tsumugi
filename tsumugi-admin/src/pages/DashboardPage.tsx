@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ShoppingCart, DollarSign, Users, TrendingUp, Repeat, UserCheck } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { StatCard } from '../components/analytics/StatCard';
@@ -16,7 +16,7 @@ export function DashboardPage() {
   const [error, setError] = useState('');
   const [days, setDays] = useState(30);
 
-  useEffect(() => {
+  const fetchDashboardData = useCallback(async () => {
     const endDate = new Date().toISOString().slice(0, 10);
     const startDate = (() => {
       const d = new Date();
@@ -25,17 +25,25 @@ export function DashboardPage() {
     })();
 
     setLoading(true);
-    Promise.all([
-      getAnalyticsSummary(startDate, endDate),
-      getCustomerStats(),
-    ])
-      .then(([analytics, stats]) => {
-        setData(analytics);
-        setCustomerStats(stats);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+    setError('');
+
+    try {
+      const [analytics, stats] = await Promise.all([
+        getAnalyticsSummary(startDate, endDate),
+        getCustomerStats(),
+      ]);
+      setData(analytics);
+      setCustomerStats(stats);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+    } finally {
+      setLoading(false);
+    }
   }, [days]);
+
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
 
   return (
     <div>

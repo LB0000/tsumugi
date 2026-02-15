@@ -83,7 +83,8 @@ sqlite.exec(`
     total_spent INTEGER DEFAULT 0,
     segment TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    marketing_opt_out_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS email_sends (
@@ -96,3 +97,13 @@ sqlite.exec(`
     opened_at TEXT
   );
 `);
+
+function ensureColumn(table: string, column: string, definition: string): void {
+  const columns = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name?: string }>;
+  const exists = columns.some((c) => c.name === column);
+  if (!exists) {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+ensureColumn('customers', 'marketing_opt_out_at', 'TEXT');

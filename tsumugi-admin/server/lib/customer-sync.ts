@@ -1,7 +1,7 @@
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
 import { nanoid } from 'nanoid';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 interface RemoteCustomer {
   tsumugiUserId: string;
@@ -47,17 +47,83 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
   }
 
   const PAGE_SIZE = 500;
-  const remoteCustomers: RemoteCustomer[] = [];
+  const REQUEST_TIMEOUT_MS = 15_000;
+  const MAX_PAGES = 1_000;
   let offset = 0;
+  let fetchedCount = 0;
+  let fetchedPageCount = 0;
+
+  let created = 0;
+  let updated = 0;
+  const now = new Date().toISOString();
+  const existingByUserId = new Map<string, {
+    email: string;
+    name: string;
+    authProvider: 'email' | 'google';
+    registeredAt: string | null;
+    firstPurchaseAt: string | null;
+    lastPurchaseAt: string | null;
+    totalOrders: number;
+    totalSpent: number;
+    segment: string;
+  }>();
+
+  const existingRows = db
+    .select({
+      tsumugiUserId: customers.tsumugiUserId,
+      email: customers.email,
+      name: customers.name,
+      authProvider: customers.authProvider,
+      registeredAt: customers.registeredAt,
+      firstPurchaseAt: customers.firstPurchaseAt,
+      lastPurchaseAt: customers.lastPurchaseAt,
+      totalOrders: customers.totalOrders,
+      totalSpent: customers.totalSpent,
+      segment: customers.segment,
+    })
+    .from(customers)
+    .all();
+  for (const row of existingRows) {
+    existingByUserId.set(row.tsumugiUserId, {
+      email: row.email,
+      name: row.name,
+      authProvider: row.authProvider as 'email' | 'google',
+      registeredAt: row.registeredAt,
+      firstPurchaseAt: row.firstPurchaseAt,
+      lastPurchaseAt: row.lastPurchaseAt,
+      totalOrders: row.totalOrders ?? 0,
+      totalSpent: row.totalSpent ?? 0,
+      segment: row.segment,
+    });
+  }
 
   while (true) {
+    fetchedPageCount += 1;
+    if (fetchedPageCount > MAX_PAGES) {
+      throw new Error(`Customer sync exceeded maximum page count (${MAX_PAGES})`);
+    }
+
     const url = new URL('/api/internal/customers', tsumugiApiUrl);
     url.searchParams.set('limit', String(PAGE_SIZE));
     url.searchParams.set('offset', String(offset));
 
-    const response = await fetch(url.toString(), {
-      headers: { 'X-Internal-Key': internalKey },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    let response: globalThis.Response;
+    try {
+      response = await fetch(url.toString(), {
+        headers: { 'X-Internal-Key': internalKey },
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Fetching customers timed out after ${REQUEST_TIMEOUT_MS}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to fetch customers: ${response.status} ${response.statusText}`);
@@ -65,10 +131,101 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
 
     const payload = await response.json() as RemoteCustomersResponse;
     const batch = Array.isArray(payload.customers) ? payload.customers : [];
-    remoteCustomers.push(...batch);
+    fetchedCount += batch.length;
+
+    // Use a transaction for atomic upsert per page
+    db.transaction((tx) => {
+      for (const remote of batch) {
+        const normalizedEmail = remote.email.trim().toLowerCase();
+        const normalizedName = remote.name.trim();
+        const segment = classifySegment(remote.totalOrders, remote.lastPurchaseAt);
+        const existing = existingByUserId.get(remote.tsumugiUserId);
+
+        if (!existing) {
+          tx.insert(customers).values({
+            id: nanoid(),
+            tsumugiUserId: remote.tsumugiUserId,
+            email: normalizedEmail,
+            name: normalizedName,
+            authProvider: remote.authProvider,
+            registeredAt: remote.registeredAt,
+            firstPurchaseAt: remote.firstPurchaseAt,
+            lastPurchaseAt: remote.lastPurchaseAt,
+            totalOrders: remote.totalOrders,
+            totalSpent: remote.totalSpent,
+            segment,
+            createdAt: now,
+            updatedAt: now,
+          }).run();
+          created++;
+          existingByUserId.set(remote.tsumugiUserId, {
+            email: normalizedEmail,
+            name: normalizedName,
+            authProvider: remote.authProvider,
+            registeredAt: remote.registeredAt,
+            firstPurchaseAt: remote.firstPurchaseAt,
+            lastPurchaseAt: remote.lastPurchaseAt,
+            totalOrders: remote.totalOrders,
+            totalSpent: remote.totalSpent,
+            segment,
+          });
+          continue;
+        }
+
+        const hasChanges =
+          existing.email !== normalizedEmail ||
+          existing.name !== normalizedName ||
+          existing.authProvider !== remote.authProvider ||
+          existing.registeredAt !== remote.registeredAt ||
+          existing.firstPurchaseAt !== remote.firstPurchaseAt ||
+          existing.lastPurchaseAt !== remote.lastPurchaseAt ||
+          existing.totalOrders !== remote.totalOrders ||
+          existing.totalSpent !== remote.totalSpent ||
+          existing.segment !== segment;
+
+        if (!hasChanges) continue;
+
+        tx.update(customers)
+          .set({
+            email: normalizedEmail,
+            name: normalizedName,
+            authProvider: remote.authProvider,
+            registeredAt: remote.registeredAt,
+            firstPurchaseAt: remote.firstPurchaseAt,
+            lastPurchaseAt: remote.lastPurchaseAt,
+            totalOrders: remote.totalOrders,
+            totalSpent: remote.totalSpent,
+            segment,
+            updatedAt: now,
+          })
+          .where(eq(customers.tsumugiUserId, remote.tsumugiUserId))
+          .run();
+        updated++;
+        existingByUserId.set(remote.tsumugiUserId, {
+          email: normalizedEmail,
+          name: normalizedName,
+          authProvider: remote.authProvider,
+          registeredAt: remote.registeredAt,
+          firstPurchaseAt: remote.firstPurchaseAt,
+          lastPurchaseAt: remote.lastPurchaseAt,
+          totalOrders: remote.totalOrders,
+          totalSpent: remote.totalSpent,
+          segment,
+        });
+      }
+    });
 
     const nextOffset = payload.pagination?.nextOffset;
     if (typeof nextOffset === 'number') {
+      if (!Number.isInteger(nextOffset) || nextOffset < 0) {
+        throw new Error('Invalid pagination offset returned by internal customer API');
+      }
+      if (nextOffset <= offset && batch.length > 0) {
+        throw new Error(`Customer pagination did not advance (offset ${offset} -> ${nextOffset})`);
+      }
+      if (nextOffset <= offset && batch.length === 0) {
+        break;
+      }
       offset = nextOffset;
       continue;
     }
@@ -79,54 +236,7 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
     offset += batch.length;
   }
 
-  let created = 0;
-  let updated = 0;
-  const now = new Date().toISOString();
-  const existingUserIdSet = new Set<string>();
-
-  const existingRows = db
-    .select({ tsumugiUserId: customers.tsumugiUserId })
-    .from(customers)
-    .all();
-  for (const row of existingRows) {
-    existingUserIdSet.add(row.tsumugiUserId);
-  }
-
-  // Use a transaction for atomic batch upsert
-  db.transaction((tx) => {
-    for (const remote of remoteCustomers) {
-      const segment = classifySegment(remote.totalOrders, remote.lastPurchaseAt);
-      const id = nanoid();
-      const existedBefore = existingUserIdSet.has(remote.tsumugiUserId);
-
-      tx.run(sql`
-        INSERT INTO customers (id, tsumugi_user_id, email, name, auth_provider, registered_at,
-          first_purchase_at, last_purchase_at, total_orders, total_spent, segment, created_at, updated_at)
-        VALUES (${id}, ${remote.tsumugiUserId}, ${remote.email}, ${remote.name}, ${remote.authProvider},
-          ${remote.registeredAt}, ${remote.firstPurchaseAt}, ${remote.lastPurchaseAt},
-          ${remote.totalOrders}, ${remote.totalSpent}, ${segment}, ${now}, ${now})
-        ON CONFLICT(tsumugi_user_id) DO UPDATE SET
-          email = excluded.email,
-          name = excluded.name,
-          auth_provider = excluded.auth_provider,
-          total_orders = excluded.total_orders,
-          total_spent = excluded.total_spent,
-          first_purchase_at = excluded.first_purchase_at,
-          last_purchase_at = excluded.last_purchase_at,
-          segment = excluded.segment,
-          updated_at = excluded.updated_at
-      `);
-
-      if (existedBefore) {
-        updated++;
-      } else {
-        created++;
-        existingUserIdSet.add(remote.tsumugiUserId);
-      }
-    }
-  });
-
-  return { synced: remoteCustomers.length, created, updated };
+  return { synced: fetchedCount, created, updated };
 }
 
 export function getCustomerStats() {

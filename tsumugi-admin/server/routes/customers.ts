@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
-import { eq, desc, asc } from 'drizzle-orm';
+import { eq, desc, asc, sql } from 'drizzle-orm';
 import { syncCustomers, getCustomerStats } from '../lib/customer-sync.js';
 
 export const customersRouter = Router();
@@ -19,11 +19,17 @@ customersRouter.get('/', (req, res) => {
     const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 200);
     const offset = Math.max(Number(offsetParam) || 0, 0);
 
-    let query = db.select().from(customers);
+    const whereClause = segment && ['new', 'active', 'lapsed'].includes(segment)
+      ? eq(customers.segment, segment)
+      : undefined;
+    const query = whereClause
+      ? db.select().from(customers).where(whereClause)
+      : db.select().from(customers);
 
-    if (segment && ['new', 'active', 'lapsed'].includes(segment)) {
-      query = query.where(eq(customers.segment, segment)) as typeof query;
-    }
+    const totalRow = whereClause
+      ? db.select({ total: sql<number>`count(*)` }).from(customers).where(whereClause).get()
+      : db.select({ total: sql<number>`count(*)` }).from(customers).get();
+    const total = Number(totalRow?.total ?? 0);
 
     let results;
     if (sort === 'spent') {
@@ -38,7 +44,17 @@ customersRouter.get('/', (req, res) => {
       results = query.orderBy(desc(customers.updatedAt)).limit(limit).offset(offset).all();
     }
 
-    res.json({ customers: results, limit, offset });
+    const nextOffset = offset + results.length;
+    res.json({
+      customers: results,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: nextOffset < total,
+        nextOffset: nextOffset < total ? nextOffset : null,
+      },
+    });
   } catch (error) {
     console.error('List customers error:', error);
     res.status(500).json({ error: 'Failed to list customers' });

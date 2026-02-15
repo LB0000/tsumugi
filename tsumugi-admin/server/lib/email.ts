@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { createUnsubscribeUrl } from './unsubscribe.js';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const DEFAULT_FROM_EMAIL = 'noreply@example.com';
@@ -108,9 +109,10 @@ function sanitizeMarketingHtml(content: string): string {
   return sanitized;
 }
 
-function wrapMarketingHtml(content: string): string {
+function wrapMarketingHtml(content: string, recipientEmail: string): string {
   const safeFromEmail = normalizeFromEmail(FROM_EMAIL);
-  const unsubscribeHref = `mailto:${encodeURIComponent(safeFromEmail)}?subject=${encodeURIComponent('配信停止希望')}`;
+  const unsubscribeHref = createUnsubscribeUrl(recipientEmail)
+    ?? `mailto:${encodeURIComponent(safeFromEmail)}?subject=${encodeURIComponent('配信停止希望')}`;
   const sanitizedContent = sanitizeMarketingHtml(content);
 
   return `<!DOCTYPE html>
@@ -145,7 +147,7 @@ export interface SendEmailParams {
 }
 
 export async function sendMarketingEmail(params: SendEmailParams): Promise<{ success: boolean; error?: string }> {
-  const html = wrapMarketingHtml(params.htmlBody);
+  const html = wrapMarketingHtml(params.htmlBody, params.to);
   const safeFromEmail = normalizeFromEmail(FROM_EMAIL);
   const safeSubject = normalizeSubject(params.subject);
 

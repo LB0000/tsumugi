@@ -75,10 +75,19 @@ describe('useCoupon', () => {
   it('returns true on successful response', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('', { status: 200 }),
+      new Response(JSON.stringify({ success: true }), { status: 200 }),
     );
 
     expect(await useCoupon('SAVE10')).toBe(true);
+  });
+
+  it('returns false when API returns success:false', async () => {
+    process.env.INTERNAL_API_KEY = 'test-key';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ success: false }), { status: 200 }),
+    );
+
+    expect(await useCoupon('SAVE10')).toBe(false);
   });
 
   it('returns false when API responds with error', async () => {

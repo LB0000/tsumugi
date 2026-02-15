@@ -16,6 +16,7 @@ import { formatCurrency, formatFullDate } from '../lib/utils';
 import type { Campaign, Coupon } from '../types';
 
 type Tab = 'campaigns' | 'coupons';
+const CAMPAIGNS_PAGE_SIZE = 50;
 const COUPONS_PAGE_SIZE = 50;
 
 function escapeHtml(text: string): string {
@@ -80,6 +81,9 @@ export function CampaignsPage() {
   const [couponValue, setCouponValue] = useState('');
   const [couponMaxUses, setCouponMaxUses] = useState('');
   const [couponExpiry, setCouponExpiry] = useState('');
+  const [campaignOffset, setCampaignOffset] = useState(0);
+  const [campaignTotal, setCampaignTotal] = useState(0);
+  const [campaignHasMore, setCampaignHasMore] = useState(false);
   const [couponOffset, setCouponOffset] = useState(0);
   const [couponTotal, setCouponTotal] = useState(0);
 
@@ -88,8 +92,10 @@ export function CampaignsPage() {
     setError('');
     try {
       if (tab === 'campaigns') {
-        const data = await getCampaigns();
-        setCampaigns(data);
+        const data = await getCampaigns({ limit: CAMPAIGNS_PAGE_SIZE, offset: campaignOffset });
+        setCampaigns(data.campaigns);
+        setCampaignTotal(data.pagination.total);
+        setCampaignHasMore(data.pagination.hasMore);
       } else {
         const data = await getCoupons({ limit: COUPONS_PAGE_SIZE, offset: couponOffset });
         setCoupons(data.coupons);
@@ -100,7 +106,7 @@ export function CampaignsPage() {
     } finally {
       setLoading(false);
     }
-  }, [couponOffset, tab]);
+  }, [campaignOffset, couponOffset, tab]);
 
   useEffect(() => {
     void fetchData();
@@ -117,7 +123,11 @@ export function CampaignsPage() {
       setShowCreateCampaign(false);
       setNewCampaignName('');
       setNewCampaignDesc('');
-      void fetchData();
+      if (campaignOffset !== 0) {
+        setCampaignOffset(0);
+      } else {
+        void fetchData();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create campaign');
     }
@@ -126,7 +136,11 @@ export function CampaignsPage() {
   const handleDeleteCampaign = async (id: string) => {
     try {
       await deleteCampaign(id);
-      void fetchData();
+      if (campaignOffset !== 0) {
+        setCampaignOffset(0);
+      } else {
+        void fetchData();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete campaign');
     }
@@ -219,6 +233,7 @@ export function CampaignsPage() {
               key={key}
               onClick={() => {
                 setTab(key);
+                if (key === 'campaigns') setCampaignOffset(0);
                 if (key === 'coupons') setCouponOffset(0);
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -237,7 +252,7 @@ export function CampaignsPage() {
         {tab === 'campaigns' && (
           <>
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-text-secondary">{campaigns.length}件のキャンペーン</h3>
+              <h3 className="text-sm font-medium text-text-secondary">{campaignTotal}件のキャンペーン</h3>
               <button
                 onClick={() => setShowCreateCampaign(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -403,6 +418,30 @@ export function CampaignsPage() {
                     </div>
                   </div>
                 ))}
+
+                <div className="flex items-center justify-between text-xs text-text-secondary">
+                  <span>
+                    {campaignTotal === 0
+                      ? '0件'
+                      : `${campaignOffset + 1}-${Math.min(campaignOffset + campaigns.length, campaignTotal)}件 / 全${campaignTotal}件`}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCampaignOffset((prev) => Math.max(prev - CAMPAIGNS_PAGE_SIZE, 0))}
+                      disabled={campaignOffset === 0 || loading}
+                      className="px-3 py-1.5 border border-border rounded-md disabled:opacity-50"
+                    >
+                      前へ
+                    </button>
+                    <button
+                      onClick={() => setCampaignOffset((prev) => prev + CAMPAIGNS_PAGE_SIZE)}
+                      disabled={loading || !campaignHasMore}
+                      className="px-3 py-1.5 border border-border rounded-md disabled:opacity-50"
+                    >
+                      次へ
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </>

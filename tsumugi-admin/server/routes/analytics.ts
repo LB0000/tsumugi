@@ -51,7 +51,7 @@ analyticsRouter.get('/summary', async (req, res) => {
       return;
     }
 
-    const { data, source } = await fetchAnalytics(start, end);
+    const { data, source, periodUniqueCustomers } = await fetchAnalytics(start, end);
 
     // Only cache live data snapshots
     if (source === 'live') {
@@ -76,9 +76,8 @@ analyticsRouter.get('/summary', async (req, res) => {
       (acc, day) => ({
         totalOrders: acc.totalOrders + day.totalOrders,
         totalRevenue: acc.totalRevenue + day.totalRevenue,
-        uniqueCustomers: acc.uniqueCustomers + day.uniqueCustomers,
       }),
-      { totalOrders: 0, totalRevenue: 0, uniqueCustomers: 0 }
+      { totalOrders: 0, totalRevenue: 0 }
     );
 
     res.json({
@@ -86,6 +85,7 @@ analyticsRouter.get('/summary', async (req, res) => {
       source,
       totals: {
         ...totals,
+        uniqueCustomers: periodUniqueCustomers,
         avgOrderValue: totals.totalOrders > 0 ? Math.round(totals.totalRevenue / totals.totalOrders) : 0,
       },
       daily: data,

@@ -7,6 +7,8 @@ import { formatCurrency, formatFullDate } from '../lib/utils';
 import { SEGMENT_LABELS, SEGMENT_BADGE_COLORS } from '../lib/constants';
 import type { Customer, CustomerStats } from '../types';
 
+const CUSTOMERS_PAGE_SIZE = 50;
+
 export function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [stats, setStats] = useState<CustomerStats | null>(null);
@@ -16,23 +18,33 @@ export function CustomersPage() {
   const [syncMessage, setSyncMessage] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('');
   const [sortBy, setSortBy] = useState('recent');
+  const [customerOffset, setCustomerOffset] = useState(0);
+  const [customerTotal, setCustomerTotal] = useState(0);
+  const [customerHasMore, setCustomerHasMore] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [customerList, customerStats] = await Promise.all([
-        getCustomers({ segment: segmentFilter || undefined, sort: sortBy }),
+      const [customerResult, customerStats] = await Promise.all([
+        getCustomers({
+          segment: segmentFilter || undefined,
+          sort: sortBy,
+          limit: CUSTOMERS_PAGE_SIZE,
+          offset: customerOffset,
+        }),
         getCustomerStats(),
       ]);
-      setCustomers(customerList);
+      setCustomers(customerResult.customers);
+      setCustomerTotal(customerResult.pagination.total);
+      setCustomerHasMore(customerResult.pagination.hasMore);
       setStats(customerStats);
     } catch (err) {
       setError(err instanceof Error ? err.message : '顧客データの取得に失敗しました');
     } finally {
       setLoading(false);
     }
-  }, [segmentFilter, sortBy]);
+  }, [customerOffset, segmentFilter, sortBy]);
 
   useEffect(() => {
     void fetchData();
@@ -124,7 +136,10 @@ export function CustomersPage() {
         <div className="flex gap-3">
           <select
             value={segmentFilter}
-            onChange={(e) => setSegmentFilter(e.target.value)}
+            onChange={(e) => {
+              setSegmentFilter(e.target.value);
+              setCustomerOffset(0);
+            }}
             className="px-3 py-1.5 rounded-lg border border-border text-sm bg-white"
           >
             <option value="">全セグメント</option>
@@ -134,7 +149,10 @@ export function CustomersPage() {
           </select>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCustomerOffset(0);
+            }}
             className="px-3 py-1.5 rounded-lg border border-border text-sm bg-white"
           >
             <option value="recent">最終購入日順</option>
@@ -156,41 +174,67 @@ export function CustomersPage() {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-surface-secondary/50">
-                  <th className="text-left px-4 py-3 font-medium text-text-secondary">顧客名</th>
-                  <th className="text-left px-4 py-3 font-medium text-text-secondary">メール</th>
-                  <th className="text-left px-4 py-3 font-medium text-text-secondary">セグメント</th>
-                  <th className="text-right px-4 py-3 font-medium text-text-secondary">注文数</th>
-                  <th className="text-right px-4 py-3 font-medium text-text-secondary">累計購入額</th>
-                  <th className="text-left px-4 py-3 font-medium text-text-secondary">最終購入</th>
-                  <th className="text-left px-4 py-3 font-medium text-text-secondary">認証</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-border last:border-b-0 hover:bg-surface-secondary/30 transition-colors">
-                    <td className="px-4 py-3 font-medium text-text">{customer.name}</td>
-                    <td className="px-4 py-3 text-text-secondary">{customer.email}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${SEGMENT_BADGE_COLORS[customer.segment]}`}>
-                        {SEGMENT_LABELS[customer.segment]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-text">{customer.totalOrders}件</td>
-                    <td className="px-4 py-3 text-right text-text">{formatCurrency(customer.totalSpent)}</td>
-                    <td className="px-4 py-3 text-text-secondary">
-                      {customer.lastPurchaseAt ? formatFullDate(customer.lastPurchaseAt) : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-text-secondary text-xs">
-                      {customer.authProvider === 'google' ? 'Google' : 'Email'}
-                    </td>
+          <div className="space-y-3">
+            <div className="bg-white rounded-xl border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface-secondary/50">
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">顧客名</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">メール</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">セグメント</th>
+                    <th className="text-right px-4 py-3 font-medium text-text-secondary">注文数</th>
+                    <th className="text-right px-4 py-3 font-medium text-text-secondary">累計購入額</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">最終購入</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">認証</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {customers.map((customer) => (
+                    <tr key={customer.id} className="border-b border-border last:border-b-0 hover:bg-surface-secondary/30 transition-colors">
+                      <td className="px-4 py-3 font-medium text-text">{customer.name}</td>
+                      <td className="px-4 py-3 text-text-secondary">{customer.email}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${SEGMENT_BADGE_COLORS[customer.segment]}`}>
+                          {SEGMENT_LABELS[customer.segment]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-text">{customer.totalOrders}件</td>
+                      <td className="px-4 py-3 text-right text-text">{formatCurrency(customer.totalSpent)}</td>
+                      <td className="px-4 py-3 text-text-secondary">
+                        {customer.lastPurchaseAt ? formatFullDate(customer.lastPurchaseAt) : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary text-xs">
+                        {customer.authProvider === 'google' ? 'Google' : 'Email'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-text-secondary">
+              <span>
+                {customerTotal === 0
+                  ? '0件'
+                  : `${customerOffset + 1}-${Math.min(customerOffset + customers.length, customerTotal)}件 / 全${customerTotal}件`}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCustomerOffset((prev) => Math.max(prev - CUSTOMERS_PAGE_SIZE, 0))}
+                  disabled={customerOffset === 0 || loading}
+                  className="px-3 py-1.5 border border-border rounded-md disabled:opacity-50"
+                >
+                  前へ
+                </button>
+                <button
+                  onClick={() => setCustomerOffset((prev) => prev + CUSTOMERS_PAGE_SIZE)}
+                  disabled={loading || !customerHasMore}
+                  className="px-3 py-1.5 border border-border rounded-md disabled:opacity-50"
+                >
+                  次へ
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

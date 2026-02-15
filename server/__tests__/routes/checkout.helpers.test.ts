@@ -52,7 +52,8 @@ describe('normalizeShippingAddress', () => {
   });
 
   it('returns null when a required field is missing', () => {
-    const { city: _city, ...partial } = validAddress;
+    const { city, ...partial } = validAddress;
+    expect(city).toBe('千代田区');
     expect(normalizeShippingAddress(partial as typeof validAddress)).toBeNull();
   });
 

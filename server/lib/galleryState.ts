@@ -26,6 +26,7 @@ const MAX_ITEMS_PER_USER = 20;
 const itemsById = new Map<string, GalleryItem>();
 const itemsByUserId = new Map<string, GalleryItem[]>();
 let persistQueue: Promise<void> = Promise.resolve();
+const userLocks = new Map<string, Promise<void>>();
 
 function createId(): string {
   return `gal_${randomBytes(10).toString('hex')}`;
@@ -83,6 +84,26 @@ function parseDataUrl(dataUrl: string): { mimeType: string; data: Buffer; ext: s
   return { mimeType, data, ext };
 }
 
+async function withUserLock<T>(userId: string, task: () => Promise<T>): Promise<T> {
+  const previous = userLocks.get(userId) ?? Promise.resolve();
+  let release: (() => void) | null = null;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => current);
+  userLocks.set(userId, tail);
+
+  await previous;
+  try {
+    return await task();
+  } finally {
+    release?.();
+    if (userLocks.get(userId) === tail) {
+      userLocks.delete(userId);
+    }
+  }
+}
+
 export async function addGalleryItem(params: {
   userId: string;
   imageDataUrl: string;
@@ -90,59 +111,61 @@ export async function addGalleryItem(params: {
   artStyleId: string;
   artStyleName: string;
 }): Promise<GalleryItem> {
-  const userItems = itemsByUserId.get(params.userId) ?? [];
+  return withUserLock(params.userId, async () => {
+    const userItems = itemsByUserId.get(params.userId) ?? [];
 
-  // Evict oldest if at limit
-  if (userItems.length >= MAX_ITEMS_PER_USER) {
-    const oldest = userItems.sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-    if (oldest) {
-      await deleteGalleryItem(params.userId, oldest.id);
+    // Evict oldest if at limit
+    if (userItems.length >= MAX_ITEMS_PER_USER) {
+      const oldest = [...userItems].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
+      if (oldest) {
+        await deleteGalleryItemUnlocked(params.userId, oldest.id);
+      }
     }
-  }
 
-  const id = createId();
-  const parsedImage = parseDataUrl(params.imageDataUrl);
-  const parsedThumb = parseDataUrl(params.thumbnailDataUrl);
+    const id = createId();
+    const parsedImage = parseDataUrl(params.imageDataUrl);
+    const parsedThumb = parseDataUrl(params.thumbnailDataUrl);
 
-  if (!parsedImage) throw new Error('Invalid image data URL');
+    if (!parsedImage) throw new Error('Invalid image data URL');
 
-  await fs.mkdir(GALLERY_FILES_DIR, { recursive: true });
+    await fs.mkdir(GALLERY_FILES_DIR, { recursive: true });
 
-  const imageFileName = `${id}.${parsedImage.ext}`;
-  const thumbnailFileName = parsedThumb ? `${id}_thumb.${parsedThumb.ext}` : imageFileName;
-  const shouldWriteThumbnailFile = Boolean(
-    parsedThumb &&
-    params.thumbnailDataUrl !== params.imageDataUrl &&
-    thumbnailFileName !== imageFileName
-  );
+    const imageFileName = `${id}.${parsedImage.ext}`;
+    const thumbnailFileName = parsedThumb ? `${id}_thumb.${parsedThumb.ext}` : imageFileName;
+    const shouldWriteThumbnailFile = Boolean(
+      parsedThumb &&
+      params.thumbnailDataUrl !== params.imageDataUrl &&
+      thumbnailFileName !== imageFileName
+    );
 
-  await fs.writeFile(getGalleryImagePath(imageFileName), parsedImage.data);
-  if (shouldWriteThumbnailFile && parsedThumb) {
-    await fs.writeFile(getGalleryImagePath(thumbnailFileName), parsedThumb.data);
-  }
+    await fs.writeFile(getGalleryImagePath(imageFileName), parsedImage.data);
+    if (shouldWriteThumbnailFile && parsedThumb) {
+      await fs.writeFile(getGalleryImagePath(thumbnailFileName), parsedThumb.data);
+    }
 
-  const item: GalleryItem = {
-    id,
-    userId: params.userId,
-    imageFileName,
-    thumbnailFileName,
-    artStyleId: params.artStyleId,
-    artStyleName: params.artStyleName,
-    createdAt: new Date().toISOString(),
-  };
+    const item: GalleryItem = {
+      id,
+      userId: params.userId,
+      imageFileName,
+      thumbnailFileName,
+      artStyleId: params.artStyleId,
+      artStyleName: params.artStyleName,
+      createdAt: new Date().toISOString(),
+    };
 
-  itemsById.set(id, item);
-  const currentUserItems = itemsByUserId.get(params.userId) ?? [];
-  currentUserItems.push(item);
-  itemsByUserId.set(params.userId, currentUserItems);
+    itemsById.set(id, item);
+    const currentUserItems = itemsByUserId.get(params.userId) ?? [];
+    currentUserItems.push(item);
+    itemsByUserId.set(params.userId, currentUserItems);
 
-  persistGalleryState();
-  return item;
+    persistGalleryState();
+    return item;
+  });
 }
 
 export function getGalleryItems(userId: string): GalleryItem[] {
   const items = itemsByUserId.get(userId) ?? [];
-  return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return [...items].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function getGalleryItem(id: string): GalleryItem | null {
@@ -158,7 +181,7 @@ export function getGalleryImagePath(fileName: string): string {
   return resolved;
 }
 
-export async function deleteGalleryItem(userId: string, itemId: string): Promise<boolean> {
+async function deleteGalleryItemUnlocked(userId: string, itemId: string): Promise<boolean> {
   const item = itemsById.get(itemId);
   if (!item || item.userId !== userId) return false;
 
@@ -181,6 +204,10 @@ export async function deleteGalleryItem(userId: string, itemId: string): Promise
 
   persistGalleryState();
   return true;
+}
+
+export async function deleteGalleryItem(userId: string, itemId: string): Promise<boolean> {
+  return withUserLock(userId, async () => deleteGalleryItemUnlocked(userId, itemId));
 }
 
 hydrateGalleryState();

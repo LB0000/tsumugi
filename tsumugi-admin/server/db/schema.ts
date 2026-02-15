@@ -65,6 +65,7 @@ export const customers = sqliteTable('customers', {
   segment: text('segment').notNull(), // 'new' | 'active' | 'lapsed'
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+  marketingOptOutAt: text('marketing_opt_out_at'),
 });
 
 export const emailSends = sqliteTable('email_sends', {

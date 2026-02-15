@@ -7,17 +7,14 @@ import { useAuthStore } from '../stores/authStore';
 export function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
   const { setAuthSession } = useAuthStore();
-  const token = searchParams.get('token');
+  const token = searchParams.get('token')?.trim() ?? '';
+  const tokenMissing = token.length === 0;
 
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(tokenMissing ? 'error' : 'loading');
+  const [errorMessage, setErrorMessage] = useState(tokenMissing ? '認証トークンが見つかりません' : '');
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setErrorMessage('認証トークンが見つかりません');
-      return;
-    }
+    if (tokenMissing) return;
 
     let cancelled = false;
 
@@ -34,7 +31,7 @@ export function VerifyEmailPage() {
       });
 
     return () => { cancelled = true; };
-  }, [token, setAuthSession]);
+  }, [token, tokenMissing, setAuthSession]);
 
   return (
     <div className="flex-1 bg-background flex items-center justify-center py-12 px-4">

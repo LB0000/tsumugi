@@ -3,18 +3,53 @@ import type { Request, Response, NextFunction } from 'express';
 import { requireAuth } from '../lib/auth.js';
 import { db } from '../db/index.js';
 import { campaigns, coupons, emailSends, customers } from '../db/schema.js';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { sendBulkMarketingEmails } from '../lib/email.js';
+import { verifyUnsubscribeToken } from '../lib/unsubscribe.js';
+import { createRateLimiter } from '../lib/rateLimit.js';
 
 export const campaignsRouter = Router();
+const internalCouponValidateLimiter = createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'campaign-coupon-validate' });
+const internalCouponUseLimiter = createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'campaign-coupon-use' });
+const MIN_INTERNAL_KEY_LENGTH = 16;
+const MAX_INTERNAL_KEY_HEADER_LENGTH = 256;
+
+function isDuplicateCouponCodeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const sqliteErrorCode = (error as Error & { code?: string }).code;
+  if (sqliteErrorCode && sqliteErrorCode !== 'SQLITE_CONSTRAINT' && sqliteErrorCode !== 'SQLITE_CONSTRAINT_UNIQUE') {
+    return false;
+  }
+  return /UNIQUE constraint failed:\s*coupons\.code/i.test(error.message);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function readStringField(body: unknown, key: string): string {
+  if (!body || typeof body !== 'object') return '';
+  const value = (body as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : '';
+}
 
 function verifyInternalKey(req: Request, res: Response, next: NextFunction): void {
   const internalKey = process.env.INTERNAL_API_KEY;
   const provided = req.headers['x-internal-key'];
 
-  if (!internalKey || typeof provided !== 'string') {
+  if (!internalKey || internalKey.length < MIN_INTERNAL_KEY_LENGTH) {
+    res.status(503).json({ valid: false, error: 'Internal API key is not configured securely' });
+    return;
+  }
+
+  if (typeof provided !== 'string' || provided.length === 0 || provided.length > MAX_INTERNAL_KEY_HEADER_LENGTH) {
     res.status(401).json({ valid: false, error: 'Unauthorized' });
     return;
   }
@@ -29,9 +64,63 @@ function verifyInternalKey(req: Request, res: Response, next: NextFunction): voi
   next();
 }
 
+function renderUnsubscribeHtml(params: {
+  message: string;
+  confirmToken?: { email: string; expires: string; sig: string };
+}): string {
+  const { message, confirmToken } = params;
+  const confirmationBlock = confirmToken
+    ? `<form method="post" action="/api/campaigns/unsubscribe" style="margin-top:18px;">
+          <input type="hidden" name="email" value="${escapeHtml(confirmToken.email)}" />
+          <input type="hidden" name="expires" value="${escapeHtml(confirmToken.expires)}" />
+          <input type="hidden" name="sig" value="${escapeHtml(confirmToken.sig)}" />
+          <button type="submit" style="border:0;border-radius:10px;background:#8b6914;color:#fff;padding:10px 18px;font-size:14px;cursor:pointer;">
+            配信停止を確定する
+          </button>
+        </form>`
+    : '';
+
+  return `<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>配信設定 | TSUMUGI</title>
+    <style>
+      body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #faf8f5; color: #2c2418; }
+      .wrap { max-width: 560px; margin: 56px auto; padding: 0 16px; }
+      .card { background: #fff; border: 1px solid #e8e0d4; border-radius: 16px; padding: 28px 24px; }
+      h1 { margin: 0 0 12px; font-size: 20px; }
+      p { margin: 0; line-height: 1.7; color: #5a5148; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>メール配信設定</h1>
+        <p>${escapeHtml(message)}</p>
+        ${confirmationBlock}
+      </div>
+    </div>
+  </body>
+</html>`;
+}
+
+function unsubscribeByEmail(email: string): number {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return 0;
+  const now = new Date().toISOString();
+  const result = db.run(sql`
+    UPDATE customers
+    SET marketing_opt_out_at = COALESCE(marketing_opt_out_at, ${now})
+    WHERE lower(email) = ${normalized}
+  `);
+  return result.changes;
+}
+
 // Internal coupon validation endpoint (called by tsumugi server, not admin UI)
 // This only validates -- does NOT increment usage. Usage is incremented via /coupons/use after payment.
-campaignsRouter.post('/coupons/validate', verifyInternalKey, (req, res) => {
+campaignsRouter.post('/coupons/validate', internalCouponValidateLimiter, verifyInternalKey, (req, res) => {
   try {
     const { code } = req.body as { code?: string };
     if (!code?.trim()) {
@@ -74,7 +163,7 @@ campaignsRouter.post('/coupons/validate', verifyInternalKey, (req, res) => {
 });
 
 // Internal coupon usage endpoint -- called after payment completes. Atomic increment.
-campaignsRouter.post('/coupons/use', verifyInternalKey, (req, res) => {
+campaignsRouter.post('/coupons/use', internalCouponUseLimiter, verifyInternalKey, (req, res) => {
   try {
     const { code } = req.body as { code?: string };
     if (!code?.trim()) {
@@ -83,18 +172,72 @@ campaignsRouter.post('/coupons/use', verifyInternalKey, (req, res) => {
     }
 
     // Atomic increment with max_uses check in a single SQL statement
-    const result = db.run(
-      `UPDATE coupons SET current_uses = current_uses + 1
-       WHERE code = ? AND is_active = 1
-       AND (max_uses IS NULL OR current_uses < max_uses)`,
-      code.trim().toUpperCase(),
-    );
+    const normalizedCode = code.trim().toUpperCase();
+    const result = db.run(sql`
+      UPDATE coupons
+      SET current_uses = current_uses + 1
+      WHERE code = ${normalizedCode}
+        AND is_active = 1
+        AND (max_uses IS NULL OR current_uses < max_uses)
+    `);
 
     res.json({ success: result.changes > 0 });
   } catch (error) {
     console.error('Use coupon error:', error);
     res.status(500).json({ success: false });
   }
+});
+
+// Public unsubscribe endpoint for marketing emails
+campaignsRouter.get('/unsubscribe', (req, res) => {
+  const email = typeof req.query.email === 'string' ? req.query.email : '';
+  const expires = typeof req.query.expires === 'string' ? req.query.expires : '';
+  const sig = typeof req.query.sig === 'string' ? req.query.sig : '';
+
+  if (!verifyUnsubscribeToken({ email, expires, sig })) {
+    res
+      .status(400)
+      .setHeader('Content-Type', 'text/html; charset=utf-8')
+      .send(renderUnsubscribeHtml({ message: '配信停止リンクが無効か期限切れです。' }));
+    return;
+  }
+
+  res
+    .status(200)
+    .setHeader('Content-Type', 'text/html; charset=utf-8')
+    .send(renderUnsubscribeHtml({
+      message: '下のボタンを押すと、今後のマーケティングメール配信を停止します。',
+      confirmToken: { email, expires, sig },
+    }));
+});
+
+campaignsRouter.post('/unsubscribe', (req, res) => {
+  const normalizedEmail = readStringField(req.body, 'email');
+  const normalizedExpires = readStringField(req.body, 'expires');
+  const normalizedSig = readStringField(req.body, 'sig');
+  const isFormSubmission = Boolean(req.is('application/x-www-form-urlencoded'));
+
+  if (!verifyUnsubscribeToken({ email: normalizedEmail, expires: normalizedExpires, sig: normalizedSig })) {
+    if (isFormSubmission) {
+      res
+        .status(400)
+        .setHeader('Content-Type', 'text/html; charset=utf-8')
+        .send(renderUnsubscribeHtml({ message: '配信停止リンクが無効か期限切れです。' }));
+      return;
+    }
+    res.status(400).json({ success: false, error: 'Invalid unsubscribe token' });
+    return;
+  }
+
+  const updated = unsubscribeByEmail(normalizedEmail);
+  if (isFormSubmission) {
+    res
+      .status(200)
+      .setHeader('Content-Type', 'text/html; charset=utf-8')
+      .send(renderUnsubscribeHtml({ message: '今後のマーケティングメール配信を停止しました。' }));
+    return;
+  }
+  res.json({ success: true, updated });
 });
 
 campaignsRouter.use(requireAuth);
@@ -105,9 +248,27 @@ campaignsRouter.get('/', (req, res) => {
     const { limit: limitParam, offset: offsetParam } = req.query as { limit?: string; offset?: string };
     const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 200);
     const offset = Math.max(Number(offsetParam) || 0, 0);
+    const totalRow = db.get<{ total: number }>(sql`SELECT COUNT(*) as total FROM campaigns`);
+    const total = Number(totalRow?.total ?? 0);
 
-    const results = db.select().from(campaigns).limit(limit).offset(offset).all();
-    res.json({ campaigns: results, limit, offset });
+    const results = db
+      .select()
+      .from(campaigns)
+      .orderBy(desc(campaigns.createdAt), desc(campaigns.id))
+      .limit(limit)
+      .offset(offset)
+      .all();
+    const nextOffset = offset + results.length;
+    res.json({
+      campaigns: results,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: nextOffset < total,
+        nextOffset: nextOffset < total ? nextOffset : null,
+      },
+    });
   } catch (error) {
     console.error('List campaigns error:', error);
     res.status(500).json({ error: 'Failed to list campaigns' });
@@ -246,9 +407,13 @@ campaignsRouter.post('/:id/send-email', async (req, res) => {
     // Get recipients based on segment filter
     let recipients;
     if (segment && ['new', 'active', 'lapsed'].includes(segment)) {
-      recipients = db.select().from(customers).where(eq(customers.segment, segment)).all();
+      recipients = db
+        .select()
+        .from(customers)
+        .where(and(eq(customers.segment, segment), isNull(customers.marketingOptOutAt)))
+        .all();
     } else {
-      recipients = db.select().from(customers).all();
+      recipients = db.select().from(customers).where(isNull(customers.marketingOptOutAt)).all();
     }
 
     if (recipients.length === 0) {
@@ -261,23 +426,32 @@ campaignsRouter.post('/:id/send-email', async (req, res) => {
 
     const result = await sendBulkMarketingEmails(emails, subject.trim(), htmlBody.trim());
 
-    // Record email sends in DB
-    for (const email of emails) {
-      db.insert(emailSends).values({
-        id: nanoid(),
-        campaignId: campaign.id,
-        recipientEmail: email,
-        subject: subject.trim(),
-        status: result.errors.some((e) => e.startsWith(`${email}:`)) ? 'failed' : 'sent',
-        sentAt: now,
-      }).run();
+    const failedRecipients = new Set<string>();
+    for (const errorMessage of result.errors) {
+      const separatorIndex = errorMessage.indexOf(':');
+      if (separatorIndex <= 0) continue;
+      failedRecipients.add(errorMessage.slice(0, separatorIndex).trim().toLowerCase());
     }
 
-    // Update campaign status
-    db.update(campaigns)
-      .set({ status: 'active', updatedAt: now })
-      .where(eq(campaigns.id, campaign.id))
-      .run();
+    // Persist send logs and campaign status atomically.
+    db.transaction((tx) => {
+      for (const email of emails) {
+        const normalizedEmail = email.trim().toLowerCase();
+        tx.insert(emailSends).values({
+          id: nanoid(),
+          campaignId: campaign.id,
+          recipientEmail: email,
+          subject: subject.trim(),
+          status: failedRecipients.has(normalizedEmail) ? 'failed' : 'sent',
+          sentAt: now,
+        }).run();
+      }
+
+      tx.update(campaigns)
+        .set({ status: 'active', updatedAt: now })
+        .where(eq(campaigns.id, campaign.id))
+        .run();
+    });
 
     res.json({ success: true, sent: result.sent, failed: result.failed, total: recipients.length });
   } catch (error) {
@@ -335,13 +509,22 @@ campaignsRouter.post('/coupons', (req, res) => {
       return;
     }
 
-    if (typeof discountValue !== 'number' || discountValue <= 0) {
+    if (typeof discountValue !== 'number' || !Number.isFinite(discountValue) || discountValue <= 0) {
       res.status(400).json({ error: 'discountValue must be a positive number' });
       return;
     }
 
     if (discountType === 'percentage' && discountValue > 100) {
       res.status(400).json({ error: 'percentage discount cannot exceed 100%' });
+      return;
+    }
+
+    const normalizedMaxUses = maxUses === undefined ? undefined : Number(maxUses);
+    if (
+      normalizedMaxUses !== undefined &&
+      (!Number.isInteger(normalizedMaxUses) || normalizedMaxUses < 1)
+    ) {
+      res.status(400).json({ error: 'maxUses must be a positive integer' });
       return;
     }
 
@@ -353,7 +536,7 @@ campaignsRouter.post('/coupons', (req, res) => {
       code: couponCode,
       discountType,
       discountValue,
-      maxUses: maxUses || null,
+      maxUses: normalizedMaxUses ?? null,
       currentUses: 0,
       campaignId: campaignId || null,
       expiresAt: expiresAt || null,
@@ -364,6 +547,10 @@ campaignsRouter.post('/coupons', (req, res) => {
     db.insert(coupons).values(coupon).run();
     res.status(201).json(coupon);
   } catch (error) {
+    if (isDuplicateCouponCodeError(error)) {
+      res.status(409).json({ error: 'Coupon code already exists' });
+      return;
+    }
     console.error('Create coupon error:', error);
     res.status(500).json({ error: 'Failed to create coupon' });
   }

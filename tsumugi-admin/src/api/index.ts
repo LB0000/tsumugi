@@ -140,13 +140,30 @@ export async function archiveContent(id: string): Promise<Content> {
 }
 
 // Customer API
-export async function getCustomers(filters?: { segment?: string; sort?: string }): Promise<Customer[]> {
+export interface CustomersListResult {
+  customers: Customer[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+    nextOffset: number | null;
+  };
+}
+
+export async function getCustomers(filters?: {
+  segment?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<CustomersListResult> {
   const params = new URLSearchParams();
   if (filters?.segment) params.set('segment', filters.segment);
   if (filters?.sort) params.set('sort', filters.sort);
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  if (filters?.offset) params.set('offset', String(filters.offset));
   const qs = params.toString();
-  const data = await apiFetch<{ customers: Customer[] }>(`/customers${qs ? `?${qs}` : ''}`);
-  return data.customers;
+  return apiFetch<CustomersListResult>(`/customers${qs ? `?${qs}` : ''}`);
 }
 
 export async function getCustomerStats(): Promise<CustomerStats> {
@@ -158,9 +175,26 @@ export async function syncCustomers(): Promise<{ success: boolean; synced: numbe
 }
 
 // Campaign API
-export async function getCampaigns(): Promise<Campaign[]> {
-  const data = await apiFetch<{ campaigns: Campaign[] }>('/campaigns');
-  return data.campaigns;
+export interface CampaignsListResult {
+  campaigns: Campaign[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+    nextOffset: number | null;
+  };
+}
+
+export async function getCampaigns(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<CampaignsListResult> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set('limit', String(params.limit));
+  if (params?.offset) qs.set('offset', String(params.offset));
+  const suffix = qs.toString();
+  return apiFetch<CampaignsListResult>(`/campaigns${suffix ? `?${suffix}` : ''}`);
 }
 
 export async function createCampaign(data: {

@@ -11,6 +11,7 @@
     "build:server": "tsc -p tsconfig.server.json",
     "start": "tsx server/index.ts",
     "lint": "eslint .",
+    "test": "npm run lint && npm run build:server",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"

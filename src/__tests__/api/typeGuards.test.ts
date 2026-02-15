@@ -149,7 +149,8 @@ describe('isArtStyle', () => {
   });
 
   it('returns false when id is missing', () => {
-    const { id: _, ...rest } = validStyle;
+    const { id, ...rest } = validStyle;
+    expect(id).toBe('s1');
     expect(isArtStyle(rest)).toBe(false);
   });
 

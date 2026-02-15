@@ -65,7 +65,15 @@ export async function useCoupon(code: string): Promise<boolean> {
       body: JSON.stringify({ code: code.trim().toUpperCase() }),
     });
 
-    return response.ok;
+    if (!response.ok) return false;
+
+    const payload = await response.json().catch(() => null);
+    if (typeof payload === 'object' && payload !== null) {
+      const success = (payload as { success?: unknown }).success;
+      if (typeof success === 'boolean') return success;
+    }
+
+    return false;
   } catch {
     logger.error('Failed to mark coupon as used', { code });
     return false;

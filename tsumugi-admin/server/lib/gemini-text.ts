@@ -151,9 +151,9 @@ function parseEmailResponse(text: string): { subject: string; body: string } {
 }
 
 function generateMockEmailContent(
-  _segment: EmailSegment,
+  segment: EmailSegment,
   purpose: EmailPurpose,
-  _topic: string,
+  topic: string,
 ): { subject: string; body: string } {
   const templates: Record<EmailPurpose, { subject: string; body: string }> = {
     welcome: {
@@ -175,9 +175,13 @@ function generateMockEmailContent(
   };
 
   const template = templates[purpose];
+  const segmentLabel = segment === 'all' ? '全顧客' : segment;
+  const topicNote = topic.trim()
+    ? `<p><strong>配信対象:</strong> ${segmentLabel}</p><p><strong>追加トピック:</strong> ${topic.trim()}</p>`
+    : '';
   return {
     subject: template.subject,
-    body: template.body,
+    body: `${template.body}${topicNote}`,
   };
 }
 
