@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import path from 'path';
 import { readJsonFile, writeJsonAtomic } from '../lib/persistence.js';
+import { isValidEmail } from '../lib/validation.js';
 
 export const contactRouter = Router();
 
@@ -70,10 +71,6 @@ function persistInquiries(): void {
     .catch((error) => {
       console.error('Failed to persist inquiries:', error);
     });
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function isValidReason(reason: string): reason is ContactReason {

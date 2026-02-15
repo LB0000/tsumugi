@@ -31,6 +31,7 @@ import {
   isAllowedOrigin,
   type HeaderMap,
 } from '../lib/requestAuth.js';
+import { isValidEmail } from '../lib/validation.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -51,10 +52,6 @@ const MAX_ADDRESS_LENGTH = {
   city: 120,
   addressLine: 200,
 } as const;
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function getRequestHeaders(req: Request): HeaderMap {
   return req.headers as HeaderMap;

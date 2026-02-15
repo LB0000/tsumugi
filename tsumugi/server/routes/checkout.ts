@@ -3,6 +3,7 @@ import { Router } from 'express';
 import type { Request } from 'express';
 import { SquareError, WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
+import { isValidEmail } from '../lib/validation.js';
 import {
   getOrderPaymentStatus,
   getOrdersByUserId,
@@ -150,10 +151,6 @@ function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): Sh
   }
 
   return normalized;
-}
-
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 // POST /api/checkout/create-order

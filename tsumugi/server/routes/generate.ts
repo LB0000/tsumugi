@@ -212,7 +212,9 @@ generateRouter.post('/', async (req: Request<object, object, GenerateImageReques
     const stylePrompt = getStylePrompt(styleId, category);
     const styleFocusPrompt = getStyleFocusPrompt(styleId);
     const categoryPrompt = categoryPrompts[category] || '';
-    const customPrompt = options?.customPrompt || '';
+    const customPrompt = options?.customPrompt
+      ? options.customPrompt.slice(0, 500).replace(/[\x00-\x1f\x7f]/g, '')
+      : '';
 
     const fullPrompt = `${stylePrompt}
 
@@ -238,6 +240,17 @@ CRITICAL REQUIREMENTS:
       res.status(400).json({
         success: false,
         error: { code: 'INVALID_IMAGE', message: 'Invalid base64 image format' }
+      });
+      return;
+    }
+
+    // Validate image size (max 10MB decoded)
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+    const estimatedSize = Math.ceil(parsedImage.data.length * 3 / 4);
+    if (estimatedSize > MAX_IMAGE_SIZE) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'IMAGE_TOO_LARGE', message: '画像サイズが大きすぎます（最大10MB）' }
       });
       return;
     }
