@@ -1,5 +1,6 @@
 import { isErrorResponse, isCsrfResponse } from './typeGuards';
 import { config } from '../config';
+import { useAuthStore } from '../stores/authStore';
 
 export const API_BASE = config.apiBase;
 
@@ -84,7 +85,6 @@ export async function fetchWithTimeout(
     });
 
     if (response.status === 401 && !url.includes('/auth/')) {
-      const { useAuthStore } = await import('../stores/authStore');
       useAuthStore.getState().clearAuthSession();
     }
 

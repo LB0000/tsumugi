@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { logger } from '../lib/logger.js';
 import { sendOrderConfirmationEmail } from '../lib/email.js';
 import { scheduleReviewRequestEmail } from '../lib/scheduledEmails.js';
+import { sendPurchaseEvent } from '../lib/metaConversions.js';
 
 const processPaymentInputSchema = z.object({
   sourceId: z.string().min(1),
@@ -20,6 +21,7 @@ import {
   getOrdersByUserId,
   hasProcessedWebhookEvent,
   markProcessedWebhookEvent,
+  type OrderPaymentStatus,
   unclaimCouponUsage,
   updateOrderPaymentStatus,
 } from '../lib/checkoutState.js';
@@ -104,6 +106,54 @@ function sanitizePaymentStatusReceipt<T extends { receiptUrl?: string }>(status:
     return rest;
   }
   return { ...status, receiptUrl: sanitizedReceiptUrl };
+}
+
+interface BuildOrderPaymentStatusUpdateInput {
+  orderId: string;
+  paymentId: string;
+  paymentStatus: string;
+  updatedAt: string;
+  existingStatus: OrderPaymentStatus | null;
+  couponUsed: boolean;
+  receiptUrl?: unknown;
+  fallbackTotalAmount?: number;
+  fallbackCreatedAt?: string;
+}
+
+export function buildOrderPaymentStatusUpdate(input: BuildOrderPaymentStatusUpdateInput): OrderPaymentStatus {
+  const {
+    orderId,
+    paymentId,
+    paymentStatus,
+    updatedAt,
+    existingStatus,
+    couponUsed,
+    receiptUrl,
+    fallbackTotalAmount,
+    fallbackCreatedAt,
+  } = input;
+
+  const sanitizedIncomingReceiptUrl = sanitizeReceiptUrl(receiptUrl);
+  const sanitizedExistingReceiptUrl = sanitizeReceiptUrl(existingStatus?.receiptUrl);
+  const normalizedReceiptUrl = sanitizedIncomingReceiptUrl ?? sanitizedExistingReceiptUrl;
+  const normalizedCreatedAt = existingStatus?.createdAt ?? fallbackCreatedAt ?? updatedAt;
+  const normalizedTotalAmount = existingStatus?.totalAmount ?? fallbackTotalAmount;
+
+  return {
+    orderId,
+    paymentId,
+    status: paymentStatus,
+    updatedAt,
+    userId: existingStatus?.userId,
+    totalAmount: normalizedTotalAmount,
+    createdAt: normalizedCreatedAt,
+    items: existingStatus?.items,
+    shippingAddress: existingStatus?.shippingAddress,
+    receiptUrl: normalizedReceiptUrl,
+    couponCode: existingStatus?.couponCode,
+    couponUsed,
+    giftInfo: existingStatus?.giftInfo,
+  };
 }
 
 export function makeIdempotencyKey(prefix: string, seed: string): string {
@@ -501,21 +551,18 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       couponUsed = used;
     }
 
-    updateOrderPaymentStatus({
+    const paymentStatusUpdatedAt = new Date().toISOString();
+    updateOrderPaymentStatus(buildOrderPaymentStatusUpdate({
       orderId: normalizedOrderId,
       paymentId,
-      status: paymentStatus,
-      updatedAt: new Date().toISOString(),
-      userId: existingStatus?.userId,
-      totalAmount: existingStatus?.totalAmount ?? Number(orderAmount),
-      createdAt: existingStatus?.createdAt ?? new Date().toISOString(),
-      items: existingStatus?.items,
-      shippingAddress: existingStatus?.shippingAddress,
-      receiptUrl: sanitizedReceiptUrl ?? sanitizeReceiptUrl(existingStatus?.receiptUrl),
-      couponCode: existingStatus?.couponCode,
+      paymentStatus,
+      updatedAt: paymentStatusUpdatedAt,
+      existingStatus,
       couponUsed,
-      giftInfo: existingStatus?.giftInfo,
-    });
+      receiptUrl: payment.receiptUrl,
+      fallbackTotalAmount: Number(orderAmount),
+      fallbackCreatedAt: paymentStatusUpdatedAt,
+    }));
 
     // Send order confirmation email and schedule review request on successful payment
     if (paymentStatus === 'COMPLETED' && normalizedBuyerEmail) {
@@ -531,6 +578,22 @@ checkoutRouter.post('/process-payment', async (req, res) => {
       if (buyerName) {
         scheduleReviewRequestEmail(normalizedBuyerEmail, normalizedOrderId, buyerName);
       }
+
+      // Send Meta Conversions API Purchase event (server-side)
+      const contentIds = (existingStatus?.items ?? []).map((item: { productId: string }) => item.productId);
+      void sendPurchaseEvent({
+        eventId: `purchase-${normalizedOrderId}-${paymentId}`,
+        orderId: normalizedOrderId,
+        value: Number(orderAmount),
+        currency: 'JPY',
+        contentIds,
+        userData: {
+          email: normalizedBuyerEmail,
+          phone: existingStatus?.shippingAddress?.phone,
+          clientIpAddress: req.ip,
+          clientUserAgent: req.headers['user-agent'] ?? undefined,
+        },
+      });
     }
 
     res.json({
@@ -631,21 +694,14 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
         couponUsed = used;
       }
 
-      updateOrderPaymentStatus({
+      updateOrderPaymentStatus(buildOrderPaymentStatusUpdate({
         orderId,
         paymentId,
-        status: paymentStatus,
+        paymentStatus,
         updatedAt: new Date().toISOString(),
-        userId: existingStatus?.userId,
-        totalAmount: existingStatus?.totalAmount,
-        createdAt: existingStatus?.createdAt,
-        items: existingStatus?.items,
-        shippingAddress: existingStatus?.shippingAddress,
-        receiptUrl: sanitizeReceiptUrl(existingStatus?.receiptUrl),
-        couponCode: existingStatus?.couponCode,
+        existingStatus,
         couponUsed,
-        giftInfo: existingStatus?.giftInfo,
-      });
+      }));
     }
 
     if (eventId) {
