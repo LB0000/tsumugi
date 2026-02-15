@@ -153,17 +153,27 @@ export interface CustomersListResult {
 
 export async function getCustomers(filters?: {
   segment?: string;
+  marketing?: 'subscribed' | 'opted_out' | 'all';
   sort?: string;
   limit?: number;
   offset?: number;
 }): Promise<CustomersListResult> {
   const params = new URLSearchParams();
   if (filters?.segment) params.set('segment', filters.segment);
+  if (filters?.marketing && filters.marketing !== 'all') params.set('marketing', filters.marketing);
   if (filters?.sort) params.set('sort', filters.sort);
   if (filters?.limit) params.set('limit', String(filters.limit));
   if (filters?.offset) params.set('offset', String(filters.offset));
   const qs = params.toString();
   return apiFetch<CustomersListResult>(`/customers${qs ? `?${qs}` : ''}`);
+}
+
+export async function setCustomerMarketingOptOut(id: string, optOut: boolean): Promise<Customer> {
+  const data = await apiFetch<{ success: boolean; customer: Customer }>(`/customers/${encodeURIComponent(id)}/marketing-opt-out`, {
+    method: 'PATCH',
+    body: JSON.stringify({ optOut }),
+  });
+  return data.customer;
 }
 
 export async function getCustomerStats(): Promise<CustomerStats> {

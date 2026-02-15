@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Users, RefreshCw, UserCheck, Repeat, TrendingUp } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { StatCard } from '../components/analytics/StatCard';
-import { getCustomers, getCustomerStats, syncCustomers } from '../api';
+import { getCustomers, getCustomerStats, setCustomerMarketingOptOut, syncCustomers } from '../api';
 import { formatCurrency, formatFullDate } from '../lib/utils';
 import { SEGMENT_LABELS, SEGMENT_BADGE_COLORS } from '../lib/constants';
 import type { Customer, CustomerStats } from '../types';
@@ -21,6 +21,7 @@ export function CustomersPage() {
   const [customerOffset, setCustomerOffset] = useState(0);
   const [customerTotal, setCustomerTotal] = useState(0);
   const [customerHasMore, setCustomerHasMore] = useState(false);
+  const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -61,6 +62,24 @@ export function CustomersPage() {
       setSyncMessage(err instanceof Error ? err.message : '同期に失敗しました');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleToggleMarketing = async (customer: Customer) => {
+    setUpdatingCustomerId(customer.id);
+    setSyncMessage('');
+    try {
+      const updatedCustomer = await setCustomerMarketingOptOut(customer.id, !customer.marketingOptOutAt);
+      setCustomers((prev) => prev.map((item) => (item.id === updatedCustomer.id ? updatedCustomer : item)));
+      setSyncMessage(
+        updatedCustomer.marketingOptOutAt
+          ? `${updatedCustomer.email} を配信停止にしました`
+          : `${updatedCustomer.email} の配信停止を解除しました`,
+      );
+    } catch (err) {
+      setSyncMessage(err instanceof Error ? err.message : '配信設定の更新に失敗しました');
+    } finally {
+      setUpdatingCustomerId(null);
     }
   };
 
@@ -186,6 +205,7 @@ export function CustomersPage() {
                     <th className="text-right px-4 py-3 font-medium text-text-secondary">累計購入額</th>
                     <th className="text-left px-4 py-3 font-medium text-text-secondary">最終購入</th>
                     <th className="text-left px-4 py-3 font-medium text-text-secondary">認証</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">メール配信</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -205,6 +225,23 @@ export function CustomersPage() {
                       </td>
                       <td className="px-4 py-3 text-text-secondary text-xs">
                         {customer.authProvider === 'google' ? 'Google' : 'Email'}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={customer.marketingOptOutAt ? 'text-danger' : 'text-green-700'}>
+                            {customer.marketingOptOutAt ? '停止中' : '配信中'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void handleToggleMarketing(customer)}
+                            disabled={updatingCustomerId === customer.id}
+                            className="px-2 py-1 border border-border rounded-md disabled:opacity-50"
+                          >
+                            {updatingCustomerId === customer.id
+                              ? '更新中...'
+                              : customer.marketingOptOutAt ? '解除' : '停止'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

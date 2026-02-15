@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
 import { db } from '../db/index.js';
 import { customers } from '../db/schema.js';
-import { eq, desc, asc, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { syncCustomers, getCustomerStats } from '../lib/customer-sync.js';
 
 export const customersRouter = Router();
@@ -12,16 +12,26 @@ customersRouter.use(requireAuth);
 // GET /api/customers — list customers with pagination
 customersRouter.get('/', (req, res) => {
   try {
-    const { segment, sort, limit: limitParam, offset: offsetParam } = req.query as {
-      segment?: string; sort?: string; limit?: string; offset?: string;
+    const { segment, sort, marketing, limit: limitParam, offset: offsetParam } = req.query as {
+      segment?: string; sort?: string; marketing?: string; limit?: string; offset?: string;
     };
 
     const limit = Math.min(Math.max(Number(limitParam) || 50, 1), 200);
     const offset = Math.max(Number(offsetParam) || 0, 0);
 
-    const whereClause = segment && ['new', 'active', 'lapsed'].includes(segment)
-      ? eq(customers.segment, segment)
-      : undefined;
+    const filters = [];
+    if (segment && ['new', 'active', 'lapsed'].includes(segment)) {
+      filters.push(eq(customers.segment, segment));
+    }
+    if (marketing === 'subscribed') {
+      filters.push(isNull(customers.marketingOptOutAt));
+    } else if (marketing === 'opted_out') {
+      filters.push(isNotNull(customers.marketingOptOutAt));
+    }
+
+    const whereClause = filters.length > 1
+      ? and(...filters)
+      : filters[0];
     const query = whereClause
       ? db.select().from(customers).where(whereClause)
       : db.select().from(customers);
@@ -102,5 +112,46 @@ customersRouter.get('/:id', (req, res) => {
   } catch (error) {
     console.error('Get customer error:', error);
     res.status(500).json({ error: 'Failed to get customer' });
+  }
+});
+
+// PATCH /api/customers/:id/marketing-opt-out — update subscription preference
+customersRouter.patch('/:id/marketing-opt-out', (req, res) => {
+  try {
+    const { optOut } = req.body as { optOut?: unknown };
+    if (typeof optOut !== 'boolean') {
+      res.status(400).json({ error: 'optOut must be boolean' });
+      return;
+    }
+
+    const existing = db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, req.params.id))
+      .get();
+    if (!existing) {
+      res.status(404).json({ error: 'Customer not found' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    db.update(customers)
+      .set({
+        marketingOptOutAt: optOut ? now : null,
+        updatedAt: now,
+      })
+      .where(eq(customers.id, req.params.id))
+      .run();
+
+    const updated = db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, req.params.id))
+      .get();
+
+    res.json({ success: true, customer: updated });
+  } catch (error) {
+    console.error('Update customer marketing opt-out error:', error);
+    res.status(500).json({ error: 'Failed to update customer preference' });
   }
 });

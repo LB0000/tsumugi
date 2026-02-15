@@ -40,6 +40,7 @@ export interface Customer {
   totalOrders: number;
   totalSpent: number;
   segment: 'new' | 'active' | 'lapsed';
+  marketingOptOutAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
