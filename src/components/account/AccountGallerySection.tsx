@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Image, Loader2, ArrowRight, Trash2, X, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../utils/format';
@@ -16,6 +16,9 @@ export function AccountGallerySection({ authUser }: Props) {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const lightboxDialogRef = useRef<HTMLDivElement | null>(null);
+  const lightboxCloseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusedElementRef = useRef<HTMLElement | null>(null);
 
   const userId = authUser.id;
   useEffect(() => {
@@ -45,6 +48,70 @@ export function AccountGallerySection({ authUser }: Props) {
       setDeleteError(error instanceof Error ? error.message : '削除に失敗しました');
     }
   }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxImage(null);
+  }, []);
+
+  useEffect(() => {
+    if (!lightboxImage) return;
+
+    const previousOverflow = document.body.style.overflow;
+    previousFocusedElementRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    document.body.style.overflow = 'hidden';
+
+    const focusTimer = window.setTimeout(() => {
+      lightboxCloseButtonRef.current?.focus();
+    }, 0);
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeLightbox();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+      const dialog = lightboxDialogRef.current;
+      if (!dialog) return;
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute('disabled'));
+
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const activeInDialog = active ? dialog.contains(active) : false;
+
+      if (event.shiftKey) {
+        if (!activeInDialog || active === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (!activeInDialog || active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocusedElementRef.current?.focus();
+    };
+  }, [lightboxImage, closeLightbox]);
 
   return (
     <>
@@ -104,8 +171,9 @@ export function AccountGallerySection({ authUser }: Props) {
                 <button
                   type="button"
                   onClick={() => void handleDeleteGalleryItem(item.id)}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
+                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-black/70"
                   title="削除"
+                  aria-label="作品を削除"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -119,21 +187,31 @@ export function AccountGallerySection({ authUser }: Props) {
       {lightboxImage && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightboxImage(null)}
+          onClick={closeLightbox}
         >
-          <button
-            type="button"
-            onClick={() => setLightboxImage(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={lightboxImage}
-            alt="拡大表示"
-            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          <div
+            ref={lightboxDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="画像の拡大表示"
+            className="relative max-w-full max-h-[90vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <button
+              ref={lightboxCloseButtonRef}
+              type="button"
+              onClick={closeLightbox}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+              aria-label="拡大表示を閉じる"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={lightboxImage}
+              alt="拡大表示"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+          </div>
         </div>
       )}
     </>

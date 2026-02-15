@@ -49,7 +49,13 @@ export function HomePage() {
     resetUpload();
   }, [resetUpload]);
 
-  if (!currentCategory) return null;
+  if (!currentCategory) {
+    return (
+      <div className="flex-1 bg-background bg-washi flex items-center justify-center px-4 py-20">
+        <p className="text-muted text-sm">ページを読み込み中です...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-background bg-washi">

@@ -9,8 +9,16 @@ import { useSquarePayments } from '../hooks/useSquarePayments';
 import { createOrder, processPayment, getAddresses } from '../api';
 import type { SavedAddressItem } from '../api';
 import type { ShippingAddress } from '../types';
-import { trackEvent } from '../lib/analytics';
+import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { giftWrappingOptions, noshiTypes } from '../data/giftOptions';
+import {
+  validateShippingField,
+  validateShippingForm,
+  getFirstShippingError,
+  SHIPPING_FIELD_ORDER,
+  type ShippingField,
+  type ShippingFieldErrors,
+} from './checkout/validation';
 
 const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
@@ -96,6 +104,8 @@ export function CheckoutPage() {
     city: '',
     addressLine: '',
   });
+  const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
 
   const wrappingPrice = useMemo(() => {
     if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
@@ -112,6 +122,12 @@ export function CheckoutPage() {
 
   useEffect(() => {
     trackEvent('begin_checkout');
+    trackMetaInitiateCheckout({
+      num_items: cartItems.length,
+      value: total,
+      currency: 'JPY',
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Redirect if cart is empty
@@ -169,6 +185,7 @@ export function CheckoutPage() {
   }, [authUser]);
 
   const applySavedAddress = (addr: SavedAddressItem) => {
+    formTouchedRef.current = true;
     setForm({
       lastName: addr.lastName,
       firstName: addr.firstName,
@@ -179,35 +196,55 @@ export function CheckoutPage() {
       city: addr.city,
       addressLine: addr.addressLine,
     });
+    setTouchedFields({});
+    setFieldErrors({});
   };
 
-  const updateForm = (field: keyof ShippingAddress, value: string) => {
+  const updateForm = (field: ShippingField, value: string) => {
     formTouchedRef.current = true;
+    setTouchedFields((prev) => ({ ...prev, [field]: true }));
     setForm((prev) => ({ ...prev, [field]: value }));
+    const message = validateShippingField(field, value);
+    setFieldErrors((prevErrors) => ({ ...prevErrors, [field]: message ?? undefined }));
   };
 
   const updateRecipientForm = (field: keyof ShippingAddress, value: string) => {
     setRecipientForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const validateForm = (): string | null => {
-    if (!form.lastName || !form.firstName) return 'お名前を入力してください';
-    if (!form.email || !form.email.includes('@')) return '有効なメールアドレスを入力してください';
-    if (!form.phone) return '電話番号を入力してください';
-    if (!form.postalCode || !/^\d{3}-?\d{4}$/.test(form.postalCode)) return '正しい郵便番号を入力してください（例: 100-0001）';
-    if (!form.prefecture) return '都道府県を選択してください';
-    if (!form.city) return '市区町村を入力してください';
-    if (!form.addressLine) return '番地・建物名を入力してください';
-    return null;
+  const touchAllFields = () => {
+    const touched: Partial<Record<ShippingField, boolean>> = {};
+    for (const field of SHIPPING_FIELD_ORDER) {
+      touched[field] = true;
+    }
+    setTouchedFields(touched);
+  };
+
+  const getFieldError = (field: ShippingField): string | null => {
+    if (!touchedFields[field]) return null;
+    return fieldErrors[field] ?? null;
+  };
+
+  const getFieldInputClass = (field: ShippingField): string => {
+    const hasError = Boolean(getFieldError(field));
+    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
+      hasError
+        ? 'border-sale focus:ring-sale/30'
+        : 'border-border focus:ring-primary/50'
+    }`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch({ type: 'SET_ERROR', payload: null });
 
-    const validationError = validateForm();
+    const errors = validateShippingForm(form);
+    setFieldErrors(errors);
+    touchAllFields();
+
+    const validationError = getFirstShippingError(errors);
     if (validationError) {
-      dispatch({ type: 'SET_ERROR', payload: validationError });
+      dispatch({ type: 'SET_ERROR', payload: `配送先情報: ${validationError}` });
       return;
     }
 
@@ -267,7 +304,19 @@ export function CheckoutPage() {
     }
   };
 
-  if (cartItems.length === 0) return null;
+  if (cartItems.length === 0) {
+    return (
+      <div className="flex-1 bg-background flex items-center justify-center px-4 py-16">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted mb-3">カートを確認しています...</p>
+          <Link to="/cart" className="text-sm text-primary hover:underline">
+            カートへ戻る
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-background">
@@ -542,8 +591,13 @@ export function CheckoutPage() {
                       value={form.lastName}
                       onChange={(e) => updateForm('lastName', e.target.value)}
                       placeholder="山田"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('lastName')}
+                      aria-invalid={Boolean(getFieldError('lastName'))}
+                      aria-describedby={getFieldError('lastName') ? 'lastName-error' : undefined}
                     />
+                    {getFieldError('lastName') && (
+                      <p id="lastName-error" className="mt-1 text-xs text-sale">{getFieldError('lastName')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">名</label>
@@ -553,8 +607,13 @@ export function CheckoutPage() {
                       value={form.firstName}
                       onChange={(e) => updateForm('firstName', e.target.value)}
                       placeholder="太郎"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('firstName')}
+                      aria-invalid={Boolean(getFieldError('firstName'))}
+                      aria-describedby={getFieldError('firstName') ? 'firstName-error' : undefined}
                     />
+                    {getFieldError('firstName') && (
+                      <p id="firstName-error" className="mt-1 text-xs text-sale">{getFieldError('firstName')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">メールアドレス</label>
@@ -564,8 +623,13 @@ export function CheckoutPage() {
                       value={form.email}
                       onChange={(e) => updateForm('email', e.target.value)}
                       placeholder="example@email.com"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('email')}
+                      aria-invalid={Boolean(getFieldError('email'))}
+                      aria-describedby={getFieldError('email') ? 'email-error' : undefined}
                     />
+                    {getFieldError('email') && (
+                      <p id="email-error" className="mt-1 text-xs text-sale">{getFieldError('email')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1">電話番号</label>
@@ -575,8 +639,13 @@ export function CheckoutPage() {
                       value={form.phone}
                       onChange={(e) => updateForm('phone', e.target.value)}
                       placeholder="090-1234-5678"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('phone')}
+                      aria-invalid={Boolean(getFieldError('phone'))}
+                      aria-describedby={getFieldError('phone') ? 'phone-error' : undefined}
                     />
+                    {getFieldError('phone') && (
+                      <p id="phone-error" className="mt-1 text-xs text-sale">{getFieldError('phone')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="postalCode" className="block text-sm font-medium text-foreground mb-1">郵便番号</label>
@@ -587,8 +656,13 @@ export function CheckoutPage() {
                       onChange={(e) => updateForm('postalCode', e.target.value)}
                       placeholder="100-0001"
                       maxLength={8}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('postalCode')}
+                      aria-invalid={Boolean(getFieldError('postalCode'))}
+                      aria-describedby={getFieldError('postalCode') ? 'postalCode-error' : undefined}
                     />
+                    {getFieldError('postalCode') && (
+                      <p id="postalCode-error" className="mt-1 text-xs text-sale">{getFieldError('postalCode')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="prefecture" className="block text-sm font-medium text-foreground mb-1">都道府県</label>
@@ -596,13 +670,18 @@ export function CheckoutPage() {
                       id="prefecture"
                       value={form.prefecture}
                       onChange={(e) => updateForm('prefecture', e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('prefecture')}
+                      aria-invalid={Boolean(getFieldError('prefecture'))}
+                      aria-describedby={getFieldError('prefecture') ? 'prefecture-error' : undefined}
                     >
                       <option value="">選択してください</option>
                       {PREFECTURES.map((pref) => (
                         <option key={pref} value={pref}>{pref}</option>
                       ))}
                     </select>
+                    {getFieldError('prefecture') && (
+                      <p id="prefecture-error" className="mt-1 text-xs text-sale">{getFieldError('prefecture')}</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="city" className="block text-sm font-medium text-foreground mb-1">市区町村</label>
@@ -612,8 +691,13 @@ export function CheckoutPage() {
                       value={form.city}
                       onChange={(e) => updateForm('city', e.target.value)}
                       placeholder="千代田区"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('city')}
+                      aria-invalid={Boolean(getFieldError('city'))}
+                      aria-describedby={getFieldError('city') ? 'city-error' : undefined}
                     />
+                    {getFieldError('city') && (
+                      <p id="city-error" className="mt-1 text-xs text-sale">{getFieldError('city')}</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="addressLine" className="block text-sm font-medium text-foreground mb-1">番地・建物名</label>
@@ -623,8 +707,13 @@ export function CheckoutPage() {
                       value={form.addressLine}
                       onChange={(e) => updateForm('addressLine', e.target.value)}
                       placeholder="千代田1-1 〇〇ビル 101号室"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getFieldInputClass('addressLine')}
+                      aria-invalid={Boolean(getFieldError('addressLine'))}
+                      aria-describedby={getFieldError('addressLine') ? 'addressLine-error' : undefined}
                     />
+                    {getFieldError('addressLine') && (
+                      <p id="addressLine-error" className="mt-1 text-xs text-sale">{getFieldError('addressLine')}</p>
+                    )}
                   </div>
                 </div>
               </section>

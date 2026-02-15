@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle, Share2 } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle, Share2, Loader2 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
 import { ShareButtons } from '../components/common/ShareButtons';
-import { trackEvent } from '../lib/analytics';
+import { trackEvent, trackMetaAddToCart } from '../lib/analytics';
 import { updateMetaTags } from '../lib/seo';
 
 type ProductOption = (typeof products)[number];
@@ -62,10 +62,32 @@ export function ResultPage() {
     });
   }, [generatedImage, selectedStyle]);
 
-  if (!generatedImage || !selectedStyle) return null;
+  if (!generatedImage || !selectedStyle) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted mb-3">結果画面へ移動しています...</p>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="text-sm text-primary hover:underline"
+          >
+            トップに戻る
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddToCart = (product: ProductOption) => {
     trackEvent('add_to_cart', { productId: product.id, price: product.price });
+    trackMetaAddToCart({
+      content_ids: [product.id],
+      content_type: 'product',
+      value: product.price,
+      currency: 'JPY',
+    });
     addToCart({
       productId: product.id,
       name: product.name,
