@@ -5,4 +5,5 @@ export const config = {
   squareEnvironment: (import.meta.env.VITE_SQUARE_ENVIRONMENT || 'sandbox') as 'production' | 'sandbox',
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
   gtmId: import.meta.env.VITE_GTM_ID || '',
+  metaPixelId: import.meta.env.VITE_META_PIXEL_ID || '',
 } as const;

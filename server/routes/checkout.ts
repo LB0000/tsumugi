@@ -10,6 +10,7 @@ import { logger } from '../lib/logger.js';
 import { sendOrderConfirmationEmail } from '../lib/email.js';
 import { scheduleReviewRequestEmail } from '../lib/scheduledEmails.js';
 import { sendPurchaseEvent } from '../lib/metaConversions.js';
+import { config } from '../config.js';
 
 const processPaymentInputSchema = z.object({
   sourceId: z.string().min(1),
@@ -28,7 +29,7 @@ import {
 import { getUserBySessionToken } from '../lib/auth.js';
 import { locationId, squareClient } from '../lib/square.js';
 import { validateCoupon, applyDiscount, useCoupon } from '../lib/coupon.js';
-import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
+import { extractSessionTokenFromHeaders, parseCookies, type HeaderMap } from '../lib/requestAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 
@@ -581,6 +582,9 @@ checkoutRouter.post('/process-payment', async (req, res) => {
 
       // Send Meta Conversions API Purchase event (server-side)
       const contentIds = (existingStatus?.items ?? []).map((item: { productId: string }) => item.productId);
+      const cookies = parseCookies(
+        typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined,
+      );
       void sendPurchaseEvent({
         eventId: `purchase-${normalizedOrderId}-${paymentId}`,
         orderId: normalizedOrderId,
@@ -592,7 +596,10 @@ checkoutRouter.post('/process-payment', async (req, res) => {
           phone: existingStatus?.shippingAddress?.phone,
           clientIpAddress: req.ip,
           clientUserAgent: req.headers['user-agent'] ?? undefined,
+          fbc: cookies.get('_fbc'),
+          fbp: cookies.get('_fbp'),
         },
+        eventSourceUrl: req.headers.referer || config.FRONTEND_URL || undefined,
       });
     }
 

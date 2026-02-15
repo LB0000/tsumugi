@@ -1,6 +1,7 @@
 declare global {
   interface Window {
     dataLayer: Record<string, unknown>[];
+    fbq?: (...args: unknown[]) => void;
   }
 }
 
@@ -33,4 +34,34 @@ export function trackPageView(page: string, title: string): void {
 
 export function trackEcommerce(action: string, data: Record<string, unknown>): void {
   trackEvent(action, { ecommerce: data });
+}
+
+// ---- Meta Pixel (fbq) ----
+
+function fbq(eventName: string, params?: Record<string, unknown>, eventId?: string): void {
+  if (typeof window.fbq !== 'function') return;
+  const options = eventId ? { eventID: eventId } : undefined;
+  if (params && options) {
+    window.fbq('track', eventName, params, options);
+  } else if (params) {
+    window.fbq('track', eventName, params);
+  } else {
+    window.fbq('track', eventName);
+  }
+}
+
+export function trackMetaViewContent(params: { content_name: string; content_ids?: string[]; content_type?: string; value?: number; currency?: string }): void {
+  fbq('ViewContent', params);
+}
+
+export function trackMetaAddToCart(params: { content_ids: string[]; content_type: string; value: number; currency: string }): void {
+  fbq('AddToCart', params);
+}
+
+export function trackMetaInitiateCheckout(params: { content_ids?: string[]; num_items?: number; value?: number; currency?: string }): void {
+  fbq('InitiateCheckout', params);
+}
+
+export function trackMetaPurchase(params: { content_ids: string[]; content_type: string; value: number; currency: string }, eventId?: string): void {
+  fbq('Purchase', params, eventId);
 }

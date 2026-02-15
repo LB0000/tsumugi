@@ -22,7 +22,8 @@ galleryRouter.get('/', requireAuth, (req, res) => {
 // GET /api/gallery/:id/image — serve full image
 galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
-  const item = getGalleryItem(req.params.id);
+  const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  const item = getGalleryItem(itemId);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
     return;
@@ -44,7 +45,8 @@ galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
 // GET /api/gallery/:id/thumbnail — serve thumbnail
 galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
-  const item = getGalleryItem(req.params.id);
+  const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  const item = getGalleryItem(itemId);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
     return;
@@ -66,7 +68,8 @@ galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
 // DELETE /api/gallery/:id — delete a gallery item
 galleryRouter.delete('/:id', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
-  const deleted = await deleteGalleryItem(user.id, req.params.id);
+  const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  const deleted = await deleteGalleryItem(user.id, itemId);
   if (!deleted) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
     return;

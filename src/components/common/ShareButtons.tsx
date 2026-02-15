@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { trackEvent } from '../../lib/analytics';
 
 interface ShareButtonsProps {
   url: string;
@@ -32,16 +33,23 @@ function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
+function appendUtm(baseUrl: string, medium: string): string {
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  return `${baseUrl}${sep}utm_source=${encodeURIComponent(medium)}&utm_medium=social&utm_campaign=share`;
+}
+
 export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
-  const encodedUrl = encodeURIComponent(url);
-  const encodedTitle = encodeURIComponent(title);
+  const handleShare = (platform: string) => {
+    trackEvent('share', { platform, url });
+  };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(appendUtm(url, 'copy_link'));
       setCopied(true);
+      trackEvent('share', { platform: 'copy_link', url });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback: do nothing
@@ -51,19 +59,19 @@ export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) 
   const shareTargets = [
     {
       name: 'LINE',
-      href: `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`,
+      href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(appendUtm(url, 'line'))}`,
       color: '#06C755',
       icon: LineIcon,
     },
     {
       name: 'X',
-      href: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
+      href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(appendUtm(url, 'twitter'))}`,
       color: '#000000',
       icon: XIcon,
     },
     {
       name: 'Facebook',
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appendUtm(url, 'facebook'))}`,
       color: '#1877F2',
       icon: FacebookIcon,
     },
@@ -77,6 +85,7 @@ export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) 
           href={target.href}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => handleShare(target.name.toLowerCase())}
           aria-label={`${target.name}でシェア`}
           className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-transform duration-200 hover:scale-110"
           style={{ backgroundColor: target.color }}

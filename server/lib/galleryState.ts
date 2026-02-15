@@ -86,7 +86,7 @@ function parseDataUrl(dataUrl: string): { mimeType: string; data: Buffer; ext: s
 
 async function withUserLock<T>(userId: string, task: () => Promise<T>): Promise<T> {
   const previous = userLocks.get(userId) ?? Promise.resolve();
-  let release: (() => void) | null = null;
+  let release: ((value: void) => void) | undefined;
   const current = new Promise<void>((resolve) => {
     release = resolve;
   });

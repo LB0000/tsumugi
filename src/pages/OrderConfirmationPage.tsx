@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react';
 import { useLocation, Link, Navigate } from 'react-router-dom';
 import { CheckCircle, Package, Mail, ExternalLink } from 'lucide-react';
 import { StyledButton, Breadcrumb, ShareButtons } from '../components/common';
 import { ReviewForm } from '../components/reviews/ReviewForm';
+import { trackMetaPurchase } from '../lib/analytics';
 import type { ShippingAddress } from '../types';
 
 interface OrderState {
@@ -26,6 +28,19 @@ export function OrderConfirmationPage() {
   const location = useLocation();
   const state = location.state as OrderState | null;
   const safeReceiptUrl = getSafeReceiptUrl(state?.receiptUrl);
+  const purchaseTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (state?.orderId && state?.paymentId && !purchaseTrackedRef.current) {
+      purchaseTrackedRef.current = true;
+      trackMetaPurchase({
+        content_ids: [],
+        content_type: 'product',
+        value: state.totalAmount,
+        currency: 'JPY',
+      }, `purchase-${state.orderId}-${state.paymentId}`);
+    }
+  }, [state]);
 
   if (!state?.orderId) {
     return <Navigate to="/" replace />;
