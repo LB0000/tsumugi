@@ -13,9 +13,9 @@ const envSchema = z.object({
   SQUARE_WEBHOOK_SIGNATURE_KEY: z.string().optional(),
   SQUARE_WEBHOOK_NOTIFICATION_URL: z.string().url().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
-  RESEND_API_KEY: isProduction ? z.string().min(1) : z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
   FROM_EMAIL: z.string().optional(),
-  SESSION_SECRET: isProduction ? z.string().min(16) : z.string().min(1).optional(),
+  SESSION_SECRET: z.string().optional(),
   INTERNAL_API_KEY: z.string().optional(),
   TSUMUGI_ADMIN_API_URL: z.string().url().optional(),
 });
