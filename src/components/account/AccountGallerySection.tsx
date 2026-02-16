@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Image, Loader2, ArrowRight, Trash2, X, AlertCircle } from 'lucide-react';
 import { formatDate } from '../../utils/format';
 import { getGallery, getGalleryThumbnailUrl, getGalleryImageUrl, deleteGalleryItem } from '../../api';
+import { AuthImage } from '../common/AuthImage';
 import type { GalleryItemData } from '../../api';
 import type { AuthUser } from '../../types';
 
@@ -157,11 +158,16 @@ export function AccountGallerySection({ authUser }: Props) {
                   onClick={() => setLightboxImage(getGalleryImageUrl(item.id))}
                   className="block w-full aspect-square"
                 >
-                  <img
+                  <AuthImage
                     src={getGalleryThumbnailUrl(item.id)}
                     alt={item.artStyleName}
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    fallback={
+                      <div className="w-full h-full bg-card-hover flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted" />
+                      </div>
+                    }
                   />
                 </button>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
@@ -206,10 +212,15 @@ export function AccountGallerySection({ authUser }: Props) {
             >
               <X className="w-6 h-6" />
             </button>
-            <img
+            <AuthImage
               src={lightboxImage}
               alt="拡大表示"
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              fallback={
+                <div className="flex items-center justify-center p-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-white" />
+                </div>
+              }
             />
           </div>
         </div>
