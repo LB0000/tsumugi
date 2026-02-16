@@ -17,23 +17,35 @@ export interface CsrfResponse {
   csrfToken: string;
 }
 
+let pendingCsrfRequest: Promise<string> | null = null;
+
 export async function getFreshCsrfToken(): Promise<string> {
-  const response = await fetchWithTimeout(`${API_BASE}/auth/csrf`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+  if (pendingCsrfRequest) return pendingCsrfRequest;
 
-  const data: unknown = await response.json();
-  if (!response.ok || isErrorResponse(data)) {
-    const errorMessage = isErrorResponse(data) ? data.error.message : 'CSRFトークンの取得に失敗しました';
-    throw new Error(errorMessage);
+  pendingCsrfRequest = (async () => {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/csrf`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    const data: unknown = await response.json();
+    if (!response.ok || isErrorResponse(data)) {
+      const errorMessage = isErrorResponse(data) ? data.error.message : 'CSRFトークンの取得に失敗しました';
+      throw new Error(errorMessage);
+    }
+
+    if (!isCsrfResponse(data)) {
+      throw new Error('Invalid csrf response format');
+    }
+
+    return data.csrfToken;
+  })();
+
+  try {
+    return await pendingCsrfRequest;
+  } finally {
+    pendingCsrfRequest = null;
   }
-
-  if (!isCsrfResponse(data)) {
-    throw new Error('Invalid csrf response format');
-  }
-
-  return data.csrfToken;
 }
 
 export async function buildAuthPostHeaders(): Promise<Record<string, string>> {
