@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { timingSafeEqual } from 'crypto';
 import { getAllPublicUsers, getUserCreatedAt } from '../lib/auth.js';
 import { getAllOrdersGroupedByUserId } from '../lib/checkoutState.js';
+import { getStyleAnalytics } from '../lib/styleAnalytics.js';
 
 export const internalRouter = Router();
 
@@ -76,4 +77,13 @@ internalRouter.get('/customers', (req, res) => {
       nextOffset: nextOffset < total ? nextOffset : null,
     },
   });
+});
+
+// GET /api/internal/style-analytics — returns style generation counts
+internalRouter.get('/style-analytics', (_req, res) => {
+  try {
+    res.json(getStyleAnalytics());
+  } catch {
+    res.status(500).json({ error: 'Failed to get style analytics' });
+  }
 });

@@ -7,6 +7,7 @@ import { analyticsRouter } from './routes/analytics.js';
 import { contentRouter } from './routes/content.js';
 import { customersRouter } from './routes/customers.js';
 import { campaignsRouter } from './routes/campaigns.js';
+import { styleAnalyticsRouter } from './routes/style-analytics.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -61,6 +62,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/content', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'content-generate' }), contentRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/campaigns', createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'campaigns' }), campaignsRouter);
+app.use('/api/style-analytics', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'style-analytics' }), styleAnalyticsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

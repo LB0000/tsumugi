@@ -283,3 +283,19 @@ export async function toggleCoupon(id: string, isActive: boolean): Promise<Coupo
     body: JSON.stringify({ isActive }),
   });
 }
+
+// Style Analytics API
+export interface StyleAnalyticsData {
+  styles: Array<{
+    styleId: string;
+    styleName: string;
+    category: string;
+    count: number;
+    lastUsedAt: string;
+  }>;
+  totalGenerations: number;
+}
+
+export async function getStyleAnalytics(): Promise<StyleAnalyticsData> {
+  return apiFetch<StyleAnalyticsData>('/style-analytics');
+}

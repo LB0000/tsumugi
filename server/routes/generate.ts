@@ -6,6 +6,7 @@ import { addGalleryItem } from '../lib/galleryState.js';
 import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { logger } from '../lib/logger.js';
+import { recordStyleUsage } from '../lib/styleAnalytics.js';
 
 export const generateRouter = Router();
 generateRouter.use(csrfProtection());
@@ -380,6 +381,7 @@ CRITICAL REQUIREMENTS:
     }
 
     logger.info('Image generation successful', { requestId: req.requestId });
+    try { recordStyleUsage(styleId, styleNameMap[styleId] || styleId, category); } catch { /* analytics best-effort */ }
 
     // Generate project ID
     const projectId = `proj_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 9)}`;

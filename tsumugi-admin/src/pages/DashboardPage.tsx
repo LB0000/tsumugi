@@ -4,14 +4,17 @@ import { Header } from '../components/layout/Header';
 import { StatCard } from '../components/analytics/StatCard';
 import { RevenueChart } from '../components/analytics/RevenueChart';
 import { ProductBreakdown } from '../components/analytics/ProductBreakdown';
-import { getAnalyticsSummary, getCustomerStats } from '../api';
+import { StylePopularity } from '../components/analytics/StylePopularity';
+import { getAnalyticsSummary, getCustomerStats, getStyleAnalytics } from '../api';
 import { formatCurrency } from '../lib/utils';
 import { SEGMENT_LABELS, SEGMENT_BAR_COLORS } from '../lib/constants';
 import type { AnalyticsSummary, CustomerStats } from '../types';
+import type { StyleAnalyticsData } from '../api';
 
 export function DashboardPage() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [customerStats, setCustomerStats] = useState<CustomerStats | null>(null);
+  const [styleData, setStyleData] = useState<StyleAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [days, setDays] = useState(30);
@@ -28,12 +31,14 @@ export function DashboardPage() {
     setError('');
 
     try {
-      const [analytics, stats] = await Promise.all([
+      const [analytics, stats, styles] = await Promise.all([
         getAnalyticsSummary(startDate, endDate),
         getCustomerStats(),
+        getStyleAnalytics().catch(() => null),
       ]);
       setData(analytics);
       setCustomerStats(stats);
+      setStyleData(styles);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
     } finally {
@@ -161,6 +166,11 @@ export function DashboardPage() {
               <RevenueChart data={data.daily} />
               <ProductBreakdown data={data.daily} />
             </div>
+
+            {/* Style Analytics */}
+            {styleData && styleData.styles.length > 0 && (
+              <StylePopularity data={styleData} />
+            )}
           </>
         )}
       </div>
