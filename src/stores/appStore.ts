@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId } from '../types';
 import { artStyles } from '../data/artStyles';
 
@@ -65,7 +66,7 @@ const initialUploadState: UploadState = {
   rawFile: null
 };
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>()(persist((set) => ({
 
   // Category
   selectedCategory: 'pets',
@@ -120,4 +121,32 @@ export const useAppStore = create<AppState>((set) => ({
   giftOptions: null,
   setGiftOptions: (options) => set({ giftOptions: options }),
   clearGiftOptions: () => set({ giftOptions: null }),
+}), {
+  name: 'tsumugi-app',
+  storage: {
+    getItem: (name) => {
+      try {
+        const value = sessionStorage.getItem(name);
+        return value ? JSON.parse(value) : null;
+      } catch {
+        sessionStorage.removeItem(name);
+        return null;
+      }
+    },
+    setItem: (name, value) => {
+      try {
+        sessionStorage.setItem(name, JSON.stringify(value));
+      } catch {
+        // sessionStorage quota exceeded — graceful degradation
+      }
+    },
+    removeItem: (name) => {
+      sessionStorage.removeItem(name);
+    },
+  },
+  partialize: (state) => ({
+    generatedImage: state.generatedImage,
+    selectedStyle: state.selectedStyle,
+    gallerySaved: state.gallerySaved,
+  } as AppState),
 }));

@@ -71,8 +71,9 @@ function PageErrorFallback() {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { authUser, authLoading } = useAuthStore();
+  const location = useLocation();
   if (authLoading) return <LoadingSpinner />;
-  if (!authUser) return <Navigate to="/login" replace />;
+  if (!authUser) return <Navigate to="/login" state={{ returnTo: location.pathname + location.search + location.hash }} replace />;
   return <>{children}</>;
 }
 

@@ -364,15 +364,15 @@ export function GeneratePreview() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <StyledButton variant="ghost" onClick={handleStartOver}>
+            <StyledButton variant="outline" onClick={handleStartOver}>
               <RefreshCw className="w-4 h-4" />
-              やり直す
+              新しい写真で作成
             </StyledButton>
-            <StyledButton variant="secondary" size="lg">
+            <StyledButton variant="secondary" size="lg" onClick={() => navigate('/result')}>
               <Download className="w-5 h-5" />
               ダウンロード (¥2,900)
             </StyledButton>
-            <StyledButton size="lg">
+            <StyledButton size="lg" onClick={() => navigate('/result')}>
               <ShoppingCart className="w-5 h-5" />
               プリント注文
             </StyledButton>

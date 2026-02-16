@@ -34,14 +34,28 @@ export function ResultPage() {
   }, [handleScroll]);
 
   // Redirect to home if store has no data (e.g. direct navigation or page reload)
+  // Wait for Zustand persist rehydration before checking
   const mountCheckRef = useRef(false);
   useEffect(() => {
     if (mountCheckRef.current) return;
-    mountCheckRef.current = true;
-    if (!generatedImage || !selectedStyle) {
-      navigate('/');
+
+    const check = () => {
+      mountCheckRef.current = true;
+      const { generatedImage: img, selectedStyle: style } = useAppStore.getState();
+      if (!img || !style) {
+        navigate('/');
+      }
+    };
+
+    if (useAppStore.persist.hasHydrated()) {
+      check();
+    } else {
+      const unsubscribe = useAppStore.persist.onFinishHydration(() => {
+        check();
+        unsubscribe();
+      });
     }
-  }, [generatedImage, selectedStyle, navigate]);
+  }, [navigate]);
 
   // Save only IDs to sessionStorage (no base64 image data)
   useEffect(() => {

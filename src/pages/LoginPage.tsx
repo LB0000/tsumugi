@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Loader2 } from 'lucide-react';
 import { StyledButton } from '../components/common/StyledButton';
 import { loginAuth, registerAuth, loginWithGoogle } from '../api';
@@ -11,6 +11,9 @@ const GOOGLE_CLIENT_ID = config.googleClientId;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const rawReturnTo = (location.state as { returnTo?: string } | null)?.returnTo;
+  const returnTo = rawReturnTo?.startsWith('/') && !rawReturnTo.startsWith('//') ? rawReturnTo : '/';
   const { authUser, setAuthSession } = useAuthStore();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -26,9 +29,9 @@ export function LoginPage() {
 
   useEffect(() => {
     if (authUser) {
-      navigate('/', { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [authUser, navigate]);
+  }, [authUser, navigate, returnTo]);
 
   const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
     setErrorMessage(null);
@@ -36,7 +39,7 @@ export function LoginPage() {
     try {
       const result = await loginWithGoogle(response.credential);
       setAuthSession(result.user, result.sessionToken);
-      navigate('/', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Googleログインに失敗しました';
       setErrorMessage(message);
@@ -46,7 +49,7 @@ export function LoginPage() {
     } finally {
       setIsGoogleLoading(false);
     }
-  }, [setAuthSession, navigate]);
+  }, [setAuthSession, navigate, returnTo]);
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID || authUser) return;
@@ -109,7 +112,7 @@ export function LoginPage() {
         });
         setAuthSession(response.user, response.sessionToken);
         trackEvent('login');
-        navigate('/', { replace: true });
+        navigate(returnTo, { replace: true });
       } else {
         const normalizedName = name.trim();
         if (normalizedName.length === 0) {
@@ -124,7 +127,7 @@ export function LoginPage() {
         setAuthSession(response.user, response.sessionToken);
         trackEvent('sign_up');
         setSuccessMessage('登録完了！確認メールを送信しました。メールのリンクをクリックして認証を完了してください。');
-        setTimeout(() => navigate('/', { replace: true }), 3000);
+        setTimeout(() => navigate(returnTo, { replace: true }), 3000);
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '認証処理に失敗しました');
