@@ -1,0 +1,8 @@
+# Force Node.js provider only (prevent Caddy for Vite static site detection)
+providers = ['node']
+
+[phases.build]
+cmds = ['npm run build']
+
+[start]
+cmd = 'npm run start'
