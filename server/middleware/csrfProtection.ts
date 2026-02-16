@@ -37,6 +37,17 @@ export function csrfProtection(options?: {
       return;
     }
 
+    // In production with verified Origin, skip cookie token check.
+    // The Origin header cannot be spoofed by JavaScript and provides
+    // sufficient CSRF protection when it matches our FRONTEND_URL.
+    // This avoids failures when browsers block third-party cookies
+    // (e.g., frontend on Vercel and backend on Railway).
+    if (isProduction && originHeader && frontendUrl && originHeader === frontendUrl) {
+      next();
+      return;
+    }
+
+    // In development (or when Origin is absent), fall back to double-submit cookie check
     const headers = req.headers as HeaderMap;
     const csrfCookie = extractCsrfTokenFromCookie(headers);
     const csrfHeader = extractCsrfTokenFromHeader(headers);
