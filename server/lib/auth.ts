@@ -1,19 +1,13 @@
 import path from 'path';
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual, type ScryptOptions } from 'crypto';
+import { randomBytes } from 'crypto';
 
 import { readJsonFile, writeJsonAtomic } from './persistence.js';
 import { logger } from './logger.js';
+import { hashPassword, verifyPassword } from './auth/password.js';
+import { initAddressManager, getSavedAddresses, addSavedAddress, deleteSavedAddress } from './auth/savedAddresses.js';
 
-const SCRYPT_OPTIONS: ScryptOptions = { cost: 16384, blockSize: 8, parallelization: 1 };
-
-function scryptAsync(password: string, salt: string, keylen: number, options: ScryptOptions): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    scryptCallback(password, salt, keylen, options, (err, derivedKey) => {
-      if (err) reject(err);
-      else resolve(derivedKey);
-    });
-  });
-}
+// Re-export address functions for consumers that import from auth.js
+export { getSavedAddresses, addSavedAddress, deleteSavedAddress };
 
 export interface SavedAddress {
   id: string;
@@ -79,6 +73,7 @@ interface PersistedAuthState {
 
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 30;
 const AUTH_STORE_PATH = path.resolve(process.cwd(), 'server', '.data', 'auth-store.json');
 
 const usersByEmail = new Map<string, UserRecord>();
@@ -87,7 +82,8 @@ const sessionsByToken = new Map<string, SessionRecord>();
 const resetTokensByToken = new Map<string, ResetTokenRecord>();
 const verificationTokensByToken = new Map<string, VerificationTokenRecord>();
 let persistQueue: Promise<void> = Promise.resolve();
-const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 30;
+
+// --- Type guards ---
 
 function isUserRecord(value: unknown): value is UserRecord {
   if (typeof value !== 'object' || value === null) return false;
@@ -103,7 +99,6 @@ function isUserRecord(value: unknown): value is UserRecord {
   );
 }
 
-// 既存ユーザーのフィールドが欠落している場合のマイグレーション
 function migrateUserRecord(user: UserRecord): void {
   if (!user.authProvider) {
     (user as UserRecord).authProvider = 'email';
@@ -132,6 +127,8 @@ function isResetTokenRecord(value: unknown): value is ResetTokenRecord {
     typeof obj.expiresAt === 'number'
   );
 }
+
+// --- Persistence ---
 
 function persistAuthState(): void {
   const snapshot: PersistedAuthState = {
@@ -187,6 +184,8 @@ function hydrateAuthState(): void {
   }
 }
 
+// --- Helpers ---
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -209,18 +208,7 @@ function toPublicUser(user: UserRecord): AuthPublicUser {
   };
 }
 
-async function hashPassword(password: string, salt: string): Promise<string> {
-  const raw = await scryptAsync(password, salt, 64, SCRYPT_OPTIONS) as Buffer;
-  return raw.toString('hex');
-}
-
-async function verifyPassword(password: string, salt: string, expectedHash: string): Promise<boolean> {
-  const actualHash = await hashPassword(password, salt);
-  const actual = Buffer.from(actualHash, 'hex');
-  const expected = Buffer.from(expectedHash, 'hex');
-  if (actual.length !== expected.length) return false;
-  return timingSafeEqual(actual, expected);
-}
+// --- Sessions ---
 
 function createSession(userId: string): string {
   const token = createToken('sess');
@@ -239,6 +227,8 @@ function invalidateSessionsForUser(userId: string): boolean {
   }
   return changed;
 }
+
+// --- Public API: User management ---
 
 export async function registerUser(params: { name: string; email: string; password: string }): Promise<{ user: AuthPublicUser; token: string }> {
   const email = normalizeEmail(params.email);
@@ -317,6 +307,8 @@ export function logoutSession(token: string): void {
   }
 }
 
+// --- Public API: Password reset ---
+
 export function requestPasswordReset(emailInput: string): string | null {
   const email = normalizeEmail(emailInput);
   const user = usersByEmail.get(email);
@@ -361,6 +353,8 @@ export async function resetPassword(params: { token: string; newPassword: string
   return { user: toPublicUser(user), token };
 }
 
+// --- Public API: Google auth ---
+
 export function registerOrLoginWithGoogle(params: { email: string; name: string }): { user: AuthPublicUser; token: string } {
   const email = normalizeEmail(params.email);
   const existing = usersByEmail.get(email);
@@ -394,6 +388,8 @@ export function registerOrLoginWithGoogle(params: { email: string; name: string 
   persistAuthState();
   return { user: toPublicUser(user), token };
 }
+
+// --- Public API: Profile ---
 
 export async function updateUserProfile(userId: string, params: { name: string }): Promise<AuthPublicUser> {
   const user = usersById.get(userId);
@@ -431,38 +427,9 @@ export async function changeUserPassword(
   return { token };
 }
 
-function cleanupExpiredRecords(): void {
-  const now = Date.now();
-  let changed = false;
-
-  for (const [token, session] of sessionsByToken.entries()) {
-    if (session.expiresAt <= now) {
-      sessionsByToken.delete(token);
-      changed = true;
-    }
-  }
-
-  for (const [token, resetToken] of resetTokensByToken.entries()) {
-    if (resetToken.expiresAt <= now) {
-      resetTokensByToken.delete(token);
-      changed = true;
-    }
-  }
-
-  for (const [token, vToken] of verificationTokensByToken.entries()) {
-    if (vToken.expiresAt <= now) {
-      verificationTokensByToken.delete(token);
-      changed = true;
-    }
-  }
-
-  if (changed) {
-    persistAuthState();
-  }
-}
+// --- Public API: Email verification ---
 
 export function createVerificationToken(userId: string): string {
-  // Invalidate existing verification tokens for this user
   for (const [token, record] of verificationTokensByToken.entries()) {
     if (record.userId === userId) {
       verificationTokensByToken.delete(token);
@@ -504,6 +471,8 @@ export function getUserEmailForVerification(userId: string): string | null {
   return user?.email ?? null;
 }
 
+// --- Public API: Admin queries ---
+
 export function getAllPublicUsers(): AuthPublicUser[] {
   return [...usersById.values()].map(toPublicUser);
 }
@@ -512,54 +481,47 @@ export function getUserCreatedAt(userId: string): string | null {
   return usersById.get(userId)?.createdAt ?? null;
 }
 
-const MAX_SAVED_ADDRESSES = 3;
+// --- Cleanup ---
 
-export function getSavedAddresses(userId: string): SavedAddress[] {
-  const user = usersById.get(userId);
-  return user?.savedAddresses ?? [];
-}
+function cleanupExpiredRecords(): void {
+  const now = Date.now();
+  let changed = false;
 
-export function addSavedAddress(userId: string, address: Omit<SavedAddress, 'id' | 'createdAt'>): SavedAddress {
-  const user = usersById.get(userId);
-  if (!user) throw new Error('USER_NOT_FOUND');
-
-  if (!user.savedAddresses) user.savedAddresses = [];
-
-  if (user.savedAddresses.length >= MAX_SAVED_ADDRESSES) {
-    throw new Error('MAX_ADDRESSES_REACHED');
+  for (const [token, session] of sessionsByToken.entries()) {
+    if (session.expiresAt <= now) {
+      sessionsByToken.delete(token);
+      changed = true;
+    }
   }
 
-  // If this is set as default, unset others (immutable update)
-  if (address.isDefault) {
-    user.savedAddresses = user.savedAddresses.map(addr =>
-      addr.isDefault ? { ...addr, isDefault: false } : addr
-    );
+  for (const [token, resetToken] of resetTokensByToken.entries()) {
+    if (resetToken.expiresAt <= now) {
+      resetTokensByToken.delete(token);
+      changed = true;
+    }
   }
 
-  const saved: SavedAddress = {
-    ...address,
-    id: createId('addr'),
-    createdAt: new Date().toISOString(),
-  };
+  for (const [token, vToken] of verificationTokensByToken.entries()) {
+    if (vToken.expiresAt <= now) {
+      verificationTokensByToken.delete(token);
+      changed = true;
+    }
+  }
 
-  user.savedAddresses.push(saved);
-  user.updatedAt = new Date().toISOString();
-  persistAuthState();
-  return saved;
+  if (changed) {
+    persistAuthState();
+  }
 }
 
-export function deleteSavedAddress(userId: string, addressId: string): boolean {
-  const user = usersById.get(userId);
-  if (!user || !user.savedAddresses) return false;
-
-  const idx = user.savedAddresses.findIndex((a) => a.id === addressId);
-  if (idx === -1) return false;
-
-  user.savedAddresses.splice(idx, 1);
-  user.updatedAt = new Date().toISOString();
-  persistAuthState();
-  return true;
-}
+// --- Initialize ---
 
 hydrateAuthState();
+
+// Wire up address manager with auth internals
+initAddressManager({
+  getUserById: (id) => usersById.get(id),
+  createId,
+  persistAuthState,
+});
+
 setInterval(cleanupExpiredRecords, 60_000).unref();

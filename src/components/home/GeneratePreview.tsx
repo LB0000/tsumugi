@@ -1,32 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame, ScanFace, Paintbrush, Layers, Contrast, X } from 'lucide-react';
+import { Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
-import { StyledButton } from '../common/StyledButton';
-import { CircularProgress } from './CircularProgress';
-import { StyleInfoPanel } from './StyleInfoPanel';
 import { trackEvent } from '../../lib/analytics';
-
-// 9段階マイクロステージ
-const generationStages = [
-  { icon: Camera, label: '写真を読み込んでいます', duration: 1000, progress: 8 },
-  { icon: ScanFace, label: '顔と表情を分析中', duration: 1200, progress: 18 },
-  { icon: Sparkles, label: 'スタイルを理解中', duration: 1500, progress: 30 },
-  { icon: Palette, label: '色彩を調和中', duration: 1800, progress: 45 },
-  { icon: Paintbrush, label: '筆致を再現中', duration: 1600, progress: 58 },
-  { icon: Wand2, label: 'ディテールを描き込み中', duration: 1400, progress: 70 },
-  { icon: Layers, label: 'テクスチャを重ねています', duration: 1200, progress: 82 },
-  { icon: Contrast, label: '明暗を調整中', duration: 1000, progress: 92 },
-  { icon: Frame, label: '最終仕上げ中', duration: 2300, progress: 98 },
-];
-
-function getEncouragingMessage(stage: number) {
-  if (stage < 3) return '素敵に仕上げています...';
-  if (stage < 6) return '細部まで丁寧に...';
-  if (stage < 8) return 'もうすぐ完成です！';
-  return '完成間近です！';
-}
+import { generationStages } from './generate-preview/generationStages';
+import { GeneratingUI } from './generate-preview/GeneratingUI';
+import { ResultSection } from './generate-preview/ResultSection';
 
 export function GeneratePreview() {
   const {
@@ -36,7 +16,7 @@ export function GeneratePreview() {
     generatedImage,
     setGeneratedImage,
     setGallerySaved,
-    resetUpload
+    resetUpload,
   } = useAppStore();
   const navigate = useNavigate();
 
@@ -146,7 +126,7 @@ export function GeneratePreview() {
       const result = await generateImage({
         file: uploadState.rawFile,
         styleId: selectedStyle.id,
-        category: selectedCategory
+        category: selectedCategory,
       }, controller.signal);
 
       setGeneratedImage(result.generatedImage);
@@ -166,16 +146,12 @@ export function GeneratePreview() {
     abortRef.current?.abort();
   };
 
-  const handleStartOver = () => {
-    resetUpload();
-  };
-
   const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
   const canGenerate = hasPhoto && Boolean(selectedStyle) && Boolean(uploadState.rawFile);
 
   const progressColors: [string, string] = [
     selectedStyle?.colorPalette[0] || '#8B4513',
-    selectedStyle?.colorPalette[1] || '#B8860B'
+    selectedStyle?.colorPalette[1] || '#B8860B',
   ];
 
   return (
@@ -184,101 +160,17 @@ export function GeneratePreview() {
       {!generatedImage && (
         <div className="text-center">
           <div className="inline-flex flex-col items-center p-8 rounded-3xl glass-card max-w-lg w-full">
-            {isGenerating ? (
-              <div className="w-full space-y-6">
-                {/* サークルプログレス + 写真 */}
-                <CircularProgress
-                  progress={smoothProgress}
-                  colors={progressColors}
-                >
-                  <div className="relative">
-                    <img
-                      src={uploadState.previewUrl ?? ''}
-                      alt="生成中"
-                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-background shadow-lg"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-foreground/60 backdrop-blur-[2px]">
-                      <span className="text-2xl sm:text-3xl font-serif font-bold text-white">
-                        {Math.round(smoothProgress)}%
-                      </span>
-                    </div>
-                  </div>
-                </CircularProgress>
-
-                {/* ステージ表示 */}
-                <div className="flex items-center justify-between px-1" aria-live="polite">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative shrink-0">
-                      <div className="absolute -inset-1 rounded-full border-2 border-primary/20 animate-stageIconSpin" />
-                      {(() => {
-                        const StageIcon = generationStages[generationStage].icon;
-                        return <StageIcon className="w-6 h-6 text-primary relative" />;
-                      })()}
-                    </div>
-                    <span
-                      className="font-medium text-foreground text-sm sm:text-base animate-slideInFromLeft truncate"
-                      key={generationStage}
-                    >
-                      {generationStages[generationStage].label}
-                    </span>
-                  </div>
-                  <span
-                    className="text-xs text-secondary shrink-0 ml-3 animate-fadeIn"
-                    key={`msg-${generationStage}`}
-                  >
-                    {getEncouragingMessage(generationStage)}
-                  </span>
-                </div>
-
-                {/* マイクロステージ ドットインジケーター */}
-                <div className="flex justify-center gap-1">
-                  {generationStages.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        idx <= generationStage
-                          ? 'w-5 bg-gradient-to-r from-primary to-secondary'
-                          : 'w-1.5 bg-muted/20'
-                      }`}
-                    />
-                  ))}
-                </div>
-
-                {/* スタイル連動インフォパネル */}
-                {selectedStyle && (
-                  <StyleInfoPanel
-                    key={currentInfoPanel}
-                    panelIndex={currentInfoPanel}
-                    style={selectedStyle}
-                    factIndex={currentFact}
-                  />
-                )}
-
-                {/* 浮遊パーティクル装飾 */}
-                <div className="relative h-0 pointer-events-none" aria-hidden="true">
-                  {[...Array(5)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute w-1.5 h-1.5 rounded-full bg-secondary/20 animate-floatUp"
-                      style={{
-                        left: `${10 + i * 20}%`,
-                        bottom: '0',
-                        animationDelay: `${i * 0.7}s`,
-                        animationDuration: '4s'
-                      }}
-                    />
-                  ))}
-                </div>
-
-                {/* キャンセルボタン */}
-                <button
-                  onClick={handleCancel}
-                  className="flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors mx-auto"
-                >
-                  <X className="w-4 h-4" />
-                  キャンセル
-                </button>
-              </div>
+            {isGenerating && selectedStyle ? (
+              <GeneratingUI
+                smoothProgress={smoothProgress}
+                generationStage={generationStage}
+                uploadPreviewUrl={uploadState.previewUrl ?? ''}
+                progressColors={progressColors}
+                selectedStyle={selectedStyle}
+                currentInfoPanel={currentInfoPanel}
+                currentFact={currentFact}
+                onCancel={handleCancel}
+              />
             ) : (
               <div className="space-y-4 flex flex-col items-center">
                 <button
@@ -337,76 +229,12 @@ export function GeneratePreview() {
 
       {/* Generated Image Preview */}
       {generatedImage && (
-        <div className="space-y-8 animate-fadeIn">
-          {/* Compare Section Header */}
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.2em] font-medium">RESULT</span>
-              <span className="w-8 h-px bg-secondary" />
-            </div>
-            <h3 className="font-serif text-2xl font-semibold text-foreground">
-              変換結果
-            </h3>
-          </div>
-
-          {/* Before/After Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Original */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-muted/30" />
-                <p className="text-sm font-medium text-muted">Before</p>
-              </div>
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
-                <img
-                  src={uploadState.previewUrl ?? ''}
-                  alt="元の写真"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </div>
-
-            {/* Generated */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-primary" />
-                <p className="text-sm font-medium text-primary">After</p>
-              </div>
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative">
-                <img
-                  src={generatedImage}
-                  alt="生成された肖像画"
-                  className="w-full h-full object-cover"
-                />
-                {/* Watermark overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
-                    <p className="text-foreground/30 text-xl font-serif tracking-wider">
-                      PREVIEW
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <StyledButton variant="outline" onClick={handleStartOver}>
-              <RefreshCw className="w-4 h-4" />
-              新しい写真で作成
-            </StyledButton>
-            <StyledButton variant="secondary" size="lg" onClick={() => navigate('/result')}>
-              <Download className="w-5 h-5" />
-              ダウンロード (¥2,900)
-            </StyledButton>
-            <StyledButton size="lg" onClick={() => navigate('/result')}>
-              <ShoppingCart className="w-5 h-5" />
-              プリント注文
-            </StyledButton>
-          </div>
-        </div>
+        <ResultSection
+          generatedImage={generatedImage}
+          uploadPreviewUrl={uploadState.previewUrl ?? ''}
+          onStartOver={resetUpload}
+          onNavigateResult={() => navigate('/result')}
+        />
       )}
     </div>
   );
