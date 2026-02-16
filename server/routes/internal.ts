@@ -10,20 +10,20 @@ export const internalRouter = Router();
 function requireInternalKey(req: Request, res: Response, next: NextFunction): void {
   const key = process.env.INTERNAL_API_KEY;
   if (!key || key.length < 16) {
-    res.status(503).json({ error: 'Internal API not configured' });
+    res.status(503).json({ success: false, error: { code: 'NOT_CONFIGURED', message: 'Internal API not configured' } });
     return;
   }
 
   const provided = req.headers['x-internal-key'];
   if (typeof provided !== 'string') {
-    res.status(401).json({ error: 'Invalid internal key' });
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid internal key' } });
     return;
   }
 
   const a = Buffer.from(provided);
   const b = Buffer.from(key);
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    res.status(401).json({ error: 'Invalid internal key' });
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid internal key' } });
     return;
   }
 
@@ -84,6 +84,6 @@ internalRouter.get('/style-analytics', (_req, res) => {
   try {
     res.json(getStyleAnalytics());
   } catch {
-    res.status(500).json({ error: 'Failed to get style analytics' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get style analytics' } });
   }
 });

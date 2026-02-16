@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary } from './components/common';
+import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary, FloatingCTA } from './components/common';
 import { getCurrentUser } from './api';
 import { useAuthStore } from './stores/authStore';
 import { config } from './config';
@@ -64,6 +64,21 @@ function PageErrorFallback() {
         <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
         <p className="text-gray-600 mb-6">ページの表示中にエラーが発生しました。</p>
         <a href="/" className="text-blue-600 hover:underline">トップに戻る</a>
+      </div>
+    </div>
+  );
+}
+
+function NotFoundPage() {
+  return (
+    <div className="flex-1 flex items-center justify-center py-20 px-4">
+      <div className="text-center">
+        <p className="text-6xl font-serif font-bold text-primary/20 mb-4">404</p>
+        <h1 className="text-xl font-semibold text-foreground mb-2">ページが見つかりません</h1>
+        <p className="text-muted mb-6">お探しのページは存在しないか、移動した可能性があります。</p>
+        <a href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">
+          トップページへ戻る
+        </a>
       </div>
     </div>
   );
@@ -214,11 +229,13 @@ function AppLayout() {
               <Route path="/company" element={<CompanyPage />} />
               <Route path="/account" element={<ErrorBoundary fallback={<PageErrorFallback />}><ProtectedRoute><AccountPage /></ProtectedRoute></ErrorBoundary>} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
       </main>
       <Footer />
+      <FloatingCTA />
     </div>
   );
 }

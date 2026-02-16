@@ -173,7 +173,7 @@ export function ContactPage() {
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
               {/* Reason Selection */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-3">

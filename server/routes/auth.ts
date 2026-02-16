@@ -152,8 +152,8 @@ authRouter.post('/register', async (req, res) => {
 
     // Send verification email (non-blocking)
     const verificationToken = createVerificationToken(result.user.id);
-    void sendVerificationEmail(email.trim(), verificationToken);
-    void sendWelcomeEmail(email.trim(), name.trim());
+    void sendVerificationEmail(email.trim(), verificationToken).catch((e) => logger.error('Failed to send verification email', { error: (e as Error).message }));
+    void sendWelcomeEmail(email.trim(), name.trim()).catch((e) => logger.error('Failed to send welcome email', { error: (e as Error).message }));
 
     res.json({
       success: true,
@@ -316,7 +316,7 @@ authRouter.post('/forgot-password', forgotPasswordLimiter, (req, res) => {
 
   // Send password reset email if token was created
   if (resetToken) {
-    void sendPasswordResetEmail(normalizedEmail, resetToken);
+    void sendPasswordResetEmail(normalizedEmail, resetToken).catch((e) => logger.error('Failed to send password reset email', { error: (e as Error).message }));
   }
 
   res.json({
@@ -486,7 +486,7 @@ authRouter.post('/resend-verification', requireAuth, (_req, res) => {
   }
 
   const verificationToken = createVerificationToken(user.id);
-  void sendVerificationEmail(email, verificationToken);
+  void sendVerificationEmail(email, verificationToken).catch((e) => logger.error('Failed to send verification email', { error: (e as Error).message }));
 
   res.json({ success: true, message: '認証メールを再送信しました' });
 });

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useCallback } from 'react';
 import { X, Home, LogIn, HelpCircle, FileText, User, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
@@ -19,6 +20,44 @@ export function Sidebar() {
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const location = useLocation();
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeSidebar();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusable = Array.from(
+      panel.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])'),
+    ).filter(el => el.offsetParent !== null);
+    if (focusable.length === 0) { e.preventDefault(); return; }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, [closeSidebar]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    const timer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+      window.clearTimeout(timer);
+    };
+  }, [isSidebarOpen, handleKeyDown]);
+
   if (!isSidebarOpen) return null;
 
   return (
@@ -27,10 +66,18 @@ export function Sidebar() {
       <div
         className="fixed inset-0 bg-foreground/60 backdrop-blur-sm z-40 animate-fadeIn"
         onClick={closeSidebar}
+        role="presentation"
+        aria-hidden="true"
       />
 
       {/* Sidebar Panel */}
-      <div className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-background z-50 shadow-2xl transform transition-transform duration-300 animate-slideUp">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="ナビゲーションメニュー"
+        className="fixed right-0 top-0 h-full w-80 max-w-[85vw] bg-background z-50 shadow-2xl transform transition-transform duration-300 animate-slideUp"
+      >
         <div className="flex flex-col h-full">
           {/* Header - 和モダンスタイル */}
           <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
@@ -39,6 +86,7 @@ export function Sidebar() {
               <span className="text-[10px] text-secondary tracking-[0.2em]">MENU</span>
             </div>
             <button
+              ref={closeButtonRef}
               onClick={closeSidebar}
               className="p-2 rounded-lg hover:bg-primary/10 transition-colors group"
               aria-label="メニューを閉じる"

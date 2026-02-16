@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import type { Request } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { config } from './config.js';
 import { logger } from './lib/logger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
@@ -109,6 +109,15 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Global error handler — catches unhandled errors from route handlers
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error('Unhandled route error', { error: err.message, stack: err.stack });
+  if (!res.headersSent) {
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'サーバー内部エラーが発生しました' } });
+  }
+});
+
 const server = app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   startCartAbandonmentChecker();
@@ -127,3 +136,6 @@ function gracefulShutdown(signal: string) {
 }
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.message : String(reason) });
+});

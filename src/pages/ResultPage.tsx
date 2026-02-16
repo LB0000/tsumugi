@@ -73,6 +73,7 @@ export function ResultPage() {
       title: `${selectedStyle.name}スタイルの肖像画 | TSUMUGI`,
       description: `AIが生成した${selectedStyle.name}スタイルの肖像画。TSUMUGIで世界に一つだけのアートを。`,
       ogUrl: 'https://tsumugi.jp/result',
+      ogImage: generatedImage,
     });
   }, [generatedImage, selectedStyle]);
 

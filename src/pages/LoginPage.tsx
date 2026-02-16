@@ -131,6 +131,7 @@ export function LoginPage() {
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '認証処理に失敗しました');
+      setPassword('');
     } finally {
       setIsSubmitting(false);
     }

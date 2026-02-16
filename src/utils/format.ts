@@ -16,11 +16,18 @@ export function formatAmount(amount?: number): string {
   return `¥${amount.toLocaleString()}`;
 }
 
+const TRUSTED_RECEIPT_DOMAINS = new Set([
+  'squareup.com',
+  'squareupsandbox.com',
+]);
+
 export function getSafeReceiptUrl(url?: string): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' ? parsed.toString() : null;
+    if (parsed.protocol !== 'https:') return null;
+    const domain = parsed.hostname.replace(/^www\./, '');
+    return TRUSTED_RECEIPT_DOMAINS.has(domain) ? parsed.toString() : null;
   } catch {
     return null;
   }

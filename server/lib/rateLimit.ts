@@ -16,7 +16,8 @@ const MAX_ENTRIES = 10_000;
 const buckets = new Map<string, RateLimitBucket>();
 
 function getClientIp(req: Request): string {
-  return req.ip || 'unknown';
+  // req.ip は trust proxy 設定に基づいて X-Forwarded-For を考慮する
+  return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 function pruneExpiredBuckets(now: number): void {

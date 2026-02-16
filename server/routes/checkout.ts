@@ -86,6 +86,7 @@ interface RawBodyRequest extends Request {
 }
 
 const MAX_ITEM_QUANTITY = 10;
+const MAX_CART_ITEMS = 20;
 
 export function sanitizeReceiptUrl(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -216,7 +217,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
-    if (items.length > 20) {
+    if (items.length > MAX_CART_ITEMS) {
       res.status(400).json({
         success: false,
         error: { code: 'TOO_MANY_ITEMS', message: '一度に注文できる商品数を超えています' },
@@ -572,7 +573,7 @@ checkoutRouter.post('/process-payment', async (req, res) => {
         items: existingStatus?.items ?? [],
         totalAmount: Number(orderAmount),
         shippingAddress: existingStatus?.shippingAddress,
-      });
+      }).catch((e) => logger.error('Failed to send order confirmation email', { error: (e as Error).message }));
       const buyerName = existingStatus?.shippingAddress
         ? `${existingStatus.shippingAddress.lastName} ${existingStatus.shippingAddress.firstName}`
         : '';
@@ -600,7 +601,7 @@ checkoutRouter.post('/process-payment', async (req, res) => {
           fbp: cookies.get('_fbp'),
         },
         eventSourceUrl: req.headers.referer || config.FRONTEND_URL || undefined,
-      });
+      }).catch((e) => logger.error('Failed to send Meta CAPI event', { error: (e as Error).message }));
     }
 
     res.json({
@@ -687,6 +688,10 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
         ? payment.order_id
         : undefined;
     const paymentStatus = typeof payment?.status === 'string' ? payment.status : undefined;
+
+    if (!orderId || !paymentId || !paymentStatus) {
+      logger.warn('Webhook missing required fields', { eventType, eventId, hasOrderId: !!orderId, hasPaymentId: !!paymentId, hasPaymentStatus: !!paymentStatus });
+    }
 
     if (orderId && paymentId && paymentStatus) {
       const existingStatus = getOrderPaymentStatus(orderId);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
@@ -6,9 +6,8 @@ import { useAppStore } from '../../stores/appStore';
 export function FloatingCTA() {
   const [visibilityByPath, setVisibilityByPath] = useState<Record<string, boolean>>({});
   const [dismissedPath, setDismissedPath] = useState<string | null>(null);
-  const heroRef = useRef<HTMLElement | null>(null);
   const { pathname } = useLocation();
-  const isHomePage = pathname === '/';
+  const isHomePage = pathname === '/' || pathname === '/pets' || pathname === '/family' || pathname === '/kids';
   const isStyleModalOpen = useAppStore((s) => s.isStyleModalOpen);
   const isDismissed = dismissedPath === pathname;
   const isVisible = visibilityByPath[pathname] ?? false;
@@ -34,7 +33,6 @@ export function FloatingCTA() {
     const heroCTA = document.getElementById('hero-cta');
     if (heroCTA) {
       observer.observe(heroCTA);
-      heroRef.current = heroCTA;
     } else {
       // フォールバック: スクロール量で判定
       const handleScroll = () => {
@@ -65,6 +63,8 @@ export function FloatingCTA() {
 
   return (
     <div
+      role="complementary"
+      aria-label="プレビューへのショートカット"
       className={`fixed bottom-0 left-0 right-0 z-50 transition-all duration-300 pointer-events-none ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'
       }`}

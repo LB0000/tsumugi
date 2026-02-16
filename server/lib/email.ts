@@ -26,6 +26,14 @@ function getSafeFrontendUrl(): string {
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 const FRONTEND_URL = getSafeFrontendUrl();
+const EMAIL_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Email send timeout')), ms)),
+  ]);
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -93,12 +101,12 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: `【${APP_NAME}】メールアドレスの確認`,
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send verification email', { error: error instanceof Error ? error.message : String(error) });
@@ -136,12 +144,12 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: `【${APP_NAME}】パスワード再設定`,
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send password reset email', { error: error instanceof Error ? error.message : String(error) });
@@ -183,12 +191,12 @@ export async function sendWelcomeEmail(to: string, userName: string): Promise<bo
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: 'TSUMUGIへようこそ！初回10%OFFクーポンをプレゼント',
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send welcome email', { error: error instanceof Error ? error.message : String(error) });
@@ -256,12 +264,12 @@ export async function sendOrderConfirmationEmail(to: string, order: {
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: `【TSUMUGI】ご注文ありがとうございます（注文番号: ${order.orderId}）`,
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send order confirmation email', { error: error instanceof Error ? error.message : String(error) });
@@ -304,12 +312,12 @@ export async function sendShippingNotificationEmail(to: string, orderId: string,
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: '【TSUMUGI】商品を発送しました',
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send shipping notification email', { error: error instanceof Error ? error.message : String(error) });
@@ -353,12 +361,12 @@ export async function sendReviewRequestEmail(to: string, orderId: string, userNa
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: '【TSUMUGI】ご感想をお聞かせください',
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send review request email', { error: error instanceof Error ? error.message : String(error) });
@@ -406,12 +414,12 @@ export async function sendCartAbandonmentEmail(to: string, items: { name: string
   }
 
   try {
-    await resend.emails.send({
+    await withTimeout(resend.emails.send({
       from: `${APP_NAME} <${FROM_EMAIL}>`,
       to,
       subject: 'お忘れ物はありませんか？',
       html,
-    });
+    }), EMAIL_TIMEOUT_MS);
     return true;
   } catch (error) {
     logger.error('Failed to send cart abandonment email', { error: error instanceof Error ? error.message : String(error) });

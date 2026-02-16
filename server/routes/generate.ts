@@ -93,13 +93,16 @@ if (process.env.NODE_ENV === 'production' && (!process.env.GEMINI_API_KEY || pro
 
 // Gemini 3 Pro Image - 画像生成対応の最新モデル
 // responseModalities: ['image', 'text'] で画像出力を有効化
-const model = genAI.getGenerativeModel({
-  model: 'gemini-3-pro-image-preview',
-  generationConfig: {
-    // @ts-expect-error - responseModalities is valid but not in types yet
-    responseModalities: ['image', 'text'],
+const model = genAI.getGenerativeModel(
+  {
+    model: 'gemini-3-pro-image-preview',
+    generationConfig: {
+      // @ts-expect-error - responseModalities is valid but not in types yet
+      responseModalities: ['image', 'text'],
+    },
   },
-});
+  { timeout: 90_000 },
+);
 
 const allowMockGeneration = process.env.ALLOW_MOCK_GENERATION === 'true' && process.env.NODE_ENV !== 'production';
 
@@ -247,12 +250,12 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     const stylePrompt = getStylePrompt(styleId, category);
     const styleFocusPrompt = getStyleFocusPrompt(styleId);
     const categoryPrompt = categoryPrompts[category] || '';
-    const customPrompt = typeof options?.customPrompt === 'string'
-      ? options.customPrompt.slice(0, 500).split('').filter(ch => {
-          const code = ch.charCodeAt(0);
-          return code > 0x1f && code !== 0x7f;
-        }).join('')
-      : '';
+    const rawCustomPrompt = typeof options?.customPrompt === 'string' ? options.customPrompt : '';
+    const customPrompt = rawCustomPrompt
+      .normalize('NFC')
+      .replace(/[\x00-\x1f\x7f]/g, '')
+      .trim()
+      .slice(0, 500);
 
     const fullPrompt = `${stylePrompt}
 

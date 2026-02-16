@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame, ScanFace, Paintbrush, Layers, Contrast } from 'lucide-react';
+import { Sparkles, RefreshCw, Download, ShoppingCart, ArrowRight, Camera, Palette, Wand2, Frame, ScanFace, Paintbrush, Layers, Contrast, X } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
 import { StyledButton } from '../common/StyledButton';
@@ -88,20 +88,29 @@ export function GeneratePreview() {
     };
   }, [isGenerating]);
 
-  // 滑らかなプログレス補間
+  // 滑らかなプログレス補間（rAF で効率化: タブ非表示時は自動停止）
   useEffect(() => {
     if (!isGenerating) return;
 
     const targetProgress = generationStages[generationStage].progress;
-    const interval = setInterval(() => {
-      setSmoothProgress(prev => {
-        const diff = targetProgress - prev;
-        if (Math.abs(diff) < 0.5) return targetProgress;
-        return prev + diff * 0.08;
-      });
-    }, 50);
+    let rafId: number;
+    let lastTime = 0;
 
-    return () => clearInterval(interval);
+    const animate = (time: number) => {
+      if (lastTime === 0) lastTime = time;
+      if (time - lastTime >= 50) {
+        lastTime = time;
+        setSmoothProgress(prev => {
+          const diff = targetProgress - prev;
+          if (Math.abs(diff) < 0.5) return targetProgress;
+          return prev + diff * 0.08;
+        });
+      }
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [isGenerating, generationStage]);
 
   // インフォパネルのローテーション（3秒ごと）
@@ -151,6 +160,10 @@ export function GeneratePreview() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleCancel = () => {
+    abortRef.current?.abort();
   };
 
   const handleStartOver = () => {
@@ -256,6 +269,15 @@ export function GeneratePreview() {
                     />
                   ))}
                 </div>
+
+                {/* キャンセルボタン */}
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors mx-auto"
+                >
+                  <X className="w-4 h-4" />
+                  キャンセル
+                </button>
               </div>
             ) : (
               <div className="space-y-4 flex flex-col items-center">
@@ -281,8 +303,15 @@ export function GeneratePreview() {
             )}
 
             {error && (
-              <div className="mt-4 px-4 py-2 bg-sale/10 border border-sale/20 rounded-lg">
-                <p className="text-sale text-sm">{error}</p>
+              <div className="mt-4 px-4 py-3 bg-sale/10 border border-sale/20 rounded-lg text-center">
+                <p className="text-sale text-sm mb-2">{error}</p>
+                <button
+                  onClick={() => { setError(null); void handleGenerate(); }}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  もう一度試す
+                </button>
               </div>
             )}
 

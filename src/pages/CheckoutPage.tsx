@@ -334,8 +334,8 @@ export function CheckoutPage() {
               {!authUser && (
                 <aside className="bg-accent-sage/10 border border-accent-sage/20 rounded-lg p-4 flex items-center justify-between" aria-label="ログインのご案内">
                   <div>
-                    <p className="text-sm font-medium text-foreground">アカウントをお持ちですか？</p>
-                    <p className="text-xs text-muted">ログインすると保存済みの住所を利用できます</p>
+                    <p className="text-sm font-medium text-foreground">会員登録なしで購入できます</p>
+                    <p className="text-xs text-muted">ログインすると保存済みの住所や注文履歴を利用できます</p>
                   </div>
                   <Link to="/login" state={{ returnTo: '/checkout' }} className="text-sm text-primary hover:underline font-medium shrink-0 ml-4">
                     ログイン

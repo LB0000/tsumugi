@@ -9,3 +9,4 @@ export type { BreadcrumbItem } from './Breadcrumb';
 export { SearchBar } from './SearchBar';
 export { TrustBadges } from './TrustBadges';
 export { ShareButtons } from './ShareButtons';
+export { FloatingCTA } from './FloatingCTA';

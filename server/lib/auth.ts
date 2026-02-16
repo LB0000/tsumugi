@@ -529,11 +529,11 @@ export function addSavedAddress(userId: string, address: Omit<SavedAddress, 'id'
     throw new Error('MAX_ADDRESSES_REACHED');
   }
 
-  // If this is set as default, unset others
+  // If this is set as default, unset others (immutable update)
   if (address.isDefault) {
-    for (const addr of user.savedAddresses) {
-      addr.isDefault = false;
-    }
+    user.savedAddresses = user.savedAddresses.map(addr =>
+      addr.isDefault ? { ...addr, isDefault: false } : addr
+    );
   }
 
   const saved: SavedAddress = {

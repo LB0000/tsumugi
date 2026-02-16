@@ -269,9 +269,17 @@ function StyleModalBase() {
                 <p className="text-muted font-medium mb-1">
                   スタイルが見つかりません
                 </p>
-                <p className="text-sm text-muted/70">
+                <p className="text-sm text-muted/70 mb-3">
                   検索条件を変更してお試しください
                 </p>
+                {styleFilterState.searchQuery && (
+                  <button
+                    onClick={() => setStyleSearchQuery('')}
+                    className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    検索をクリア
+                  </button>
+                )}
               </div>
             </div>
           ) : (

@@ -49,27 +49,38 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
     };
   }, [onClose, updatePosition]);
 
-  // body スクロール抑制
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // body スクロール抑制 + フォーカストラップ
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    // 初期フォーカスをダイアログに移動
+    const timer = window.setTimeout(() => dialogRef.current?.focus(), 0);
+    return () => { document.body.style.overflow = ''; window.clearTimeout(timer); };
   }, []);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
+      role="presentation"
+      aria-hidden="true"
     >
       <div
-        className="relative w-[90vw] max-w-2xl aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${item.label} - ${item.styleName} Before/After比較`}
+        tabIndex={-1}
+        className="relative w-[90vw] max-w-2xl aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl outline-none"
         onClick={e => e.stopPropagation()}
       >
         {/* Before (full) */}
-        <img src={item.beforeImage} alt="Before" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={item.beforeImage} alt={`${item.label} - 元の写真`} className="absolute inset-0 w-full h-full object-cover" />
 
         {/* After (clipped) */}
         <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
-          <img src={item.afterImage} alt="After" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={item.afterImage} alt={`${item.label} - ${item.styleName}`} className="absolute inset-0 w-full h-full object-cover" />
         </div>
 
         {/* スライダーハンドル */}

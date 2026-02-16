@@ -34,13 +34,13 @@ interface PurchaseEventParams {
   eventSourceUrl?: string;
 }
 
-export async function sendPurchaseEvent(params: PurchaseEventParams): Promise<void> {
+export async function sendPurchaseEvent(params: PurchaseEventParams): Promise<boolean> {
   const accessToken = process.env.META_CONVERSIONS_API_TOKEN;
   const pixelId = process.env.META_PIXEL_ID;
 
   if (!accessToken || !pixelId) {
     logger.info('Meta CAPI not configured, skipping Purchase event');
-    return;
+    return false;
   }
 
   const hashedUserData: Record<string, string> = {};
@@ -90,16 +90,19 @@ export async function sendPurchaseEvent(params: PurchaseEventParams): Promise<vo
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(eventData),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
       const body = await response.text();
       logger.error('Meta CAPI Purchase event failed', { status: response.status, body });
-      return;
+      return false;
     }
 
     logger.info('Meta CAPI Purchase event sent', { eventId: params.eventId, orderId: params.orderId });
+    return true;
   } catch (error) {
     logger.error('Meta CAPI request error', { error: error instanceof Error ? error.message : String(error) });
+    return false;
   }
 }

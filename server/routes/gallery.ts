@@ -23,6 +23,10 @@ galleryRouter.get('/', requireAuth, (req, res) => {
 galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
   const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  if (!/^gal_[a-f0-9]+$/.test(itemId)) {
+    res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: '無効なIDです' } });
+    return;
+  }
   const item = getGalleryItem(itemId);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
@@ -46,6 +50,10 @@ galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
 galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
   const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  if (!/^gal_[a-f0-9]+$/.test(itemId)) {
+    res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: '無効なIDです' } });
+    return;
+  }
   const item = getGalleryItem(itemId);
   if (!item || item.userId !== user.id) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });
@@ -69,6 +77,10 @@ galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
 galleryRouter.delete('/:id', requireAuth, async (req, res) => {
   const user = getAuthUser(res);
   const itemId = typeof req.params.id === 'string' ? req.params.id : '';
+  if (!/^gal_[a-f0-9]+$/.test(itemId)) {
+    res.status(400).json({ success: false, error: { code: 'INVALID_ID', message: '無効なIDです' } });
+    return;
+  }
   const deleted = await deleteGalleryItem(user.id, itemId);
   if (!deleted) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '画像が見つかりません' } });

@@ -1,8 +1,9 @@
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Truck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
 import { useCartStore } from '../stores/cartStore';
+import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -10,8 +11,10 @@ export function CartPage() {
   const isEmpty = cartItems.length === 0;
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = subtotal >= 5000 ? 0 : 500;
+  const shipping = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FLAT_FEE;
   const total = subtotal + shipping;
+  const remaining = SHIPPING_FREE_THRESHOLD - subtotal;
+  const progress = Math.min(subtotal / SHIPPING_FREE_THRESHOLD, 1);
 
   return (
     <div className="flex-1 bg-background">
@@ -54,6 +57,34 @@ export function CartPage() {
             </Link>
           </div>
         ) : (
+          <>
+          {/* 送料無料プログレスバー */}
+          <div className="mb-6 p-4 bg-card rounded-xl border border-border">
+            <div className="flex items-center gap-2 mb-2">
+              <Truck className="w-4 h-4 text-accent-sage" />
+              {remaining > 0 ? (
+                <p className="text-sm text-foreground">
+                  あと<span className="font-bold text-primary">¥{remaining.toLocaleString()}</span>で送料無料
+                </p>
+              ) : (
+                <p className="text-sm font-medium text-accent-sage">送料無料の対象です</p>
+              )}
+            </div>
+            <div
+              className="w-full h-2 bg-border rounded-full overflow-hidden"
+              role="progressbar"
+              aria-valuenow={Math.round(progress * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={remaining > 0 ? `送料無料まであと${remaining.toLocaleString()}円` : '送料無料'}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-primary to-accent-sage"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* カート商品リスト */}
             <div className="lg:col-span-2 space-y-4">
@@ -65,7 +96,8 @@ export function CartPage() {
                   <img
                     src={item.imageUrl}
                     alt={item.artStyleName}
-                    className="w-24 h-24 object-cover rounded-lg"
+                    className="w-24 h-24 object-cover rounded-lg bg-card"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
@@ -149,6 +181,7 @@ export function CartPage() {
               </div>
             </div>
           </div>
+          </>
         )}
       </div>
     </div>

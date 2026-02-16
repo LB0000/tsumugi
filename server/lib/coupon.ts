@@ -20,6 +20,11 @@ export async function validateCoupon(code: string): Promise<CouponValidation> {
     return { valid: false, error: 'クーポン機能が設定されていません' };
   }
 
+  const trimmedCode = code.trim().toUpperCase();
+  if (trimmedCode.length === 0 || trimmedCode.length > 50 || !/^[A-Z0-9_-]+$/.test(trimmedCode)) {
+    return { valid: false, error: '無効なクーポンコードです' };
+  }
+
   try {
     const response = await fetch(`${adminApiUrl}/api/campaigns/coupons/validate`, {
       method: 'POST',
@@ -27,7 +32,8 @@ export async function validateCoupon(code: string): Promise<CouponValidation> {
         'Content-Type': 'application/json',
         'X-Internal-Key': internalKey,
       },
-      body: JSON.stringify({ code: code.trim().toUpperCase() }),
+      body: JSON.stringify({ code: trimmedCode }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -67,6 +73,7 @@ export async function useCoupon(code: string): Promise<boolean> {
         'X-Internal-Key': internalKey,
       },
       body: JSON.stringify({ code: code.trim().toUpperCase() }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) return false;
