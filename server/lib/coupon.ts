@@ -9,8 +9,12 @@ export interface CouponValidation {
 }
 
 export async function validateCoupon(code: string): Promise<CouponValidation> {
-  const adminApiUrl = process.env.TSUMUGI_ADMIN_API_URL || 'http://localhost:3002';
+  const adminApiUrl = process.env.TSUMUGI_ADMIN_API_URL;
   const internalKey = process.env.INTERNAL_API_KEY;
+
+  if (!adminApiUrl) {
+    return { valid: false, error: 'クーポン機能が設定されていません' };
+  }
 
   if (!internalKey) {
     return { valid: false, error: 'クーポン機能が設定されていません' };
@@ -50,10 +54,10 @@ export function applyDiscount(subtotal: number, discountType: 'percentage' | 'fi
 }
 
 export async function useCoupon(code: string): Promise<boolean> {
-  const adminApiUrl = process.env.TSUMUGI_ADMIN_API_URL || 'http://localhost:3002';
+  const adminApiUrl = process.env.TSUMUGI_ADMIN_API_URL;
   const internalKey = process.env.INTERNAL_API_KEY;
 
-  if (!internalKey) return false;
+  if (!adminApiUrl || !internalKey) return false;
 
   try {
     const response = await fetch(`${adminApiUrl}/api/campaigns/coupons/use`, {

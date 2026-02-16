@@ -13,43 +13,41 @@ interface AuthImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>,
  */
 export function AuthImage({ src, fallback, ...imgProps }: AuthImageProps) {
   const [loaded, setLoaded] = useState<{ src: string; blobUrl: string } | null>(null);
+  const [error, setError] = useState<{ src: string } | null>(null);
   const blobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!src) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    fetchWithTimeout(src, { credentials: 'include' })
+    fetchWithTimeout(src, { credentials: 'include', signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch image');
         return res.blob();
       })
       .then((blob) => {
-        if (cancelled) return;
         if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
         const url = URL.createObjectURL(blob);
         blobUrlRef.current = url;
         setLoaded({ src, blobUrl: url });
       })
-      .catch(() => {
-        // Fallback is shown since loaded remains null/stale
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setError({ src });
       });
 
-    return () => { cancelled = true; };
-  }, [src]);
-
-  // Revoke blob URL on unmount
-  useEffect(() => {
     return () => {
+      controller.abort();
       if (blobUrlRef.current) {
         URL.revokeObjectURL(blobUrlRef.current);
         blobUrlRef.current = null;
       }
     };
-  }, []);
+  }, [src]);
 
-  if (!loaded || loaded.src !== src) {
+  // Error for current src, or not yet loaded
+  if (error?.src === src || !loaded || loaded.src !== src) {
     return fallback ?? null;
   }
 

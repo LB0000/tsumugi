@@ -838,3 +838,63 @@ checkoutRouter.post('/validate-coupon', requireAuth, async (req, res) => {
     });
   }
 });
+
+// POST /api/checkout/link-order — ゲスト注文を新規アカウントに紐付け
+checkoutRouter.post('/link-order', requireAuth, (req, res) => {
+  const user = getAuthUser(res);
+  const { orderId } = req.body as { orderId?: string };
+
+  if (!orderId || typeof orderId !== 'string') {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_ORDER_ID', message: '注文番号が必要です' },
+    });
+    return;
+  }
+
+  const orderStatus = getOrderPaymentStatus(orderId);
+  if (!orderStatus) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'ORDER_NOT_FOUND', message: '注文が見つかりません' },
+    });
+    return;
+  }
+
+  // セキュリティ: メールアドレス一致チェック（大文字小文字を区別しない）
+  if (orderStatus.shippingAddress?.email?.toLowerCase() !== user.email.toLowerCase()) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'EMAIL_MISMATCH', message: 'この注文を紐付ける権限がありません' },
+    });
+    return;
+  }
+
+  // セキュリティ: 注文作成から1時間以内のみ紐付け可能（古い注文の横取り防止）
+  const ORDER_LINK_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+  const orderCreatedAt = orderStatus.createdAt ? new Date(orderStatus.createdAt).getTime() : 0;
+  if (Date.now() - orderCreatedAt > ORDER_LINK_WINDOW_MS) {
+    res.status(403).json({
+      success: false,
+      error: { code: 'LINK_WINDOW_EXPIRED', message: '注文の紐付け期限が過ぎています。サポートにお問い合わせください。' },
+    });
+    return;
+  }
+
+  // 既に紐付け済みチェック（同一ユーザーなら冪等に成功扱い）
+  if (orderStatus.userId) {
+    if (orderStatus.userId === user.id) {
+      res.json({ success: true });
+      return;
+    }
+    res.status(400).json({
+      success: false,
+      error: { code: 'ALREADY_LINKED', message: 'この注文は既にアカウントに紐付けられています' },
+    });
+    return;
+  }
+
+  updateOrderPaymentStatus({ ...orderStatus, userId: user.id });
+  logger.info('Guest order linked to account', { orderId, userId: user.id, requestId: req.requestId });
+  res.json({ success: true });
+});

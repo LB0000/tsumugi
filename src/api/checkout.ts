@@ -161,3 +161,19 @@ export async function getOrderDetail(orderId: string): Promise<OrderHistoryItem>
 
   return data.order;
 }
+
+export async function linkOrderToAccount(orderId: string): Promise<void> {
+  const headers = await buildAuthPostHeaders();
+  const response = await fetchWithTimeout(`${API_BASE}/checkout/link-order`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify({ orderId }),
+  });
+
+  const data: unknown = await response.json();
+  if (!response.ok || isErrorResponse(data)) {
+    const errorMessage = isErrorResponse(data) ? data.error.message : '注文の紐付けに失敗しました';
+    throw new Error(errorMessage);
+  }
+}

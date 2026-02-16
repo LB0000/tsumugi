@@ -120,7 +120,7 @@ export function CheckoutPage() {
   }, [cartItems, wrappingPrice]);
 
   useEffect(() => {
-    trackEvent('begin_checkout');
+    trackEvent('begin_checkout', { is_guest: !authUser });
     trackMetaInitiateCheckout({
       num_items: cartItems.length,
       value: total,
@@ -331,6 +331,18 @@ export function CheckoutPage() {
         <form onSubmit={(event) => void handleSubmit(event)}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
+              {!authUser && (
+                <aside className="bg-accent-sage/10 border border-accent-sage/20 rounded-lg p-4 flex items-center justify-between" aria-label="ログインのご案内">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">アカウントをお持ちですか？</p>
+                    <p className="text-xs text-muted">ログインすると保存済みの住所を利用できます</p>
+                  </div>
+                  <Link to="/login" state={{ returnTo: '/checkout' }} className="text-sm text-primary hover:underline font-medium shrink-0 ml-4">
+                    ログイン
+                  </Link>
+                </aside>
+              )}
+
               <GiftOptionsSection
                 giftOptions={giftOptions}
                 setGiftOptions={setGiftOptions}

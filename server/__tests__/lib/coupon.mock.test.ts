@@ -10,6 +10,7 @@ import { validateCoupon, useCoupon } from '../../lib/coupon.js';
 describe('validateCoupon', () => {
   it('returns a valid coupon on successful response', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     const body = { valid: true, code: 'SAVE10', discountType: 'percentage', discountValue: 10 };
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(body), { status: 200 }),
@@ -22,6 +23,7 @@ describe('validateCoupon', () => {
 
   it('returns invalid when API responds with an error', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ error: 'Expired' }), { status: 400 }),
     );
@@ -33,6 +35,7 @@ describe('validateCoupon', () => {
 
   it('returns invalid when API error body is not JSON', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('not json', { status: 500 }),
     );
@@ -43,6 +46,7 @@ describe('validateCoupon', () => {
 
   it('returns invalid on network error', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network error'));
 
     const result = await validateCoupon('ANY');
@@ -52,6 +56,7 @@ describe('validateCoupon', () => {
 
   it('returns invalid when response body has non-boolean valid field', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     const body = { valid: 'yes', code: 'X' };
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify(body), { status: 200 }),
@@ -74,6 +79,7 @@ describe('validateCoupon', () => {
 describe('useCoupon', () => {
   it('returns true on successful response', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ success: true }), { status: 200 }),
     );
@@ -83,6 +89,7 @@ describe('useCoupon', () => {
 
   it('returns false when API returns success:false', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ success: false }), { status: 200 }),
     );
@@ -92,6 +99,7 @@ describe('useCoupon', () => {
 
   it('returns false when API responds with error', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('', { status: 500 }),
     );
@@ -101,6 +109,7 @@ describe('useCoupon', () => {
 
   it('returns false on network error', async () => {
     process.env.INTERNAL_API_KEY = 'test-key';
+    process.env.TSUMUGI_ADMIN_API_URL = 'http://localhost:3002';
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network error'));
 
     expect(await useCoupon('SAVE10')).toBe(false);

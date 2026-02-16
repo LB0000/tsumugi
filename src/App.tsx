@@ -207,7 +207,7 @@ function AppLayout() {
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/checkout" element={<ErrorBoundary fallback={<CheckoutErrorFallback />}><ProtectedRoute><CheckoutPage /></ProtectedRoute></ErrorBoundary>} />
+              <Route path="/checkout" element={<ErrorBoundary fallback={<CheckoutErrorFallback />}><CheckoutPage /></ErrorBoundary>} />
               <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
               <Route path="/shipping" element={<ShippingPage />} />
               <Route path="/returns" element={<ReturnsPage />} />

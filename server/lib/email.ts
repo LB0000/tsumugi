@@ -2,23 +2,25 @@ import { Resend } from 'resend';
 import { logger } from './logger.js';
 import type { OrderItem, OrderShippingAddress } from './checkoutState.js';
 
+import { config } from '../config.js';
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@example.com';
 const APP_NAME = '紡 TSUMUGI';
-const DEFAULT_FRONTEND_URL = 'http://localhost:5173';
+const DEV_FRONTEND_URL = 'http://localhost:5173';
 
 function getSafeFrontendUrl(): string {
-  const raw = (process.env.FRONTEND_URL || DEFAULT_FRONTEND_URL).trim();
+  const raw = (config.FRONTEND_URL ?? DEV_FRONTEND_URL).trim();
   try {
     const parsed = new URL(raw);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return DEFAULT_FRONTEND_URL;
+      return DEV_FRONTEND_URL;
     }
     parsed.hash = '';
     parsed.search = '';
     return parsed.toString().replace(/\/$/, '');
   } catch {
-    return DEFAULT_FRONTEND_URL;
+    return DEV_FRONTEND_URL;
   }
 }
 

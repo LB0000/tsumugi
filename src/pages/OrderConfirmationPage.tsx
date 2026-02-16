@@ -3,6 +3,8 @@ import { useLocation, Link, Navigate } from 'react-router-dom';
 import { CheckCircle, Package, Mail, ExternalLink } from 'lucide-react';
 import { StyledButton, Breadcrumb, ShareButtons } from '../components/common';
 import { ReviewForm } from '../components/reviews/ReviewForm';
+import { GuestAccountPrompt } from './checkout/GuestAccountPrompt';
+import { useAuthStore } from '../stores/authStore';
 import { trackMetaPurchase } from '../lib/analytics';
 import type { ShippingAddress } from '../types';
 
@@ -26,6 +28,7 @@ function getSafeReceiptUrl(url?: string): string | null {
 
 export function OrderConfirmationPage() {
   const location = useLocation();
+  const { authUser } = useAuthStore();
   const state = location.state as OrderState | null;
   const safeReceiptUrl = getSafeReceiptUrl(state?.receiptUrl);
   const purchaseTrackedRef = useRef(false);
@@ -116,6 +119,16 @@ export function OrderConfirmationPage() {
         <div className="mt-8">
           <ReviewForm orderId={state.orderId} />
         </div>
+
+        {/* Guest Account Prompt */}
+        {!authUser && state.shippingAddress?.email && (
+          <div className="mt-8">
+            <GuestAccountPrompt
+              email={state.shippingAddress.email}
+              orderId={state.orderId}
+            />
+          </div>
+        )}
 
         {/* Share section */}
         <div className="mt-10 text-center">

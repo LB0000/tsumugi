@@ -43,9 +43,10 @@ export const useCartStore = create<CartState>()(persist((set) => ({
       return { cartItems: state.cartItems.filter((i) => i.id !== id) };
     }
 
+    const clamped = Math.min(quantity, 10);
     return {
       cartItems: state.cartItems.map((i) =>
-        i.id === id ? { ...i, quantity } : i
+        i.id === id ? { ...i, quantity: clamped } : i
       )
     };
   }),

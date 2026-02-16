@@ -59,7 +59,6 @@ export async function buildAuthPostHeaders(): Promise<Record<string, string>> {
   return {
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
-    ...getAuthorizationHeader(),
   };
 }
 
@@ -67,7 +66,6 @@ export async function buildAuthActionHeaders(): Promise<Record<string, string>> 
   const csrfToken = await getFreshCsrfToken();
   return {
     'X-CSRF-Token': csrfToken,
-    ...getAuthorizationHeader(),
   };
 }
 
@@ -98,8 +96,9 @@ export async function fetchWithTimeout(
   if (options?.signal) signals.push(options.signal);
   const combinedSignal = combineSignals(signals);
 
-  // Inject Authorization header for authenticated requests
-  const authHeader = getAuthorizationHeader();
+  // Inject Authorization header only for API requests (prevent token leakage to third-party URLs)
+  const isApiRequest = url.startsWith(API_BASE);
+  const authHeader = isApiRequest ? getAuthorizationHeader() : {};
   const mergedHeaders = Object.keys(authHeader).length > 0
     ? { ...authHeader, ...(options?.headers as Record<string, string> | undefined) }
     : options?.headers;
@@ -111,8 +110,12 @@ export async function fetchWithTimeout(
       signal: combinedSignal,
     });
 
-    if (response.status === 401 && !url.includes('/auth/')) {
-      useAuthStore.getState().clearAuthSession();
+    // Clear session on 401 for JSON API requests only (not image/binary fetches)
+    if (response.status === 401 && isApiRequest && !url.includes('/auth/')) {
+      const contentType = response.headers.get('content-type') ?? '';
+      if (contentType.includes('application/json')) {
+        useAuthStore.getState().clearAuthSession();
+      }
     }
 
     return response;
