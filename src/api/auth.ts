@@ -1,10 +1,12 @@
 import type { AuthUser } from '../types';
 import { API_BASE, buildAuthPostHeaders, buildAuthActionHeaders, fetchWithTimeout } from './common';
 import { isErrorResponse, isAuthResponse, isForgotPasswordResponse, isCurrentUserResponse } from './typeGuards';
+import { useAuthStore } from '../stores/authStore';
 
 export interface AuthResponse {
   success: true;
   user: AuthUser;
+  sessionToken?: string;
 }
 
 export interface ForgotPasswordResponse {
@@ -164,6 +166,17 @@ export async function changePassword(request: { currentPassword: string; newPass
   if (!response.ok || isErrorResponse(data)) {
     const errorMessage = isErrorResponse(data) ? data.error.message : 'パスワード変更に失敗しました';
     throw new Error(errorMessage);
+  }
+
+  // Update session token (password change invalidates old session)
+  if (typeof data === 'object' && data !== null && 'sessionToken' in data) {
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.sessionToken === 'string') {
+      const currentUser = useAuthStore.getState().authUser;
+      if (currentUser) {
+        useAuthStore.getState().setAuthSession(currentUser, obj.sessionToken);
+      }
+    }
   }
 }
 

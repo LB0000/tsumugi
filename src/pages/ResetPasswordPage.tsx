@@ -42,7 +42,7 @@ export function ResetPasswordPage() {
 
     try {
       const response = await resetPassword({ token, newPassword });
-      setAuthSession(response.user);
+      setAuthSession(response.user, response.sessionToken);
       setIsSuccess(true);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'パスワード再設定に失敗しました');

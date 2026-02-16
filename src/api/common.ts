@@ -49,11 +49,17 @@ export async function getFreshCsrfToken(): Promise<string> {
   }
 }
 
+export function getAuthorizationHeader(): Record<string, string> {
+  const token = useAuthStore.getState().sessionToken;
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 export async function buildAuthPostHeaders(): Promise<Record<string, string>> {
   const csrfToken = await getFreshCsrfToken();
   return {
     'Content-Type': 'application/json',
     'X-CSRF-Token': csrfToken,
+    ...getAuthorizationHeader(),
   };
 }
 
@@ -61,6 +67,7 @@ export async function buildAuthActionHeaders(): Promise<Record<string, string>> 
   const csrfToken = await getFreshCsrfToken();
   return {
     'X-CSRF-Token': csrfToken,
+    ...getAuthorizationHeader(),
   };
 }
 
@@ -91,9 +98,16 @@ export async function fetchWithTimeout(
   if (options?.signal) signals.push(options.signal);
   const combinedSignal = combineSignals(signals);
 
+  // Inject Authorization header for authenticated requests
+  const authHeader = getAuthorizationHeader();
+  const mergedHeaders = Object.keys(authHeader).length > 0
+    ? { ...authHeader, ...(options?.headers as Record<string, string> | undefined) }
+    : options?.headers;
+
   try {
     const response = await fetch(url, {
       ...options,
+      headers: mergedHeaders,
       signal: combinedSignal,
     });
 

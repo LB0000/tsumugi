@@ -35,7 +35,7 @@ export function LoginPage() {
     setIsGoogleLoading(true);
     try {
       const result = await loginWithGoogle(response.credential);
-      setAuthSession(result.user);
+      setAuthSession(result.user, result.sessionToken);
       navigate('/', { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Googleログインに失敗しました';
@@ -107,7 +107,7 @@ export function LoginPage() {
           email: email.trim(),
           password,
         });
-        setAuthSession(response.user);
+        setAuthSession(response.user, response.sessionToken);
         trackEvent('login');
         navigate('/', { replace: true });
       } else {
@@ -121,7 +121,7 @@ export function LoginPage() {
           email: email.trim(),
           password,
         });
-        setAuthSession(response.user);
+        setAuthSession(response.user, response.sessionToken);
         trackEvent('sign_up');
         setSuccessMessage('登録完了！確認メールを送信しました。メールのリンクをクリックして認証を完了してください。');
         setTimeout(() => navigate('/', { replace: true }), 3000);

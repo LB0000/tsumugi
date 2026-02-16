@@ -158,6 +158,7 @@ authRouter.post('/register', async (req, res) => {
     res.json({
       success: true,
       user: result.user,
+      sessionToken: result.token,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'EMAIL_ALREADY_EXISTS') {
@@ -199,6 +200,7 @@ authRouter.post('/login', async (req, res) => {
     res.json({
       success: true,
       user: result.user,
+      sessionToken: result.token,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_CREDENTIALS') {
@@ -279,6 +281,7 @@ authRouter.post('/google', async (req, res) => {
     res.json({
       success: true,
       user: result.user,
+      sessionToken: result.token,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'EMAIL_ACCOUNT_EXISTS') {
@@ -343,6 +346,7 @@ authRouter.post('/reset-password', async (req, res) => {
     res.json({
       success: true,
       user: result.user,
+      sessionToken: result.token,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_RESET_TOKEN') {
@@ -414,7 +418,7 @@ authRouter.post('/change-password', requireAuth, async (_req, res) => {
     setSessionCookie(res, result.token);
     setCsrfCookie(res, createCsrfToken());
 
-    res.json({ success: true });
+    res.json({ success: true, sessionToken: result.token });
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_CURRENT_PASSWORD') {
       res.status(400).json({
