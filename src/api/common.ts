@@ -17,44 +17,36 @@ export interface CsrfResponse {
   csrfToken: string;
 }
 
-const CSRF_COOKIE_NAME = 'fable_csrf';
-
-function getCsrfTokenFromCookie(): string | null {
-  const match = document.cookie
-    .split('; ')
-    .find(row => row.startsWith(`${CSRF_COOKIE_NAME}=`));
-  if (!match) return null;
-  const value = match.split('=').slice(1).join('=');
-  try {
-    return decodeURIComponent(value) || null;
-  } catch {
-    return value || null;
-  }
-}
+let pendingCsrfRequest: Promise<string> | null = null;
 
 export async function getFreshCsrfToken(): Promise<string> {
-  // Read from existing cookie to avoid race conditions
-  // The cookie is set with httpOnly:false during login/register
-  const cookieToken = getCsrfTokenFromCookie();
-  if (cookieToken) return cookieToken;
+  // Serialize concurrent requests to avoid race conditions
+  if (pendingCsrfRequest) return pendingCsrfRequest;
 
-  // Fallback: fetch from server if cookie doesn't exist yet
-  const response = await fetchWithTimeout(`${API_BASE}/auth/csrf`, {
-    method: 'GET',
-    credentials: 'include',
-  });
+  pendingCsrfRequest = (async () => {
+    const response = await fetchWithTimeout(`${API_BASE}/auth/csrf`, {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  const data: unknown = await response.json();
-  if (!response.ok || isErrorResponse(data)) {
-    const errorMessage = isErrorResponse(data) ? data.error.message : 'CSRFトークンの取得に失敗しました';
-    throw new Error(errorMessage);
+    const data: unknown = await response.json();
+    if (!response.ok || isErrorResponse(data)) {
+      const errorMessage = isErrorResponse(data) ? data.error.message : 'CSRFトークンの取得に失敗しました';
+      throw new Error(errorMessage);
+    }
+
+    if (!isCsrfResponse(data)) {
+      throw new Error('Invalid csrf response format');
+    }
+
+    return data.csrfToken;
+  })();
+
+  try {
+    return await pendingCsrfRequest;
+  } finally {
+    pendingCsrfRequest = null;
   }
-
-  if (!isCsrfResponse(data)) {
-    throw new Error('Invalid csrf response format');
-  }
-
-  return data.csrfToken;
 }
 
 export async function buildAuthPostHeaders(): Promise<Record<string, string>> {

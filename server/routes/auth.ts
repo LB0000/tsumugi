@@ -103,13 +103,26 @@ function clearCsrfCookie(res: Response): void {
   });
 }
 
-authRouter.get('/csrf', (_req, res) => {
+authRouter.get('/csrf', (req, res) => {
+  // Reuse existing CSRF cookie to avoid race conditions with concurrent requests
+  const headers = req.headers as HeaderMap;
+  const cookieHeader = typeof headers.cookie === 'string' ? headers.cookie : undefined;
+  const existing = cookieHeader
+    ?.split(';')
+    .map(c => c.trim())
+    .find(c => c.startsWith(`${AUTH_CSRF_COOKIE_NAME}=`))
+    ?.split('=')
+    .slice(1)
+    .join('=');
+
+  if (existing && existing.length >= 32) {
+    res.json({ success: true, csrfToken: existing });
+    return;
+  }
+
   const csrfToken = createCsrfToken();
   setCsrfCookie(res, csrfToken);
-  res.json({
-    success: true,
-    csrfToken,
-  });
+  res.json({ success: true, csrfToken });
 });
 
 authRouter.use(csrfProtection({ methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }));
