@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
@@ -10,24 +10,26 @@ const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
 
 export function HomePage() {
-  const { selectedCategory, setSelectedCategory, resetUpload } = useAppStore();
+  const { selectedCategory, setSelectedCategory, resetUpload, selectedStyle, setSelectedStyle, setGeneratedImage, setGallerySaved } = useAppStore();
   const { pathname } = useLocation();
   const segment = pathname.split('/').filter(Boolean)[0] ?? '';
   const categoryFromUrl = VALID_CATEGORIES.includes(segment as typeof VALID_CATEGORIES[number])
     ? (segment as typeof VALID_CATEGORIES[number])
     : null;
-  const prevCategory = useRef(selectedCategory);
 
-  // URLからカテゴリを同期 + カテゴリ変更時にアップロードをリセット
+  // URLからカテゴリを同期 + カテゴリ変更時は生成結果のみリセット（アップロード画像は保持）
   useEffect(() => {
-    if (categoryFromUrl && categoryFromUrl !== selectedCategory) {
-      setSelectedCategory(categoryFromUrl);
-      if (prevCategory.current !== categoryFromUrl) {
-        resetUpload();
-      }
+    if (!categoryFromUrl || categoryFromUrl === selectedCategory) return;
+    setSelectedCategory(categoryFromUrl);
+    setGeneratedImage(null);
+    setGallerySaved(null);
+
+    // 現在のスタイルが新カテゴリと互換性がない場合はリセット
+    if (selectedStyle?.availableCategories &&
+        !selectedStyle.availableCategories.includes(categoryFromUrl)) {
+      setSelectedStyle(null);
     }
-    prevCategory.current = selectedCategory;
-  }, [categoryFromUrl, selectedCategory, setSelectedCategory, resetUpload]);
+  }, [categoryFromUrl, selectedCategory, setSelectedCategory, setGeneratedImage, setGallerySaved, selectedStyle, setSelectedStyle]);
 
   // SEOメタタグを動的に更新
   useEffect(() => {
