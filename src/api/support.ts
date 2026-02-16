@@ -1,4 +1,4 @@
-import { API_BASE, fetchWithTimeout } from './common';
+import { API_BASE, buildAuthPostHeaders, fetchWithTimeout } from './common';
 import { isErrorResponse, isContactResponse, isSupportChatResponse } from './typeGuards';
 
 export interface ContactRequest {
@@ -27,9 +27,11 @@ export interface SupportChatResponse {
 }
 
 export async function submitContact(request: ContactRequest): Promise<ContactResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetchWithTimeout(`${API_BASE}/contact`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
@@ -48,9 +50,11 @@ export async function submitContact(request: ContactRequest): Promise<ContactRes
 }
 
 export async function sendSupportChat(request: SupportChatRequest): Promise<SupportChatResponse> {
+  const headers = await buildAuthPostHeaders();
   const response = await fetchWithTimeout(`${API_BASE}/support/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
