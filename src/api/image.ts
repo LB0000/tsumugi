@@ -52,12 +52,12 @@ export async function generateImage(
   if (!response.ok || isErrorResponse(data)) {
     const errorMessage = isErrorResponse(data)
       ? data.error.message
-      : 'Failed to generate image';
+      : '画像の生成に失敗しました。しばらくしてから再度お試しください。';
     throw new Error(errorMessage);
   }
 
   if (!isGenerateImageResponse(data)) {
-    throw new Error('Invalid response format from server');
+    throw new Error('サーバーからの応答が正しくありません。しばらくしてから再度お試しください。');
   }
 
   return data;
@@ -70,12 +70,12 @@ export async function getStyles(): Promise<ArtStyle[]> {
   if (!response.ok || isErrorResponse(data)) {
     const errorMessage = isErrorResponse(data)
       ? data.error.message
-      : 'Failed to fetch styles';
+      : 'スタイル一覧の取得に失敗しました';
     throw new Error(errorMessage);
   }
 
   if (!isStylesResponse(data)) {
-    throw new Error('Invalid styles response format from server');
+    throw new Error('サーバーからの応答が正しくありません');
   }
 
   return data.styles;
@@ -88,12 +88,12 @@ export async function getPricing(): Promise<PricingResponse> {
   if (!response.ok || isErrorResponse(data)) {
     const errorMessage = isErrorResponse(data)
       ? data.error.message
-      : 'Failed to fetch pricing';
+      : '価格情報の取得に失敗しました';
     throw new Error(errorMessage);
   }
 
   if (!isPricingResponse(data)) {
-    throw new Error('Invalid pricing response format from server');
+    throw new Error('サーバーからの応答が正しくありません');
   }
 
   return data;

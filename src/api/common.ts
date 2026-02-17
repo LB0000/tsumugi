@@ -126,6 +126,13 @@ export async function fetchWithTimeout(
       }
       throw error;
     }
+    // ネットワークエラーをユーザーフレンドリーなメッセージに変換
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+    }
+    if (error instanceof Error && error.message.includes('NetworkError')) {
+      throw new Error('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+    }
     throw error;
   } finally {
     clearTimeout(timer);
