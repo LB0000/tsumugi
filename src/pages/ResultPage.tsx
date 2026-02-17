@@ -244,10 +244,10 @@ export function ResultPage() {
 
           <div className="text-center mb-6">
             <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground mb-2">
-              これは、あなたの作品です
+              あなただけの肖像画が完成しました
             </h1>
             <p className="text-muted text-sm sm:text-base">
-              世界でたった一枚。この瞬間を、ずっと残しませんか？
+              世界にひとつだけの一枚。今すぐ残しませんか？
             </p>
           </div>
 
@@ -378,13 +378,13 @@ export function ResultPage() {
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-full text-xs sm:text-sm text-amber-800">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            プレビュー画像は保存されません。商品購入で高解像度版をお届けします。
+            プレビュー画像は保存されません。商品購入で高解像度版を永久保存できます。
           </div>
         </div>
 
         <div className="text-center mb-8">
           <p className="text-muted text-sm">
-            この美しい肖像画を、どのアイテムで残しますか？
+            お好きな形で、この肖像画を残せます
           </p>
         </div>
 
