@@ -87,7 +87,7 @@ export function Header() {
               <Link
                 to="/cart"
                 className="p-3 hover:bg-card-hover transition-all duration-300 relative rounded-[var(--radius-button)]"
-                aria-label="カート"
+                aria-label={cartCount > 0 ? `カート（${Math.min(cartCount, 99)}${cartCount > 99 ? '+' : ''}点）` : 'カート'}
               >
                 <ShoppingCart className="w-5 h-5 text-foreground" />
                 {cartCount > 0 && (

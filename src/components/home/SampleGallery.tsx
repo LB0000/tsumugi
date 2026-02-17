@@ -33,7 +33,11 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
       updatePosition(clientX);
     };
     const handleUp = () => { isDragging.current = false; };
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') setSliderPos(prev => Math.max(0, prev - 5));
+      if (e.key === 'ArrowRight') setSliderPos(prev => Math.min(100, prev + 5));
+    };
 
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);

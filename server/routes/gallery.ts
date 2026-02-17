@@ -8,6 +8,7 @@ import {
 } from '../lib/galleryState.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
+import { logger } from '../lib/logger.js';
 
 export const galleryRouter = Router();
 galleryRouter.use(csrfProtection({ methods: ['DELETE'] }));
@@ -46,8 +47,10 @@ galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
     const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'private, max-age=3600');
+    logger.info('Gallery image served', { userId: user.id, itemId });
     res.send(data);
-  } catch {
+  } catch (error) {
+    logger.warn('Gallery image not found', { userId: user.id, itemId, error: error instanceof Error ? error.message : 'Unknown error' });
     res.status(404).json({ success: false, error: { code: 'FILE_NOT_FOUND', message: '画像ファイルが見つかりません' } });
   }
 });
@@ -79,8 +82,10 @@ galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
     const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'private, max-age=3600');
+    logger.info('Gallery thumbnail served', { userId: user.id, itemId });
     res.send(data);
-  } catch {
+  } catch (error) {
+    logger.warn('Gallery thumbnail not found', { userId: user.id, itemId, error: error instanceof Error ? error.message : 'Unknown error' });
     res.status(404).json({ success: false, error: { code: 'FILE_NOT_FOUND', message: 'サムネイルが見つかりません' } });
   }
 });
@@ -99,5 +104,6 @@ galleryRouter.delete('/:id', requireAuth, async (req, res) => {
     return;
   }
 
+  logger.info('Gallery item deleted', { userId: user.id, itemId });
   res.json({ success: true });
 });

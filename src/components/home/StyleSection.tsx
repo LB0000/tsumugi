@@ -32,7 +32,7 @@ function ImageSkeleton() {
   );
 }
 
-function StyleCardMini({ style, isSelected, onClick, index }: {
+const StyleCardMini = memo(function StyleCardMini({ style, isSelected, onClick, index }: {
   style: ArtStyle;
   isSelected: boolean;
   onClick: () => void;
@@ -127,7 +127,7 @@ function StyleCardMini({ style, isSelected, onClick, index }: {
       )}
     </button>
   );
-}
+});
 
 function StyleSectionBase() {
   const { selectedStyle, setSelectedStyle, openStyleModal, selectedCategory } = useAppStore();
@@ -183,11 +183,11 @@ function StyleSectionBase() {
     }
   }, [updateScrollState]);
 
-  const handleStyleClick = (style: ArtStyle) => {
+  const handleStyleClick = useCallback((style: ArtStyle) => {
     setSelectedStyle(style);
     trackEvent('style_select', { styleId: style.id });
     openStyleModal();
-  };
+  }, [setSelectedStyle, openStyleModal]);
 
   return (
     <section className="mb-12">

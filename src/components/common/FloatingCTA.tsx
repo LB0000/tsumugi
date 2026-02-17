@@ -82,7 +82,7 @@ export function FloatingCTA() {
             </button>
             <button
               onClick={handleDismiss}
-              className="p-2 text-muted hover:text-foreground transition-colors flex-shrink-0"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-foreground transition-colors flex-shrink-0"
               aria-label="閉じる"
             >
               <X className="w-4 h-4" />
@@ -104,7 +104,7 @@ export function FloatingCTA() {
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1.5 text-muted hover:text-foreground transition-colors"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-muted hover:text-foreground transition-colors"
               aria-label="閉じる"
             >
               <X className="w-3.5 h-3.5" />

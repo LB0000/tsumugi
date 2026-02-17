@@ -145,8 +145,10 @@ export function GeneratePreview() {
       trackEvent('image_generate');
       navigate('/result');
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if ((err instanceof Error || err instanceof DOMException) && err.name === 'AbortError') {
+        setError('生成をキャンセルしました');
+        return;
+      }
       setError(err instanceof Error ? err.message : '画像の生成に失敗しました');
     } finally {
       setIsGenerating(false);

@@ -554,6 +554,24 @@ authRouter.post('/addresses', requireAuth, (_req, res) => {
       return;
     }
 
+    const normalizedPhone = phone.replace(/-/g, '');
+    if (!/^0\d{9,11}$/.test(normalizedPhone)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PHONE', message: '電話番号の形式が正しくありません' },
+      });
+      return;
+    }
+
+    const normalizedPostalCode = postalCode.replace(/-/g, '');
+    if (!/^\d{7}$/.test(normalizedPostalCode)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_POSTAL_CODE', message: '郵便番号の形式が正しくありません' },
+      });
+      return;
+    }
+
     const address = addSavedAddress(user.id, {
       label, lastName, firstName, email, phone,
       postalCode, prefecture, city, addressLine, isDefault,

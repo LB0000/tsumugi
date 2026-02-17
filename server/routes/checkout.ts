@@ -258,8 +258,9 @@ checkoutRouter.post('/create-order', async (req, res) => {
 
         // 24時間ウィンドウの検証
         if (typeof generatedAt === 'number' && Number.isFinite(generatedAt)) {
-          // 未来の時刻でないか確認（タイムスタンプ改ざん対策）
-          if (generatedAt <= now) {
+          // 未来の時刻でないか確認 + 7日以内（リプレイ攻撃対策）
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          if (generatedAt <= now && generatedAt > now - SEVEN_DAYS_MS) {
             const elapsedMs = now - generatedAt;
             // 24時間以内か確認
             isDiscountValid = elapsedMs >= 0 && elapsedMs <= DISCOUNT_WINDOW_MS;
