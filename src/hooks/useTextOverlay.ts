@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { applyTextOverlay } from '../lib/textOverlay';
 import { waitForFontLoad } from '../lib/textOverlay';
 import { getPortraitFont } from '../data/portraitFonts';
+import { getSelectableFont } from '../data/selectableFonts';
+import { getDecorationPreset } from '../data/decorationPresets';
+import type { TextOverlaySettings } from '../types/textOverlay';
 
 export interface UseTextOverlayOptions {
   /** ベース画像のdata URL */
@@ -14,6 +17,8 @@ export interface UseTextOverlayOptions {
   imageWidth?: number;
   /** 画像の高さ */
   imageHeight?: number;
+  /** カスタマイズ設定（省略時はスタイル推奨） */
+  overlaySettings?: TextOverlaySettings;
 }
 
 export interface UseTextOverlayResult {
@@ -28,22 +33,63 @@ export interface UseTextOverlayResult {
 }
 
 /**
+ * TextOverlaySettings を TextOverlayOptions の customFont/customDecoration に変換
+ */
+function resolveOverlaySettings(settings?: TextOverlaySettings) {
+  if (!settings) {
+    return { customFont: undefined, customDecoration: undefined, position: undefined };
+  }
+
+  // フォント解決
+  const customFont = settings.fontId
+    ? (() => {
+        const font = getSelectableFont(settings.fontId);
+        return font ? { fontFamily: font.fontFamily, fontWeight: font.fontWeight } : undefined;
+      })()
+    : undefined;
+
+  // 装飾解決
+  const customDecoration = settings.decorationId
+    ? (() => {
+        const preset = getDecorationPreset(settings.decorationId);
+        return preset ? {
+          color: preset.color,
+          shadow: preset.shadow,
+          stroke: preset.stroke,
+          glow: preset.glow,
+        } : undefined;
+      })()
+    : undefined;
+
+  return {
+    customFont,
+    customDecoration,
+    position: settings.position,
+  };
+}
+
+/**
  * テキストオーバーレイ適用のカスタムフック
  *
  * パフォーマンス最適化:
- * - 入力のdebounce (500ms) でCanvas再描画を削減
+ * - テキスト入力のdebounce (500ms) でCanvas再描画を削減
+ * - フォント/装飾/位置変更は即時適用（クリック操作のため）
  * - Generation counterでrace conditionを防止
  */
 export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayResult {
-  const { baseImageUrl, styleId, portraitName, imageWidth = 1024, imageHeight = 1024 } = options;
+  const { baseImageUrl, styleId, portraitName, imageWidth = 1024, imageHeight = 1024, overlaySettings } = options;
 
   const [overlayedImageUrl, setOverlayedImageUrl] = useState<string>(baseImageUrl);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Store latest values in refs to avoid recreating applyOverlay
-  const latestValuesRef = useRef({ baseImageUrl, styleId, portraitName, imageWidth, imageHeight });
-  latestValuesRef.current = { baseImageUrl, styleId, portraitName, imageWidth, imageHeight };
+  const latestValuesRef = useRef({
+    baseImageUrl, styleId, portraitName, imageWidth, imageHeight, overlaySettings,
+  });
+  latestValuesRef.current = {
+    baseImageUrl, styleId, portraitName, imageWidth, imageHeight, overlaySettings,
+  };
 
   // Race condition prevention: generation counter
   const generationRef = useRef(0);
@@ -51,9 +97,12 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
   // Debounce timer
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track previous portraitName to distinguish name changes from settings changes
+  const prevNameRef = useRef(portraitName);
+
   // Stable applyOverlay function (reads from refs to avoid dependency churn)
   const applyOverlay = useCallback(async () => {
-    const { baseImageUrl, styleId, portraitName, imageWidth, imageHeight } = latestValuesRef.current;
+    const { baseImageUrl, styleId, portraitName, imageWidth, imageHeight, overlaySettings } = latestValuesRef.current;
 
     // Increment generation counter
     generationRef.current += 1;
@@ -71,9 +120,12 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
     setError(null);
 
     try {
-      // フォントを事前読み込み
-      const fontConfig = getPortraitFont(styleId);
-      await waitForFontLoad(fontConfig.fontFamily, 2000);
+      // 設定を解決
+      const { customFont, customDecoration, position } = resolveOverlaySettings(overlaySettings);
+
+      // フォントを事前読み込み（カスタムフォント優先）
+      const fontFamily = customFont?.fontFamily ?? getPortraitFont(styleId).fontFamily;
+      await waitForFontLoad(fontFamily, 2000);
 
       // テキストオーバーレイを適用
       const newImageUrl = await applyTextOverlay(baseImageUrl, {
@@ -81,6 +133,9 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
         styleId,
         imageWidth,
         imageHeight,
+        customFont,
+        customDecoration,
+        position,
       });
 
       // Only update if this is still the latest generation (race condition prevention)
@@ -89,25 +144,26 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
       }
     } catch (err) {
       console.error('Text overlay failed:', err);
-      // Only update error state if this is still the latest generation
       if (currentGeneration === generationRef.current) {
         setError('名前の表示に失敗しました。もう一度お試しください。');
         setOverlayedImageUrl(baseImageUrl);
       }
     } finally {
-      // Only clear processing if this is still the latest generation
       if (currentGeneration === generationRef.current) {
         setIsProcessing(false);
       }
     }
   }, []); // Empty deps - stable function that reads from ref
 
-  // Debounced auto-apply effect
+  // Auto-apply effect: debounce text input only, apply settings changes immediately
   useEffect(() => {
     // Clear existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+
+    const nameChanged = prevNameRef.current !== portraitName;
+    prevNameRef.current = portraitName;
 
     // If name is empty, apply immediately (no debounce needed)
     if (!portraitName || portraitName.trim() === '') {
@@ -115,18 +171,26 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
       return;
     }
 
-    // Debounce non-empty name changes (500ms)
-    debounceTimerRef.current = setTimeout(() => {
+    if (nameChanged) {
+      // Text input changes: debounce 500ms to reduce Canvas redraws
+      debounceTimerRef.current = setTimeout(() => {
+        applyOverlay();
+      }, 500);
+    } else {
+      // Font/decoration/position changes: apply immediately (click operations)
       applyOverlay();
-    }, 500);
+    }
 
-    // Cleanup on unmount or dependency change
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [baseImageUrl, styleId, portraitName, imageWidth, imageHeight, applyOverlay]);
+  }, [
+    baseImageUrl, styleId, portraitName, imageWidth, imageHeight,
+    overlaySettings?.fontId, overlaySettings?.decorationId, overlaySettings?.position,
+    applyOverlay,
+  ]);
 
   return {
     overlayedImageUrl,

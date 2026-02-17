@@ -3,7 +3,7 @@ import { Router } from 'express';
 import type { Request } from 'express';
 import { SquareError, WebhooksHelper } from 'square';
 import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, DISCOUNT_RATE, DISCOUNT_WINDOW_MS, catalogById } from '../lib/catalog.js';
-import { isValidEmail, validatePortraitName } from '../lib/validation.js';
+import { isValidEmail, validatePortraitName, validateTextOverlaySettings } from '../lib/validation.js';
 import { validate } from '../lib/schemas.js';
 import { z } from 'zod';
 import { logger } from '../lib/logger.js';
@@ -520,6 +520,9 @@ checkoutRouter.post('/create-order', async (req, res) => {
           portraitName: typeof sourceItem.options.portraitName === 'string'
             ? validatePortraitName(sourceItem.options.portraitName) || undefined
             : undefined,
+          textOverlaySettings: sourceItem.options.textOverlaySettings
+            ? validateTextOverlaySettings(sourceItem.options.textOverlaySettings) || undefined
+            : undefined,
         } : undefined;
 
         return {
@@ -542,6 +545,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
     }
 
     // [Phase 10] Log product mix for analytics
+    const totalAmount = Number(order.totalMoney?.amount ?? 0);
     const productCounts = normalizedItemsWithImages.reduce((acc, item) => {
       acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
       return acc;
@@ -557,7 +561,6 @@ checkoutRouter.post('/create-order', async (req, res) => {
     // Link order to user if logged in
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
-    const totalAmount = Number(order.totalMoney?.amount ?? 0);
 
     // Build gift info metadata
     const giftInfo = giftOptions?.isGift ? {
@@ -781,9 +784,10 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
     const signatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
     const notificationUrl = process.env.SQUARE_WEBHOOK_NOTIFICATION_URL;
     if (!signatureKey || !notificationUrl) {
-      res.status(500).json({
+      logger.error('Webhook signature key or notification URL not configured');
+      res.status(401).json({
         success: false,
-        error: { code: 'WEBHOOK_NOT_CONFIGURED', message: 'Webhook設定が不足しています' },
+        error: { code: 'INVALID_SIGNATURE', message: '署名の検証に失敗しました' },
       });
       return;
     }

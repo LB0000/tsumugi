@@ -19,7 +19,7 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName, textOverlaySettings, setTextOverlaySettings } = useAppStore();
   const { addToCart } = useCartStore();
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const postcard = crossSellProducts[0];
@@ -36,6 +36,7 @@ export function ResultPage() {
     portraitName: portraitName,
     imageWidth: 1024,
     imageHeight: 1024,
+    overlaySettings: textOverlaySettings,
   });
 
   const handleScroll = useCallback(() => {
@@ -171,7 +172,7 @@ export function ResultPage() {
       imageUrl: overlayedImageUrl,
       quantity: 1,
       price: finalPrice,
-      options: portraitName ? { portraitName } : undefined,
+      options: portraitName ? { portraitName, textOverlaySettings } : undefined,
     });
 
     setAddedProductId(product.id);
@@ -202,7 +203,7 @@ export function ResultPage() {
       imageUrl: overlayedImageUrl,
       quantity: 1,
       price: postcardFinalPrice,
-      options: portraitName ? { portraitName } : undefined,
+      options: portraitName ? { portraitName, textOverlaySettings } : undefined,
     });
 
     setAddedProductId(postcard.id);
@@ -314,6 +315,8 @@ export function ResultPage() {
               styleId={selectedStyle.id}
               portraitName={portraitName}
               onNameChange={setPortraitName}
+              overlaySettings={textOverlaySettings}
+              onSettingsChange={setTextOverlaySettings}
             />
             {/* Overlay processing feedback */}
             {isOverlayProcessing && portraitName && (

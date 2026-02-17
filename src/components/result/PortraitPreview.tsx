@@ -1,5 +1,6 @@
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTextOverlay } from '../../hooks/useTextOverlay';
+import type { TextOverlaySettings } from '../../types/textOverlay';
 
 export interface PortraitPreviewProps {
   /** ベース画像のdata URL */
@@ -8,6 +9,8 @@ export interface PortraitPreviewProps {
   styleId: string;
   /** 名前（空欄の場合はオーバーレイなし） */
   portraitName: string;
+  /** カスタマイズ設定 */
+  overlaySettings?: TextOverlaySettings;
   /** 画像のalt属性 */
   alt?: string;
   /** 追加のCSSクラス */
@@ -18,6 +21,7 @@ export function PortraitPreview({
   baseImageUrl,
   styleId,
   portraitName,
+  overlaySettings,
   alt = '肖像画プレビュー',
   className = '',
 }: PortraitPreviewProps) {
@@ -27,6 +31,7 @@ export function PortraitPreview({
     portraitName,
     imageWidth: 1024,
     imageHeight: 1024,
+    overlaySettings,
   });
 
   return (

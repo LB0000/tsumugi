@@ -150,9 +150,7 @@ function renderText(
 ): void {
   const baseFontSize = calculateFontSize(canvasWidth, canvasHeight, text.length);
 
-  const fontWeight = typeof fontConfig.fontWeight === 'number'
-    ? fontConfig.fontWeight
-    : fontConfig.fontWeight;
+  const fontWeight = fontConfig.fontWeight;
   ctx.font = `${fontWeight} ${baseFontSize}px "${fontConfig.fontFamily}", sans-serif`;
   ctx.textBaseline = 'middle';
 

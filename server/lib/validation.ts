@@ -34,3 +34,41 @@ export function validatePortraitName(name: unknown): string | null {
 
   return sanitized;
 }
+
+/**
+ * Valid text overlay positions
+ */
+const VALID_POSITIONS = [
+  'bottom-center', 'bottom-left', 'bottom-right',
+  'top-center', 'top-left', 'top-right',
+] as const;
+
+/**
+ * Validates text overlay settings from client
+ *
+ * @param settings - Text overlay settings (can be any type)
+ * @returns Validated settings or null if invalid
+ */
+export function validateTextOverlaySettings(
+  settings: unknown
+): { fontId: string | null; decorationId: string | null; position: string } | null {
+  if (!settings || typeof settings !== 'object') {
+    return null;
+  }
+
+  const s = settings as Record<string, unknown>;
+
+  const position = typeof s.position === 'string' && (VALID_POSITIONS as readonly string[]).includes(s.position)
+    ? s.position
+    : 'bottom-center';
+
+  const fontId = typeof s.fontId === 'string' && s.fontId.length <= 50
+    ? s.fontId
+    : null;
+
+  const decorationId = typeof s.decorationId === 'string' && s.decorationId.length <= 50
+    ? s.decorationId
+    : null;
+
+  return { fontId, decorationId, position };
+}

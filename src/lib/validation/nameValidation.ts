@@ -31,7 +31,7 @@ export function validatePortraitName(name: string): NameValidationResult {
 
   // 許可文字チェック：Unicode文字、数字、スペース、ハイフン、アポストロフィ
   // 絵文字・特殊記号は不可
-  const validCharPattern = /^[\p{L}\p{N}\s\-']+$/u;
+  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
   if (!validCharPattern.test(name)) {
     return {
       isValid: false,
@@ -71,7 +71,7 @@ export function getNameInputWarning(name: string): string | null {
   }
 
   // 不正文字警告
-  const validCharPattern = /^[\p{L}\p{N}\s\-']+$/u;
+  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
   if (!validCharPattern.test(name)) {
     return '使用できない文字が含まれています';
   }
@@ -88,7 +88,7 @@ export function sanitizePortraitName(name: string): string {
   if (!name) return '';
 
   // 許可文字以外を削除
-  const cleaned = name.replace(/[^\p{L}\p{N}\s\-']/gu, '');
+  const cleaned = name.replace(/[^\p{L}\p{N} \-']/gu, '');
 
   // 改行をスペースに変換
   const singleLine = cleaned.replace(/[\r\n]+/g, ' ');
