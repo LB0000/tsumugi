@@ -3,6 +3,8 @@ export interface OrderItem {
   name: string;
   quantity: number;
   price: number;
+  imageUrl?: string;  // Supabase Storage public URL (Phase 6)
+  options?: Record<string, unknown>;  // Product options, e.g., { portraitName: string }
 }
 
 export interface OrderShippingAddress {
@@ -37,6 +39,10 @@ export interface OrderPaymentStatus {
   couponCode?: string;
   couponUsed?: boolean;
   giftInfo?: OrderGiftInfo;
+  // Phase 7: LYLY PDF generation
+  printDataUrl?: string;  // LYLY generated PDF URL
+  printDataStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  printDataError?: string;  // Error message if PDF generation failed
 }
 
 export interface ProcessedWebhookEvent {

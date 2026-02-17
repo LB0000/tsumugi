@@ -34,7 +34,10 @@ const envSchema = z.object({
   SUPABASE_CHECKOUT_EVENTS_TABLE: z.string().min(1).default('checkout_webhook_events'),
   SUPABASE_STYLE_ANALYTICS_TABLE: z.string().min(1).default('style_analytics'),
   SUPABASE_GALLERY_TABLE: z.string().min(1).default('gallery_items'),
-  SUPABASE_GALLERY_BUCKET: z.string().min(1).default('gallery'),
+  SUPABASE_SAVED_CARTS_TABLE: z.string().min(1).default('saved_carts'),
+  SUPABASE_SCHEDULED_EMAILS_TABLE: z.string().min(1).default('scheduled_emails'),
+  LYLY_API_URL: z.string().url().optional(),
+  LYLY_AUTH_TOKEN: z.string().optional(),
 }).superRefine((data, ctx) => {
   const hasUrl = Boolean(data.SUPABASE_URL);
   const hasKey = Boolean(data.SUPABASE_SERVICE_ROLE_KEY);

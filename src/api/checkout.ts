@@ -11,10 +11,17 @@ export interface GiftOptionsPayload {
 }
 
 export interface CreateOrderRequest {
-  items: Array<{ productId: string; quantity: number }>;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    price?: number;
+    imageData?: string;  // Base64 image data for upload to Supabase Storage
+    options?: Record<string, unknown>;  // Product options (e.g., portraitName)
+  }>;
   shippingAddress: ShippingAddress;
   clientRequestId?: string;
   giftOptions?: GiftOptionsPayload;
+  generatedAt?: number;
 }
 
 export interface CreateOrderResponse {

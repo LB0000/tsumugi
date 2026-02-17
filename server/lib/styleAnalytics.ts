@@ -1,19 +1,11 @@
 import path from 'path';
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
+import { hasSupabaseConfig } from './supabaseClient.js';
+import { loadStyleAnalyticsSnapshot, persistStyleAnalyticsSnapshot } from './styleAnalyticsStore.js';
+import type { StyleCount, PersistedStyleAnalytics } from './styleAnalyticsStore.js';
 
-export interface StyleCount {
-  styleId: string;
-  styleName: string;
-  category: string;
-  count: number;
-  lastUsedAt: string;
-}
-
-interface PersistedStyleAnalytics {
-  version: number;
-  counts: StyleCount[];
-}
+export type { StyleCount } from './styleAnalyticsStore.js';
 
 const STYLE_ANALYTICS_PATH = path.resolve(process.cwd(), 'server', '.data', 'style-analytics.json');
 const PERSIST_DEBOUNCE_MS = 5_000;
@@ -26,14 +18,18 @@ function makeKey(styleId: string, category: string): string {
   return `${styleId}::${category}`;
 }
 
-function flushState(): void {
-  const snapshot: PersistedStyleAnalytics = {
+function buildSnapshot(): PersistedStyleAnalytics {
+  return {
     version: 1,
     counts: [...countsByKey.values()],
   };
+}
+
+function flushState(): void {
+  const snapshot = buildSnapshot();
 
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(STYLE_ANALYTICS_PATH, snapshot))
+    .then(() => persistStyleAnalyticsSnapshot(STYLE_ANALYTICS_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist style analytics', { error: error instanceof Error ? error.message : String(error) });
     });
@@ -61,16 +57,31 @@ function isStyleCount(value: unknown): value is StyleCount {
   );
 }
 
-function hydrateState(): void {
-  const parsed = readJsonFile<PersistedStyleAnalytics>(STYLE_ANALYTICS_PATH, {
-    version: 1,
-    counts: [],
-  });
-
+function hydrateFromParsed(parsed: PersistedStyleAnalytics): void {
   for (const entry of parsed.counts) {
     if (!isStyleCount(entry)) continue;
     const key = makeKey(entry.styleId, entry.category);
     countsByKey.set(key, { ...entry, count: Math.floor(entry.count) });
+  }
+}
+
+function hydrateStateSync(): void {
+  const parsed = readJsonFile<PersistedStyleAnalytics>(STYLE_ANALYTICS_PATH, {
+    version: 1,
+    counts: [],
+  });
+  hydrateFromParsed(parsed);
+}
+
+async function hydrateStateAsync(): Promise<void> {
+  try {
+    const parsed = await loadStyleAnalyticsSnapshot(STYLE_ANALYTICS_PATH);
+    hydrateFromParsed(parsed);
+  } catch (error) {
+    logger.error('Failed to hydrate style analytics from Supabase, falling back to local.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    hydrateStateSync();
   }
 }
 
@@ -100,7 +111,20 @@ export function getStyleAnalytics(): { styles: StyleCount[]; totalGenerations: n
   return { styles, totalGenerations };
 }
 
-hydrateState();
+const STYLE_HYDRATION_TIMEOUT_MS = 15_000;
+
+export const styleAnalyticsHydrationReady: Promise<void> = hasSupabaseConfig()
+  ? Promise.race([
+      hydrateStateAsync(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Style analytics hydration timed out')), STYLE_HYDRATION_TIMEOUT_MS),
+      ),
+    ]).catch((error) => {
+      logger.error('Style analytics async hydration failed or timed out.', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+  : Promise.resolve(hydrateStateSync());
 
 // Flush pending writes on graceful shutdown
 process.on('SIGTERM', () => {

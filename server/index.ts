@@ -17,9 +17,11 @@ import { galleryRouter } from './routes/gallery.js';
 import { internalRouter } from './routes/internal.js';
 import { reviewRouter } from './routes/reviews.js';
 import { cartRouter } from './routes/cart.js';
-import { startCartAbandonmentChecker } from './lib/cartAbandonment.js';
-import { startScheduledEmailChecker } from './lib/scheduledEmails.js';
+import { startCartAbandonmentChecker, cartAbandonmentHydrationReady } from './lib/cartAbandonment.js';
+import { startScheduledEmailChecker, scheduledEmailsHydrationReady } from './lib/scheduledEmails.js';
 import { checkoutHydrationReady } from './lib/checkoutState.js';
+import { styleAnalyticsHydrationReady } from './lib/styleAnalytics.js';
+import { galleryHydrationReady } from './lib/galleryState.js';
 
 const app = express();
 const PORT = config.PORT;
@@ -83,7 +85,7 @@ app.use((_req, res, next) => {
   next();
 });
 app.use(express.json({
-  limit: '1mb',
+  limit: '10mb',  // Increased for base64 image uploads (Phase 6: Supabase Storage)
   verify: (req, _res, buf) => {
     // [S-10] Only store rawBody for webhook signature verification
     if (req.url?.includes('/webhook')) {
@@ -120,7 +122,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 const server = app.listen(PORT, async () => {
-  await checkoutHydrationReady;
+  await Promise.all([checkoutHydrationReady, styleAnalyticsHydrationReady, galleryHydrationReady, cartAbandonmentHydrationReady, scheduledEmailsHydrationReady]);
   logger.info(`Server running on http://localhost:${PORT}`);
   startCartAbandonmentChecker();
   startScheduledEmailChecker();

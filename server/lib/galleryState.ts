@@ -1,23 +1,16 @@
 import path from 'path';
 import { randomBytes } from 'crypto';
 import { promises as fs } from 'fs';
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
+import { hasSupabaseConfig } from './supabaseClient.js';
+import {
+  loadGallerySnapshot,
+  persistGallerySnapshot,
+} from './galleryStateStore.js';
+import type { GalleryItem, PersistedGalleryState } from './galleryStateStore.js';
 
-export interface GalleryItem {
-  id: string;
-  userId: string;
-  imageFileName: string;
-  thumbnailFileName: string;
-  artStyleId: string;
-  artStyleName: string;
-  createdAt: string;
-}
-
-interface PersistedGalleryState {
-  version: number;
-  items: GalleryItem[];
-}
+export type { GalleryItem } from './galleryStateStore.js';
 
 const GALLERY_STATE_PATH = path.resolve(process.cwd(), 'server', '.data', 'gallery-state.json');
 const GALLERY_FILES_DIR = path.resolve(process.cwd(), 'server', '.data', 'gallery');
@@ -32,14 +25,18 @@ function createId(): string {
   return `gal_${randomBytes(10).toString('hex')}`;
 }
 
-function persistGalleryState(): void {
-  const snapshot: PersistedGalleryState = {
+function buildSnapshot(): PersistedGalleryState {
+  return {
     version: 1,
     items: [...itemsById.values()],
   };
+}
+
+function persistGalleryState(): void {
+  const snapshot = buildSnapshot();
 
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(GALLERY_STATE_PATH, snapshot))
+    .then(() => persistGallerySnapshot(GALLERY_STATE_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist gallery state', { error: error instanceof Error ? error.message : String(error) });
     });
@@ -59,18 +56,33 @@ function isGalleryItem(value: unknown): value is GalleryItem {
   );
 }
 
-function hydrateGalleryState(): void {
-  const parsed = readJsonFile<PersistedGalleryState>(GALLERY_STATE_PATH, {
-    version: 1,
-    items: [],
-  });
-
+function hydrateFromParsed(parsed: PersistedGalleryState): void {
   for (const item of parsed.items) {
     if (!isGalleryItem(item)) continue;
     itemsById.set(item.id, item);
     const userItems = itemsByUserId.get(item.userId) ?? [];
     userItems.push(item);
     itemsByUserId.set(item.userId, userItems);
+  }
+}
+
+function hydrateGalleryStateSync(): void {
+  const parsed = readJsonFile<PersistedGalleryState>(GALLERY_STATE_PATH, {
+    version: 1,
+    items: [],
+  });
+  hydrateFromParsed(parsed);
+}
+
+async function hydrateGalleryStateAsync(): Promise<void> {
+  try {
+    const parsed = await loadGallerySnapshot(GALLERY_STATE_PATH);
+    hydrateFromParsed(parsed);
+  } catch (error) {
+    logger.error('Failed to hydrate gallery state from Supabase, falling back to local.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    hydrateGalleryStateSync();
   }
 }
 
@@ -192,7 +204,7 @@ async function deleteGalleryItemUnlocked(userId: string, itemId: string): Promis
     if (idx !== -1) userItems.splice(idx, 1);
   }
 
-  // Clean up files
+  // Clean up local files
   try {
     await fs.unlink(getGalleryImagePath(item.imageFileName));
   } catch { /* file may not exist */ }
@@ -210,4 +222,17 @@ export async function deleteGalleryItem(userId: string, itemId: string): Promise
   return withUserLock(userId, async () => deleteGalleryItemUnlocked(userId, itemId));
 }
 
-hydrateGalleryState();
+const GALLERY_HYDRATION_TIMEOUT_MS = 15_000;
+
+export const galleryHydrationReady: Promise<void> = hasSupabaseConfig()
+  ? Promise.race([
+      hydrateGalleryStateAsync(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gallery hydration timed out')), GALLERY_HYDRATION_TIMEOUT_MS),
+      ),
+    ]).catch((error) => {
+      logger.error('Gallery state async hydration failed or timed out.', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+  : Promise.resolve(hydrateGalleryStateSync());

@@ -10,6 +10,7 @@ import { createOrder, processPayment, getAddresses } from '../api';
 import type { SavedAddressItem } from '../api';
 import type { ShippingAddress } from '../types';
 import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
+import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 import {
   validateShippingField,
   validateShippingForm,
@@ -298,13 +299,23 @@ export function CheckoutPage() {
 
       const sourceId = await tokenize();
 
+      // TODO (Phase 6): imageData payload size can be 1-3MB per item (base64 JPEG)
+      // Backend must configure body-parser limit (e.g., 10MB) or use multipart/form-data
+      const generatedAtRaw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+      const generatedAtNum = generatedAtRaw ? parseInt(generatedAtRaw, 10) : undefined;
+      const validGeneratedAt = generatedAtNum && Number.isFinite(generatedAtNum) ? generatedAtNum : undefined;
+
       const orderResponse = await createOrder({
         items: cartItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
+          price: item.price,
+          imageData: item.imageUrl,  // Base64 image data (with text overlay if portraitName exists)
+          options: item.options,  // Include options (e.g., portraitName)
         })),
         shippingAddress: form,
         clientRequestId,
+        ...(validGeneratedAt && { generatedAt: validGeneratedAt }),
         ...(giftOptions?.isGift && {
           giftOptions: {
             isGift: true,

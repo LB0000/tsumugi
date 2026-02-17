@@ -37,6 +37,11 @@ interface AppState {
   setGeneratedImage: (image: string | null) => void;
   setGallerySaved: (saved: boolean | null) => void;
 
+  // Portrait Name (名入れ機能)
+  portraitName: string;
+  setPortraitName: (name: string) => void;
+  clearPortraitName: () => void;
+
   // Sidebar
   isSidebarOpen: boolean;
   openSidebar: () => void;
@@ -98,6 +103,7 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     uploadState: initialUploadState,
     generatedImage: null,
     gallerySaved: null,
+    portraitName: '',  // Clear portrait name on reset
     currentStep: 'upload'
   }),
 
@@ -106,6 +112,11 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   gallerySaved: null,
   setGeneratedImage: (image) => set({ generatedImage: image }),
   setGallerySaved: (saved) => set({ gallerySaved: saved }),
+
+  // Portrait Name (名入れ機能)
+  portraitName: '',
+  setPortraitName: (name) => set({ portraitName: name }),
+  clearPortraitName: () => set({ portraitName: '' }),
 
   // Sidebar
   isSidebarOpen: false,
@@ -148,5 +159,6 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     generatedImage: state.generatedImage,
     selectedStyle: state.selectedStyle,
     gallerySaved: state.gallerySaved,
+    portraitName: state.portraitName,
   } as AppState),
 }));

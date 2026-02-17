@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, Palette, AlertTriangle, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
@@ -9,6 +9,9 @@ import { ShareButtons } from '../components/common/ShareButtons';
 import { TrustBadges } from '../components/common/TrustBadges';
 import { trackEvent, trackMetaAddToCart } from '../lib/analytics';
 import { updateMetaTags } from '../lib/seo';
+import { NameEngravingSection } from '../components/result/NameEngravingSection';
+import { useTextOverlay } from '../hooks/useTextOverlay';
+import { DISCOUNT_RATE, DISCOUNT_WINDOW_MS, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
 
@@ -16,12 +19,23 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved } = useAppStore();
+  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName } = useAppStore();
   const { addToCart } = useCartStore();
   const [includePostcard, setIncludePostcard] = useState(false);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
   const [showFab, setShowFab] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string>('23:59:59');
+  const [isWithin24Hours, setIsWithin24Hours] = useState(true);
+
+  // Text overlay for name engraving (applied to cart items)
+  const { overlayedImageUrl, isProcessing: isOverlayProcessing, error: overlayError } = useTextOverlay({
+    baseImageUrl: generatedImage || '',
+    styleId: selectedStyle?.id || '',
+    portraitName: portraitName,
+    imageWidth: 1024,
+    imageHeight: 1024,
+  });
 
   const handleScroll = useCallback(() => {
     setShowFab(window.scrollY > 200);
@@ -31,6 +45,43 @@ export function ResultPage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  // 24時間限定割引タイマー
+  useEffect(() => {
+    const generatedAt = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+
+    if (!generatedAt) {
+      localStorage.setItem(PREVIEW_GENERATED_AT_KEY, Date.now().toString());
+    }
+
+    const interval = setInterval(() => {
+      const raw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+      const generated = raw ? parseInt(raw, 10) : 0;
+
+      if (Number.isNaN(generated) || generated <= 0) {
+        setIsWithin24Hours(false);
+        clearInterval(interval);
+        return;
+      }
+
+      const now = Date.now();
+      const elapsed = now - generated;
+      const remaining = DISCOUNT_WINDOW_MS - elapsed;
+
+      if (remaining <= 0) {
+        setIsWithin24Hours(false);
+        clearInterval(interval);
+        return;
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+      setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Redirect to home if store has no data (e.g. direct navigation or page reload)
   // Wait for Zustand persist rehydration before checking
@@ -95,11 +146,18 @@ export function ResultPage() {
   }
 
   const handleAddToCart = (product: ProductOption) => {
-    trackEvent('add_to_cart', { productId: product.id, price: product.price });
+    const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
+    const discount = isWithin24Hours ? product.price * DISCOUNT_RATE : 0;
+
+    trackEvent('add_to_cart', {
+      productId: product.id,
+      price: finalPrice,
+      discount: discount
+    });
     trackMetaAddToCart({
       content_ids: [product.id],
       content_type: 'product',
-      value: product.price,
+      value: finalPrice,
       currency: 'JPY',
     });
     addToCart({
@@ -107,20 +165,23 @@ export function ResultPage() {
       name: product.name,
       artStyleId: selectedStyle.id,
       artStyleName: selectedStyle.name,
-      imageUrl: generatedImage,
+      imageUrl: overlayedImageUrl, // Use text-overlayed image
       quantity: 1,
-      price: product.price
+      price: finalPrice,
+      options: portraitName ? { portraitName } : undefined, // Include name if present
     });
 
     if (includePostcard && postcard) {
+      const postcardFinalPrice = isWithin24Hours ? Math.floor(postcard.price * (1 - DISCOUNT_RATE)) : postcard.price;
       addToCart({
         productId: postcard.id,
         name: postcard.name,
         artStyleId: selectedStyle.id,
         artStyleName: selectedStyle.name,
-        imageUrl: generatedImage,
+        imageUrl: overlayedImageUrl, // Use text-overlayed image
         quantity: 1,
-        price: postcard.price
+        price: postcardFinalPrice,
+        options: portraitName ? { portraitName } : undefined, // Include name if present
       });
     }
 
@@ -161,10 +222,10 @@ export function ResultPage() {
 
           <div className="text-center mb-6">
             <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground mb-2">
-              あなただけの傑作です
+              これは、あなたの作品です
             </h1>
             <p className="text-muted text-sm sm:text-base">
-              {selectedStyle.name} スタイルで変換しました
+              世界でたった一枚。この瞬間を、ずっと残しませんか？
             </p>
           </div>
 
@@ -224,8 +285,60 @@ export function ResultPage() {
               </p>
             </div>
           )}
+
+          {/* Name Engraving Section */}
+          <div className="max-w-3xl mx-auto mt-8">
+            <NameEngravingSection
+              baseImageUrl={generatedImage}
+              styleId={selectedStyle.id}
+              portraitName={portraitName}
+              onNameChange={setPortraitName}
+            />
+            {/* Overlay processing feedback */}
+            {isOverlayProcessing && portraitName && (
+              <div className="mt-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <p className="text-sm text-blue-800">名前を画像に追加しています...</p>
+              </div>
+            )}
+            {overlayError && (
+              <div className="mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <p className="text-sm text-red-800">{overlayError}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* 24時間限定10%オフバナー */}
+      {isWithin24Hours && (
+        <div className="max-w-4xl mx-auto px-4 mb-6">
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm sm:text-base font-bold text-amber-900 mb-1">
+                  🎁 今だけ特典：プレビュー完成から24時間限定
+                </p>
+                <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
+                  この作品の購入で<span className="font-semibold">全商品10%オフ</span>。<br className="hidden sm:block" />
+                  24時間を過ぎると通常料金に戻ります。
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="text-xs font-mono bg-white/80 px-2 py-1 rounded border border-amber-200">
+                    残り時間: <span className="font-bold text-amber-700">{timeRemaining}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Product section */}
       <div className="max-w-6xl mx-auto px-4 pt-8">
@@ -255,7 +368,19 @@ export function ResultPage() {
                   {product.name}
                 </h3>
                 <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
-                  ¥{product.price.toLocaleString()}
+                  {isWithin24Hours ? (
+                    <>
+                      <span className="line-through text-muted text-lg mr-2">
+                        ¥{product.price.toLocaleString()}
+                      </span>
+                      <span className="text-amber-600">
+                        ¥{Math.floor(product.price * (1 - DISCOUNT_RATE)).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-amber-700 ml-2 font-normal">10%OFF</span>
+                    </>
+                  ) : (
+                    `¥${product.price.toLocaleString()}`
+                  )}
                 </p>
                 <p className="text-xs sm:text-sm text-muted">
                   {product.description}
@@ -266,9 +391,10 @@ export function ResultPage() {
                 onClick={() => handleAddToCart(product)}
                 className="w-full"
                 variant="outline"
+                disabled={isOverlayProcessing || (!!overlayError && !!portraitName)}
               >
-                カートに追加
-                <ArrowRight className="w-4 h-4 ml-2" />
+                {isOverlayProcessing ? '名前を追加中...' : 'カートに追加'}
+                {!isOverlayProcessing && !overlayError && <ArrowRight className="w-4 h-4 ml-2" />}
               </StyledButton>
             </article>
           ))}
@@ -294,7 +420,14 @@ export function ResultPage() {
               </div>
               <div>
                 <span className="block text-sm font-semibold text-foreground">
-                  ポストカードセットを追加 (+¥{postcard.price.toLocaleString()})
+                  ポストカードセットを追加 ({isWithin24Hours ? (
+                    <>
+                      <span className="line-through text-muted">¥{postcard.price.toLocaleString()}</span>
+                      <span className="text-amber-600 ml-1">+¥{Math.floor(postcard.price * (1 - DISCOUNT_RATE)).toLocaleString()}</span>
+                    </>
+                  ) : (
+                    `+¥${postcard.price.toLocaleString()}`
+                  )})
                 </span>
                 <span className="block text-xs text-muted mt-1">
                   特製ポストカード5枚組を同時にカートへ追加します
@@ -353,13 +486,23 @@ export function ResultPage() {
               />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-foreground truncate">{cheapestProduct.name}</p>
-                <p className="text-xs text-primary font-bold">¥{cheapestProduct.price.toLocaleString()}</p>
+                <p className="text-xs text-primary font-bold">
+                  {isWithin24Hours ? (
+                    <>
+                      <span className="line-through text-muted mr-1">¥{cheapestProduct.price.toLocaleString()}</span>
+                      <span className="text-amber-600">¥{Math.floor(cheapestProduct.price * (1 - DISCOUNT_RATE)).toLocaleString()}</span>
+                    </>
+                  ) : (
+                    `¥${cheapestProduct.price.toLocaleString()}`
+                  )}
+                </p>
               </div>
               <StyledButton
                 size="sm"
                 onClick={() => handleAddToCart(cheapestProduct)}
+                disabled={isOverlayProcessing || (!!overlayError && !!portraitName)}
               >
-                カートに追加
+                {isOverlayProcessing ? '処理中...' : 'カートに追加'}
               </StyledButton>
             </div>
           </div>

@@ -33,6 +33,7 @@ import { extractSessionTokenFromHeaders, parseCookies, type HeaderMap } from '..
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 import { uploadImageToStorage } from '../lib/imageStorage.js';
+import { generatePDFForOrder } from '../lib/lylyIntegration.js';
 
 export const checkoutRouter = Router();
 checkoutRouter.use(csrfProtection({ skipPaths: ['/webhook'] }));
@@ -206,12 +207,13 @@ const GIFT_WRAPPING_PRICES: Record<string, { price: number; label: string }> = {
 // POST /api/checkout/create-order
 checkoutRouter.post('/create-order', async (req, res) => {
   try {
-    const { items, shippingAddress, clientRequestId, couponCode, giftOptions } = req.body as {
+    const { items, shippingAddress, clientRequestId, couponCode, giftOptions, generatedAt } = req.body as {
       items: CartItemPayload[];
       shippingAddress?: Partial<ShippingAddressPayload>;
       clientRequestId?: string;
       couponCode?: string;
       giftOptions?: GiftOptionsPayload;
+      generatedAt?: number;  // プレビュー生成時刻（Unixタイムスタンプms）
     };
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -247,15 +249,43 @@ checkoutRouter.post('/create-order', async (req, res) => {
         throw new Error('UNKNOWN_PRODUCT');
       }
 
-      // サーバーカタログ価格を使用（クライアント送信価格は無視）
-      subtotal += catalogItem.price * quantity;
+      // 価格検証：クライアント価格がカタログ価格の0.9倍〜1.0倍の範囲内か確認
+      // 24時間限定割引が有効な場合のみ0.9倍を許可
+      let validatedPrice = catalogItem.price;
+      if (typeof item.price === 'number') {
+        const now = Date.now();
+        let isDiscountValid = false;
+
+        // 24時間ウィンドウの検証
+        if (typeof generatedAt === 'number' && Number.isFinite(generatedAt)) {
+          // 未来の時刻でないか確認（タイムスタンプ改ざん対策）
+          if (generatedAt <= now) {
+            const elapsedMs = now - generatedAt;
+            // 24時間以内か確認
+            isDiscountValid = elapsedMs >= 0 && elapsedMs <= DISCOUNT_WINDOW_MS;
+          }
+        }
+
+        const minPrice = isDiscountValid
+          ? Math.floor(catalogItem.price * (1 - DISCOUNT_RATE))
+          : catalogItem.price;  // 割引期間外は定価のみ許可
+        const maxPrice = catalogItem.price;
+
+        if (item.price < minPrice || item.price > maxPrice) {
+          throw new Error('INVALID_PRICE');
+        }
+
+        validatedPrice = item.price;
+      }
+
+      subtotal += validatedPrice * quantity;
       requiresShipping = requiresShipping || catalogItem.requiresShipping;
 
       return {
         productId: catalogItem.id,
         name: catalogItem.name,
         quantity,
-        price: catalogItem.price,
+        price: validatedPrice,
       };
     });
 
@@ -525,6 +555,14 @@ checkoutRouter.post('/create-order', async (req, res) => {
       return;
     }
 
+    if (error instanceof Error && error.message === 'INVALID_PRICE') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PRICE', message: '商品価格が不正です' },
+      });
+      return;
+    }
+
     handleSquareOrServerError(res, error, 'ORDER_CREATION_FAILED', '注文の作成に失敗しました', req.requestId);
   }
 });
@@ -766,6 +804,59 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
         existingStatus,
         couponUsed,
       }));
+
+      // [Phase 7] Generate LYLY PDF on payment completion (non-blocking)
+      if (paymentStatus === 'COMPLETED' && existingStatus) {
+        void (async () => {
+          try {
+            logger.info('Starting LYLY PDF generation', { orderId });
+
+            // Update status to processing
+            updateOrderPaymentStatus({
+              ...existingStatus,
+              printDataStatus: 'processing',
+            });
+
+            const result = await generatePDFForOrder(existingStatus);
+
+            if (result.success && result.pdfUrl) {
+              updateOrderPaymentStatus({
+                ...getOrderPaymentStatus(orderId)!,
+                printDataUrl: result.pdfUrl,
+                printDataStatus: 'completed',
+                printDataError: undefined,
+              });
+              logger.info('LYLY PDF generation succeeded', {
+                orderId,
+                pdfUrl: result.pdfUrl,
+              });
+            } else {
+              updateOrderPaymentStatus({
+                ...getOrderPaymentStatus(orderId)!,
+                printDataStatus: 'failed',
+                printDataError: result.errors?.join('; ') || 'Unknown error',
+              });
+              logger.error('LYLY PDF generation failed', {
+                orderId,
+                errors: result.errors,
+              });
+            }
+          } catch (error) {
+            logger.error('LYLY PDF generation exception', {
+              orderId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            const currentStatus = getOrderPaymentStatus(orderId);
+            if (currentStatus) {
+              updateOrderPaymentStatus({
+                ...currentStatus,
+                printDataStatus: 'failed',
+                printDataError: error instanceof Error ? error.message : 'Unknown exception',
+              });
+            }
+          }
+        })();
+      }
     }
 
     if (eventId) {

@@ -1,18 +1,13 @@
 import path from 'path';
 import { randomBytes } from 'crypto';
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
+import { hasSupabaseConfig } from './supabaseClient.js';
 import { sendReviewRequestEmail } from './email.js';
+import { loadScheduledEmailsSnapshot, persistScheduledEmailsSnapshot } from './scheduledEmailsStore.js';
+import type { ScheduledEmail } from './scheduledEmailsStore.js';
 
-interface ScheduledEmail {
-  id: string;
-  type: 'review_request';
-  to: string;
-  orderId: string;
-  userName: string;
-  scheduledAt: string;
-  sent: boolean;
-}
+export type { ScheduledEmail } from './scheduledEmailsStore.js';
 
 const SCHEDULED_PATH = path.resolve(process.cwd(), 'server', '.data', 'scheduled-emails.json');
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
@@ -21,24 +16,48 @@ const REVIEW_DELAY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
 const scheduledEmails: ScheduledEmail[] = [];
 let persistQueue: Promise<void> = Promise.resolve();
 
-function hydrate(): void {
+function isScheduledEmail(value: unknown): value is ScheduledEmail {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.type === 'string' &&
+    typeof obj.to === 'string' &&
+    typeof obj.orderId === 'string' &&
+    typeof obj.userName === 'string' &&
+    typeof obj.scheduledAt === 'string' &&
+    typeof obj.sent === 'boolean'
+  );
+}
+
+function hydrateFromParsed(entries: ScheduledEmail[]): void {
+  for (const entry of entries) {
+    if (!isScheduledEmail(entry)) continue;
+    scheduledEmails.push(entry);
+  }
+}
+
+function hydrateSync(): void {
   const data = readJsonFile<ScheduledEmail[]>(SCHEDULED_PATH, []);
-  for (const entry of data) {
-    if (
-      typeof entry.id === 'string' &&
-      typeof entry.type === 'string' &&
-      typeof entry.to === 'string' &&
-      typeof entry.scheduledAt === 'string'
-    ) {
-      scheduledEmails.push(entry);
-    }
+  hydrateFromParsed(data);
+}
+
+async function hydrateAsync(): Promise<void> {
+  try {
+    const data = await loadScheduledEmailsSnapshot(SCHEDULED_PATH);
+    hydrateFromParsed(data);
+  } catch (error) {
+    logger.error('Failed to hydrate scheduled emails from Supabase, falling back to local.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    hydrateSync();
   }
 }
 
 function persist(): void {
   const snapshot = [...scheduledEmails];
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(SCHEDULED_PATH, snapshot))
+    .then(() => persistScheduledEmailsSnapshot(SCHEDULED_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist scheduled emails', { error: error instanceof Error ? error.message : String(error) });
     });
@@ -77,7 +96,8 @@ async function processScheduledEmails(): Promise<void> {
   const now = Date.now();
   let changed = false;
 
-  for (const entry of scheduledEmails) {
+  for (let i = 0; i < scheduledEmails.length; i++) {
+    const entry = scheduledEmails[i];
     if (entry.sent) continue;
 
     const scheduledTime = new Date(entry.scheduledAt).getTime();
@@ -87,7 +107,7 @@ async function processScheduledEmails(): Promise<void> {
       try {
         const sent = await sendReviewRequestEmail(entry.to, entry.orderId, entry.userName);
         if (sent) {
-          entry.sent = true;
+          scheduledEmails[i] = { ...entry, sent: true };
           changed = true;
           logger.info('Scheduled review request email sent', { orderId: entry.orderId });
         }
@@ -119,4 +139,17 @@ export function startScheduledEmailChecker(): void {
   logger.info('Scheduled email checker started');
 }
 
-hydrate();
+const SCHEDULED_HYDRATION_TIMEOUT_MS = 15_000;
+
+export const scheduledEmailsHydrationReady: Promise<void> = hasSupabaseConfig()
+  ? Promise.race([
+      hydrateAsync(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Scheduled emails hydration timed out')), SCHEDULED_HYDRATION_TIMEOUT_MS),
+      ),
+    ]).catch((error) => {
+      logger.error('Scheduled emails async hydration failed or timed out.', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+  : Promise.resolve(hydrateSync());

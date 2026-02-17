@@ -1,19 +1,23 @@
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Truck } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Truck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
 import { useCartStore } from '../stores/cartStore';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE, MAX_ITEM_QUANTITY } from '../data/shipping';
 import { products, type Product } from '../data/products';
+import { DISCOUNT_RATE, DISCOUNT_WINDOW_MS, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 const featuredProducts = [
   products.find((p) => p.id === 'acrylic-stand'),
   products.find((p) => p.id === 'canvas'),
 ].filter((p): p is Product => p !== undefined);
 
+const acrylicStandProduct = products.find(p => p.id === 'acrylic-stand');
+const canvasProduct = products.find(p => p.id === 'canvas');
+
 export function CartPage() {
   const navigate = useNavigate();
-  const { cartItems, removeFromCart, updateCartItemQuantity } = useCartStore();
+  const { cartItems, removeFromCart, updateCartItemQuantity, addToCart } = useCartStore();
   const isEmpty = cartItems.length === 0;
   const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -21,6 +25,38 @@ export function CartPage() {
   const total = subtotal + shipping;
   const remaining = SHIPPING_FREE_THRESHOLD - subtotal;
   const progress = Math.min(subtotal / SHIPPING_FREE_THRESHOLD, 1);
+
+  const handleUpsellAdd = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const firstItem = cartItems[0];
+    if (!firstItem) return;
+
+    // 24時間限定割引の判定
+    const generatedAtRaw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+    let isWithin24Hours = false;
+    if (generatedAtRaw) {
+      const generatedAt = parseInt(generatedAtRaw, 10);
+      if (!Number.isNaN(generatedAt) && generatedAt > 0) {
+        const elapsed = Date.now() - generatedAt;
+        isWithin24Hours = elapsed >= 0 && elapsed <= 24 * 60 * 60 * 1000;
+      }
+    }
+
+    const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
+
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      artStyleId: firstItem.artStyleId,
+      artStyleName: firstItem.artStyleName,
+      imageUrl: firstItem.imageUrl,
+      quantity: 1,
+      price: finalPrice,
+      options: firstItem.options ? { ...firstItem.options } : undefined,  // Defensive copy (immutable pattern)
+    });
+  };
 
   return (
     <div className="flex-1 bg-background">
@@ -127,7 +163,13 @@ export function CartPage() {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
-                    <p className="text-sm text-muted mb-3">スタイル: {item.artStyleName || 'Standard'}</p>
+                    <p className="text-sm text-muted mb-1">スタイル: {item.artStyleName || 'Standard'}</p>
+                    {typeof item.options?.portraitName === 'string' && (
+                      <p className="text-sm text-purple-600 mb-2 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        名入れ: {item.options.portraitName}
+                      </p>
+                    )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <button
@@ -166,6 +208,59 @@ export function CartPage() {
                   </button>
                 </div>
               ))}
+
+              {/* アップセル/クロスセル提案 */}
+              <div className="p-6 bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 rounded-2xl">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <h3 className="font-serif text-lg font-semibold text-foreground">
+                      一緒にいかがですか？
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {!cartItems.some(item => item.productId === 'acrylic-stand') && acrylicStandProduct && (
+                      <div className="p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">アクリルスタンド</p>
+                            <p className="text-xs text-muted mt-1">デスクに飾って毎日目が合う</p>
+                          </div>
+                          <p className="text-primary font-bold text-sm whitespace-nowrap">¥{acrylicStandProduct.price.toLocaleString()}</p>
+                        </div>
+                        <StyledButton
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-3"
+                          onClick={() => handleUpsellAdd('acrylic-stand')}
+                        >
+                          追加する
+                        </StyledButton>
+                      </div>
+                    )}
+                    {!cartItems.some(item => item.productId === 'canvas') && canvasProduct && (
+                      <div className="p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">キャンバスアート</p>
+                            <p className="text-xs text-muted mt-1">リビングの主役になる一生モノ</p>
+                          </div>
+                          <p className="text-primary font-bold text-sm whitespace-nowrap">¥{canvasProduct.price.toLocaleString()}</p>
+                        </div>
+                        <StyledButton
+                          size="sm"
+                          variant="outline"
+                          className="w-full mt-3"
+                          onClick={() => handleUpsellAdd('canvas')}
+                        >
+                          追加する
+                        </StyledButton>
+                      </div>
+                    )}
+                  </div>
+                <p className="text-xs text-muted text-center mt-4">
+                  💡 同じ作品で複数商品を購入すると、統一感のあるギフトセットになります
+                </p>
+              </div>
             </div>
 
             {/* 注文サマリー */}

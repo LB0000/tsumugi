@@ -85,65 +85,6 @@ export async function deleteOrphanedRows(table: string, keyColumn: string, keepK
   }
 }
 
-// ================================
-// Storage API helpers
-// ================================
-
-function supabaseStorageUrl(): string {
-  return `${config.SUPABASE_URL}/storage/v1`;
-}
-
-export async function uploadStorageObject(
-  bucket: string,
-  objectPath: string,
-  data: Buffer,
-  contentType: string,
-): Promise<void> {
-  const url = `${supabaseStorageUrl()}/object/${encodeURIComponent(bucket)}/${objectPath}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      ...buildSupabaseHeaders(false),
-      'Content-Type': contentType,
-      'x-upsert': 'true',
-    },
-    body: data,
-  });
-  if (!response.ok) {
-    throw new Error(await parseSupabaseError(response));
-  }
-}
-
-export async function downloadStorageObject(bucket: string, objectPath: string): Promise<Buffer> {
-  const url = `${supabaseStorageUrl()}/object/${encodeURIComponent(bucket)}/${objectPath}`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: buildSupabaseHeaders(false),
-  });
-  if (!response.ok) {
-    throw new Error(await parseSupabaseError(response));
-  }
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
-export async function deleteStorageObjects(bucket: string, objectPaths: string[]): Promise<void> {
-  if (objectPaths.length === 0) return;
-  const url = `${supabaseStorageUrl()}/object/${encodeURIComponent(bucket)}`;
-  const response = await fetch(url, {
-    method: 'DELETE',
-    headers: buildSupabaseHeaders(true),
-    body: JSON.stringify({ prefixes: objectPaths }),
-  });
-  if (!response.ok && response.status !== 404) {
-    throw new Error(await parseSupabaseError(response));
-  }
-}
-
-// ================================
-// REST API helpers
-// ================================
-
 export async function upsertRows<T extends object>(table: string, rows: T[], onConflict: string): Promise<void> {
   if (rows.length === 0) return;
 

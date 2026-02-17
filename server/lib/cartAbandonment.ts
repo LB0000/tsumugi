@@ -1,16 +1,13 @@
 import path from 'path';
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
+import { hasSupabaseConfig } from './supabaseClient.js';
 import { sendCartAbandonmentEmail } from './email.js';
 import { getOrdersByUserId } from './checkoutState.js';
+import { loadSavedCartsSnapshot, persistSavedCartsSnapshot } from './cartAbandonmentStore.js';
+import type { SavedCart } from './cartAbandonmentStore.js';
 
-interface SavedCart {
-  userId: string;
-  email: string;
-  items: { name: string; price: number; quantity: number }[];
-  savedAt: string;
-  emailSent: boolean;
-}
+export type { SavedCart } from './cartAbandonmentStore.js';
 
 const CARTS_PATH = path.resolve(process.cwd(), 'server', '.data', 'saved-carts.json');
 const ABANDONMENT_THRESHOLD_MS = 3 * 60 * 60 * 1000; // 3 hours
@@ -19,19 +16,46 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const savedCarts = new Map<string, SavedCart>();
 let persistQueue: Promise<void> = Promise.resolve();
 
-function hydrate(): void {
+function isSavedCart(value: unknown): value is SavedCart {
+  if (typeof value !== 'object' || value === null) return false;
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.userId === 'string' &&
+    typeof obj.email === 'string' &&
+    Array.isArray(obj.items) &&
+    typeof obj.savedAt === 'string' &&
+    typeof obj.emailSent === 'boolean'
+  );
+}
+
+function hydrateFromParsed(carts: SavedCart[]): void {
+  for (const cart of carts) {
+    if (!isSavedCart(cart)) continue;
+    savedCarts.set(cart.userId, cart);
+  }
+}
+
+function hydrateSync(): void {
   const data = readJsonFile<SavedCart[]>(CARTS_PATH, []);
-  for (const cart of data) {
-    if (typeof cart.userId === 'string' && typeof cart.email === 'string' && Array.isArray(cart.items)) {
-      savedCarts.set(cart.userId, cart);
-    }
+  hydrateFromParsed(data);
+}
+
+async function hydrateAsync(): Promise<void> {
+  try {
+    const data = await loadSavedCartsSnapshot(CARTS_PATH);
+    hydrateFromParsed(data);
+  } catch (error) {
+    logger.error('Failed to hydrate saved carts from Supabase, falling back to local.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    hydrateSync();
   }
 }
 
 function persist(): void {
   const snapshot = [...savedCarts.values()];
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(CARTS_PATH, snapshot))
+    .then(() => persistSavedCartsSnapshot(CARTS_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist saved carts', { error: error instanceof Error ? error.message : String(error) });
     });
@@ -75,10 +99,16 @@ async function checkAbandonedCarts(): Promise<void> {
     const emailItems = cart.items.map(item => ({ name: item.name, price: item.price }));
     void sendCartAbandonmentEmail(cart.email, emailItems).then((sent) => {
       if (sent) {
-        cart.emailSent = true;
+        const updated: SavedCart = { ...cart, emailSent: true };
+        savedCarts.set(userId, updated);
         persist();
         logger.info('Cart abandonment email sent', { userId });
       }
+    }).catch((error) => {
+      logger.error('Cart abandonment email send failed', {
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     });
   }
 }
@@ -96,4 +126,17 @@ export function startCartAbandonmentChecker(): void {
   logger.info('Cart abandonment checker started');
 }
 
-hydrate();
+const CART_HYDRATION_TIMEOUT_MS = 15_000;
+
+export const cartAbandonmentHydrationReady: Promise<void> = hasSupabaseConfig()
+  ? Promise.race([
+      hydrateAsync(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Cart abandonment hydration timed out')), CART_HYDRATION_TIMEOUT_MS),
+      ),
+    ]).catch((error) => {
+      logger.error('Cart abandonment async hydration failed or timed out.', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+  : Promise.resolve(hydrateSync());

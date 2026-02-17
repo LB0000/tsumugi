@@ -11,6 +11,7 @@ interface CartState {
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: string) => void;
   updateCartItemQuantity: (id: string, quantity: number) => void;
+  updateItemOptions: (id: string, options: CartItem['options']) => void;
   clearCart: () => void;
 }
 
@@ -18,11 +19,12 @@ export const useCartStore = create<CartState>()(persist((set) => ({
   cartItems: [],
   lastUpdatedAt: Date.now(),
   addToCart: (item) => set((state) => {
-    // 同じ商品・スタイル・オプションのアイテムがあれば数量を増やす
+    // 同じ商品・スタイル・画像URL・オプション（名前）のアイテムがあれば数量を増やす
     const existingItemIndex = state.cartItems.findIndex(i =>
       i.productId === item.productId &&
       i.artStyleId === item.artStyleId &&
-      i.imageUrl === item.imageUrl
+      i.imageUrl === item.imageUrl &&
+      JSON.stringify(i.options) === JSON.stringify(item.options)
     );
 
     if (existingItemIndex > -1) {
@@ -59,6 +61,12 @@ export const useCartStore = create<CartState>()(persist((set) => ({
       lastUpdatedAt: Date.now(),
     };
   }),
+  updateItemOptions: (id, options) => set((state) => ({
+    cartItems: state.cartItems.map((i) =>
+      i.id === id ? { ...i, options } : i
+    ),
+    lastUpdatedAt: Date.now(),
+  })),
   clearCart: () => set({ cartItems: [], lastUpdatedAt: Date.now() }),
 }), {
   name: 'tsumugi-cart',

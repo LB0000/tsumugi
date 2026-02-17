@@ -104,12 +104,13 @@ alter table public.checkout_webhook_events disable row level security;
 -- ================================
 
 create table if not exists public.style_analytics (
+  analytic_key text primary key,
   style_id text not null,
   category text not null,
   style_name text not null,
   count integer not null default 0,
   last_used_at timestamptz not null default now(),
-  primary key (style_id, category)
+  unique (style_id, category)
 );
 
 alter table public.style_analytics disable row level security;
@@ -120,7 +121,7 @@ alter table public.style_analytics disable row level security;
 
 create table if not exists public.gallery_items (
   id text primary key,
-  user_id text not null,
+  user_id text not null references public.auth_users(id) on delete cascade,
   image_file_name text not null,
   thumbnail_file_name text not null,
   art_style_id text not null,
@@ -131,3 +132,33 @@ create table if not exists public.gallery_items (
 create index if not exists idx_gallery_items_user_id on public.gallery_items(user_id);
 
 alter table public.gallery_items disable row level security;
+
+-- ================================
+-- Cart abandonment tables
+-- ================================
+
+create table if not exists public.saved_carts (
+  user_id text primary key,
+  email text not null,
+  items jsonb not null default '[]'::jsonb,
+  saved_at timestamptz not null default now(),
+  email_sent boolean not null default false
+);
+
+alter table public.saved_carts disable row level security;
+
+-- ================================
+-- Scheduled emails tables
+-- ================================
+
+create table if not exists public.scheduled_emails (
+  id text primary key,
+  type text not null,
+  to_address text not null,
+  order_id text not null,
+  user_name text not null,
+  scheduled_at timestamptz not null,
+  sent boolean not null default false
+);
+
+alter table public.scheduled_emails disable row level security;
