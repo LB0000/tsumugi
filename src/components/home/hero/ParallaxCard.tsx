@@ -36,12 +36,16 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
   // エントリーアニメーション
   useEffect(() => {
     setIsAnimating(true);
-    const timer = setTimeout(() => {
+    let innerTimer: NodeJS.Timeout | undefined;
+    const outerTimer = setTimeout(() => {
       setIsVisible(true);
       // アニメーション完了後に will-change をクリア
-      setTimeout(() => setIsAnimating(false), 1000);
+      innerTimer = setTimeout(() => setIsAnimating(false), 1000);
     }, index * 300);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(outerTimer);
+      if (innerTimer !== undefined) clearTimeout(innerTimer);
+    };
   }, [index]);
 
   // Before/After 切り替え（CSS transition で描画）

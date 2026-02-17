@@ -17,11 +17,13 @@ import { galleryRouter } from './routes/gallery.js';
 import { internalRouter } from './routes/internal.js';
 import { reviewRouter } from './routes/reviews.js';
 import { cartRouter } from './routes/cart.js';
+import { creditsRouter } from './routes/credits.js';
 import { startCartAbandonmentChecker, cartAbandonmentHydrationReady } from './lib/cartAbandonment.js';
 import { startScheduledEmailChecker, scheduledEmailsHydrationReady } from './lib/scheduledEmails.js';
 import { checkoutHydrationReady } from './lib/checkoutState.js';
 import { styleAnalyticsHydrationReady } from './lib/styleAnalytics.js';
 import { galleryHydrationReady } from './lib/galleryState.js';
+import { creditsHydrationReady } from './lib/credits.js';
 
 const app = express();
 const PORT = config.PORT;
@@ -129,6 +131,7 @@ app.use('/api/auth', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: '
 app.use('/api/gallery', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'gallery' }), galleryRouter);
 app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'reviews' }), reviewRouter);
 app.use('/api/cart', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'cart' }), cartRouter);
+app.use('/api/credits', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'credits' }), creditsRouter);
 app.use('/api/internal', internalRouter);
 
 // Health check
@@ -146,7 +149,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 const server = app.listen(PORT, async () => {
-  await Promise.all([checkoutHydrationReady, styleAnalyticsHydrationReady, galleryHydrationReady, cartAbandonmentHydrationReady, scheduledEmailsHydrationReady]);
+  await Promise.all([checkoutHydrationReady, styleAnalyticsHydrationReady, galleryHydrationReady, cartAbandonmentHydrationReady, scheduledEmailsHydrationReady, creditsHydrationReady]);
   logger.info(`Server running on http://localhost:${PORT}`);
   startCartAbandonmentChecker();
   startScheduledEmailChecker();
