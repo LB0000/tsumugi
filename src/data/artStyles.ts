@@ -16,13 +16,13 @@ const categoryThumbnails: Record<string, Set<string>> = {
 // ファイル名がpetと異なるスタイルの対応表
 const filenameOverrides: Record<string, Record<string, string>> = {
   family: {
-    'pet-samurai': 'family-samurai.jpeg',
-    'pet-royalty': 'family-royalty.jpeg',
+    'pet-samurai': 'family-samurai.webp',
+    'pet-royalty': 'family-royalty.webp',
   },
   kids: {
-    'pet-samurai': 'kids-samurai.jpeg',
-    'pet-royalty': 'kids-royalty.jpeg',
-    'pet-fairy': 'kids-fairy.jpeg',
+    'pet-samurai': 'kids-samurai.webp',
+    'pet-royalty': 'kids-royalty.webp',
+    'pet-fairy': 'kids-fairy.webp',
   },
 };
 
@@ -32,7 +32,7 @@ export function getStyleThumbnail(style: ArtStyle, category: Category['id']): st
 
   const override = filenameOverrides[category]?.[style.id];
   if (override) return `/images/styles/${category}/${override}`;
-  if (categoryThumbnails[category]?.has(style.id)) return `/images/styles/${category}/${style.id}.jpeg`;
+  if (categoryThumbnails[category]?.has(style.id)) return `/images/styles/${category}/${style.id}.webp`;
 
   return style.thumbnailUrl;
 }
@@ -43,7 +43,7 @@ export const artStyles: ArtStyle[] = [
     id: 'baroque',
     name: '豪華油絵',
     description: '赤ベルベットと金の額縁で彩る、まるで王様みたいな豪華肖像画',
-    thumbnailUrl: '/images/styles/pet/baroque.jpeg',
+    thumbnailUrl: '/images/styles/pet/baroque.webp',
     colorPalette: ['#8B0000', '#DAA520', '#2F1810', '#F5DEB3'],
 
     tier: 'free',
@@ -54,7 +54,7 @@ export const artStyles: ArtStyle[] = [
     id: 'pet-royalty',
     name: '王族スタイル',
     description: '王冠とマントをまとった、威厳あふれるロイヤル肖像画',
-    thumbnailUrl: '/images/styles/pet/pet-royalty.jpeg',
+    thumbnailUrl: '/images/styles/pet/pet-royalty.webp',
     colorPalette: ['#722F37', '#DAA520', '#4B0082', '#FFFACD'],
 
     tier: 'starter',
@@ -67,7 +67,7 @@ export const artStyles: ArtStyle[] = [
     id: 'renaissance',
     name: '古典名画',
     description: 'ダヴィンチが描いたような、格調高い古典名画スタイル',
-    thumbnailUrl: '/images/styles/pet/renaissance.jpeg',
+    thumbnailUrl: '/images/styles/pet/renaissance.webp',
     colorPalette: ['#8B4513', '#D2691E', '#2F2F2F', '#F5F5DC'],
 
     tier: 'starter',
@@ -78,7 +78,7 @@ export const artStyles: ArtStyle[] = [
     id: 'impressionist',
     name: 'やわらか絵画',
     description: 'モネやルノワールのような、光あふれるやわらかタッチの絵画',
-    thumbnailUrl: '/images/styles/pet/impressionist.jpeg',
+    thumbnailUrl: '/images/styles/pet/impressionist.webp',
     colorPalette: ['#87CEEB', '#F0E68C', '#DDA0DD', '#98FB98'],
 
     tier: 'studio',
@@ -90,7 +90,7 @@ export const artStyles: ArtStyle[] = [
     id: 'watercolor',
     name: '水彩画',
     description: '繊細な筆遣いと淡い色彩による和風水彩画',
-    thumbnailUrl: '/images/styles/pet/watercolor.jpeg',
+    thumbnailUrl: '/images/styles/pet/watercolor.webp',
     colorPalette: ['#E8F4F8', '#B8D4E3', '#7FB3D5', '#2E86AB'],
 
     tier: 'starter',
@@ -101,7 +101,7 @@ export const artStyles: ArtStyle[] = [
     id: 'ukiyo-e',
     name: '浮世絵',
     description: '北斎や広重のような伝統的な木版画スタイル',
-    thumbnailUrl: '/images/styles/pet/ukiyo-e.jpeg',
+    thumbnailUrl: '/images/styles/pet/ukiyo-e.webp',
     colorPalette: ['#1A3A5C', '#C9B037', '#E8D5B7', '#8B4513'],
 
     tier: 'studio',
@@ -112,7 +112,7 @@ export const artStyles: ArtStyle[] = [
     id: 'sumi-e',
     name: '水墨画',
     description: '墨の濃淡で描く東洋の伝統画法',
-    thumbnailUrl: '/images/styles/pet/sumi-e.jpeg',
+    thumbnailUrl: '/images/styles/pet/sumi-e.webp',
     colorPalette: ['#2C2C2C', '#696969', '#A9A9A9', '#F5F5F5'],
 
     tier: 'studio',
@@ -123,7 +123,7 @@ export const artStyles: ArtStyle[] = [
     id: 'pet-samurai',
     name: '武将スタイル',
     description: '鎧兜に身を包んだ勇ましい武将肖像画',
-    thumbnailUrl: '/images/styles/pet/pet-samurai.jpeg',
+    thumbnailUrl: '/images/styles/pet/pet-samurai.webp',
     colorPalette: ['#2C2C2C', '#8B0000', '#C9B037', '#4A4A4A'],
 
     tier: 'studio',
@@ -137,7 +137,7 @@ export const artStyles: ArtStyle[] = [
     id: 'anime',
     name: 'アニメ',
     description: 'セル画風の鮮やかなアニメイラスト',
-    thumbnailUrl: '/images/styles/pet/anime.jpeg',
+    thumbnailUrl: '/images/styles/pet/anime.webp',
     colorPalette: ['#FF6B9D', '#C44569', '#F8B500', '#00D9FF'],
 
     tier: 'free',
@@ -148,7 +148,7 @@ export const artStyles: ArtStyle[] = [
     id: 'ghibli',
     name: 'ジブリ風',
     description: '温かみのある手描き風アニメーション',
-    thumbnailUrl: '/images/styles/pet/ghibli.jpeg',
+    thumbnailUrl: '/images/styles/pet/ghibli.webp',
     colorPalette: ['#4CAF50', '#8BC34A', '#FF9800', '#87CEEB'],
 
     tier: 'starter',
@@ -159,7 +159,7 @@ export const artStyles: ArtStyle[] = [
     id: 'pet-fairy',
     name: '妖精',
     description: '花と光に囲まれたメルヘン妖精イラスト',
-    thumbnailUrl: '/images/styles/pet/pet-fairy.jpeg',
+    thumbnailUrl: '/images/styles/pet/pet-fairy.webp',
     colorPalette: ['#FFB6C1', '#E6E6FA', '#98FB98', '#FFD700'],
 
     tier: 'starter',
@@ -173,7 +173,7 @@ export const artStyles: ArtStyle[] = [
     id: 'kids-princess',
     name: 'プリンセス',
     description: 'ティアラとドレスで変身！夢見るプリンセス肖像画',
-    thumbnailUrl: '/images/styles/kids/kids-princess.jpeg',
+    thumbnailUrl: '/images/styles/kids/kids-princess.webp',
     colorPalette: ['#FFB6C1', '#DDA0DD', '#FFD700', '#87CEEB'],
 
     tier: 'starter',
@@ -187,7 +187,7 @@ export const artStyles: ArtStyle[] = [
     id: 'pop-art',
     name: 'ポップアート',
     description: 'ビビッドな色でインパクト大！ウォーホル風ポップアート',
-    thumbnailUrl: '/images/styles/pet/pop-art.jpeg',
+    thumbnailUrl: '/images/styles/pet/pop-art.webp',
     colorPalette: ['#FF1493', '#FFD700', '#00CED1', '#FF4500'],
 
     tier: 'starter',
@@ -198,7 +198,7 @@ export const artStyles: ArtStyle[] = [
     id: 'hand-drawn',
     name: 'スケッチ',
     description: '鉛筆や木炭で描いたような温かみのあるスケッチ風',
-    thumbnailUrl: '/images/styles/pet/hand-drawn.jpeg',
+    thumbnailUrl: '/images/styles/pet/hand-drawn.webp',
     colorPalette: ['#2C3E50', '#7F8C8D', '#BDC3C7', '#ECF0F1'],
 
     tier: 'starter',
@@ -212,7 +212,7 @@ export const artStyles: ArtStyle[] = [
     id: 'stained-glass',
     name: 'ステンドグラス',
     description: '教会のステンドグラスのように、光が透ける美しい装飾画',
-    thumbnailUrl: '/images/styles/pet/stained-glass.jpeg',
+    thumbnailUrl: '/images/styles/pet/stained-glass.webp',
     colorPalette: ['#E74C3C', '#3498DB', '#F39C12', '#2ECC71'],
 
     tier: 'studio',
@@ -226,7 +226,7 @@ export const artStyles: ArtStyle[] = [
     id: 'art-nouveau',
     name: '花飾りポスター',
     description: 'ミュシャのような花と優雅な曲線で彩るエレガントなポスター風',
-    thumbnailUrl: '/images/styles/pet/art-nouveau.jpeg',
+    thumbnailUrl: '/images/styles/pet/art-nouveau.webp',
     colorPalette: ['#C9A96E', '#8B6914', '#5D4E37', '#E8D5B7'],
 
     tier: 'starter',
@@ -240,7 +240,7 @@ export const artStyles: ArtStyle[] = [
     id: 'pixel-art',
     name: 'ドット絵',
     description: 'なつかしのゲーム風！レトロかわいいドット絵肖像画',
-    thumbnailUrl: '/images/styles/pet/pixel-art.jpeg',
+    thumbnailUrl: '/images/styles/pet/pixel-art.webp',
     colorPalette: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
 
     tier: 'free',
@@ -253,7 +253,7 @@ export const artStyles: ArtStyle[] = [
     id: 'vector',
     name: 'フラットイラスト',
     description: 'すっきりおしゃれなフラットデザインイラスト',
-    thumbnailUrl: '/images/styles/pet/vector.jpeg',
+    thumbnailUrl: '/images/styles/pet/vector.webp',
     colorPalette: ['#6C5CE7', '#00CECE', '#FD79A8', '#FDCB6E'],
 
     tier: 'starter',
