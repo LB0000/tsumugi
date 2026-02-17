@@ -50,29 +50,29 @@ export function ResultPage() {
 
   // 24時間限定割引タイマー
   useEffect(() => {
-    const generatedAt = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+    let raw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
 
-    if (!generatedAt) {
-      localStorage.setItem(PREVIEW_GENERATED_AT_KEY, Date.now().toString());
+    if (!raw) {
+      raw = Date.now().toString();
+      localStorage.setItem(PREVIEW_GENERATED_AT_KEY, raw);
     }
 
-    const interval = setInterval(() => {
-      const raw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
-      const generated = raw ? parseInt(raw, 10) : 0;
+    const generated = parseInt(raw, 10);
 
-      if (Number.isNaN(generated) || generated <= 0) {
-        setIsWithin24Hours(false);
-        clearInterval(interval);
-        return;
-      }
+    if (Number.isNaN(generated) || generated <= 0) {
+      setIsWithin24Hours(false);
+      return;
+    }
 
-      const now = Date.now();
-      const elapsed = now - generated;
-      const remaining = DISCOUNT_WINDOW_MS - elapsed;
+    let intervalId: number;
+
+    const tick = () => {
+      const remaining = DISCOUNT_WINDOW_MS - (Date.now() - generated);
 
       if (remaining <= 0) {
         setIsWithin24Hours(false);
-        clearInterval(interval);
+        setTimeRemaining('00:00:00');
+        clearInterval(intervalId);
         return;
       }
 
@@ -80,9 +80,27 @@ export function ResultPage() {
       const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
       setTimeRemaining(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    tick(); // 初回実行
+    intervalId = setInterval(tick, 3000); // 3秒ごとに更新（バッテリー節約）
+
+    // タブが非表示の時はタイマーを停止
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(intervalId);
+      } else {
+        tick(); // タブが再表示されたら即座に更新
+        intervalId = setInterval(tick, 3000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Redirect to home if store has no data (e.g. direct navigation or page reload)
