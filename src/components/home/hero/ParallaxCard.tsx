@@ -36,7 +36,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
   // エントリーアニメーション
   useEffect(() => {
     setIsAnimating(true);
-    let innerTimer: NodeJS.Timeout | undefined;
+    let innerTimer: number | undefined;
     const outerTimer = setTimeout(() => {
       setIsVisible(true);
       // アニメーション完了後に will-change をクリア
