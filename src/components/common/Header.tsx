@@ -11,7 +11,6 @@ export function Header() {
   const { cartItems, clearCart } = useCartStore();
   const { authUser, clearAuthSession } = useAuthStore();
   const { pathname } = useLocation();
-  const isCategoryPage = ['/pets', '/family', '/kids'].includes(pathname);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = async () => {
@@ -114,27 +113,29 @@ export function Header() {
         </div>
       </div>
 
-      {/* Category Navigation — カテゴリページのみ */}
-      {isCategoryPage && (
-        <nav className="bg-card border-b border-border">
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-x-auto py-2 sm:py-3 scrollbar-thin">
-              {categories.map((category) => (
+      {/* Category Navigation — 全ページ表示 */}
+      <nav className="bg-card border-b border-border" aria-label="カテゴリナビゲーション">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-x-auto py-2 sm:py-3 scrollbar-thin">
+            {categories.map((category) => {
+              const isActive = pathname === `/${category.id}`;
+              return (
                 <Link
                   key={category.id}
                   to={`/${category.id}`}
-                  className={`px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${pathname === `/${category.id}`
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`px-4 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap relative rounded-[var(--radius-button)] ${isActive
                     ? 'text-white bg-primary shadow-sm'
                     : 'text-foreground hover:text-primary hover:bg-primary/5'
                     }`}
                 >
                   {category.name}
                 </Link>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        </nav>
-      )}
+        </div>
+      </nav>
     </header>
   );
 }

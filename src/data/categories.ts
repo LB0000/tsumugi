@@ -14,7 +14,8 @@ export const categories: Category[] = [
       '/images/hero/dog-before.jpg',
       '/images/hero/cat-before.jpg',
       '/images/styles/pet/pet-royalty.jpeg'
-    ]
+    ],
+    accent: '#B8860B',
   },
   {
     id: 'family',
@@ -29,7 +30,8 @@ export const categories: Category[] = [
       '/images/hero/family-before.jpeg',
       '/images/hero/family2-before.jpeg',
       '/images/hero/family-after.jpeg'
-    ]
+    ],
+    accent: '#2E7D32',
   },
   {
     id: 'kids',
@@ -44,6 +46,7 @@ export const categories: Category[] = [
       '/images/hero/kids-before.jpeg',
       '/images/hero/kids2-before.jpg',
       '/images/hero/kids-after.jpeg'
-    ]
+    ],
+    accent: '#C53D43',
   }
 ];

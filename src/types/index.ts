@@ -8,6 +8,7 @@ export interface Category {
   trustText: string;
   basePrice: number;
   sampleImages: string[];
+  accent: `#${string}`;
 }
 
 export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop' | 'narikiri' | 'digital';

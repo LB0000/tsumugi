@@ -4,7 +4,7 @@ import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { categoryMetadata } from '../data/categoryMetadata';
 import { updateMetaTags } from '../lib/seo';
-import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker, PhysicalProductShowcase } from '../components/home';
+import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker, PhysicalProductShowcase, CategorySelector } from '../components/home';
 
 const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
@@ -60,21 +60,27 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex-1 bg-background bg-washi">
+    <div
+      className="flex-1 bg-background bg-washi"
+      style={{ '--category-accent': currentCategory.accent } as React.CSSProperties}
+    >
       {/* Hero Section with Before/After */}
       <HeroBeforeAfter />
 
       {/* 信頼メトリクス — Hero直後にシームレスに接続 */}
       <TrustedBy />
 
+      {/* カテゴリセレクター */}
+      <CategorySelector />
+
       {/* Upload Section */}
       <section id="upload-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">01</span>
-              <span className="w-8 h-px bg-secondary" />
+            <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
+              <span className="w-8 h-px bg-category-accent" />
+              <span className="text-xs text-category-accent tracking-[0.3em] font-medium">01</span>
+              <span className="w-8 h-px bg-category-accent" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
               写真をアップロード
@@ -94,10 +100,10 @@ export function HomePage() {
       <section id="style-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">02</span>
-              <span className="w-8 h-px bg-secondary" />
+            <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
+              <span className="w-8 h-px bg-category-accent" />
+              <span className="text-xs text-category-accent tracking-[0.3em] font-medium">02</span>
+              <span className="w-8 h-px bg-category-accent" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
               スタイルを選択
@@ -117,10 +123,10 @@ export function HomePage() {
       <section id="generate-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">03</span>
-              <span className="w-8 h-px bg-secondary" />
+            <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
+              <span className="w-8 h-px bg-category-accent" />
+              <span className="text-xs text-category-accent tracking-[0.3em] font-medium">03</span>
+              <span className="w-8 h-px bg-category-accent" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
               肖像画を生成
@@ -152,7 +158,7 @@ export function HomePage() {
       <section className="py-16 sm:py-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
-            <p className="text-secondary text-sm tracking-[0.2em] uppercase mb-3">Gallery</p>
+            <p className="text-category-accent text-sm tracking-[0.2em] uppercase mb-3">Gallery</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground ornament-line pb-4">
               作品サンプル
             </h2>

@@ -3,9 +3,11 @@ import { persist } from 'zustand/middleware';
 import type { CartItem } from '../types';
 import { saveCart } from '../api/cart';
 import { useAuthStore } from './authStore';
+import { CART_TTL_MS } from '../data/shipping';
 
 interface CartState {
   cartItems: CartItem[];
+  lastUpdatedAt: number;
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (id: string) => void;
   updateCartItemQuantity: (id: string, quantity: number) => void;
@@ -14,6 +16,7 @@ interface CartState {
 
 export const useCartStore = create<CartState>()(persist((set) => ({
   cartItems: [],
+  lastUpdatedAt: Date.now(),
   addToCart: (item) => set((state) => {
     // 同じ商品・スタイル・オプションのアイテムがあれば数量を増やす
     const existingItemIndex = state.cartItems.findIndex(i =>
@@ -28,32 +31,45 @@ export const useCartStore = create<CartState>()(persist((set) => ({
           ? { ...ci, quantity: ci.quantity + item.quantity }
           : ci
       );
-      return { cartItems: newCartItems };
+      return { cartItems: newCartItems, lastUpdatedAt: Date.now() };
     }
 
     return {
-      cartItems: [...state.cartItems, { ...item, id: crypto.randomUUID() }]
+      cartItems: [...state.cartItems, { ...item, id: crypto.randomUUID() }],
+      lastUpdatedAt: Date.now(),
     };
   }),
   removeFromCart: (id) => set((state) => ({
-    cartItems: state.cartItems.filter((i) => i.id !== id)
+    cartItems: state.cartItems.filter((i) => i.id !== id),
+    lastUpdatedAt: Date.now(),
   })),
   updateCartItemQuantity: (id, quantity) => set((state) => {
     if (quantity <= 0) {
-      return { cartItems: state.cartItems.filter((i) => i.id !== id) };
+      return {
+        cartItems: state.cartItems.filter((i) => i.id !== id),
+        lastUpdatedAt: Date.now(),
+      };
     }
 
     const clamped = Math.min(quantity, 10);
     return {
       cartItems: state.cartItems.map((i) =>
         i.id === id ? { ...i, quantity: clamped } : i
-      )
+      ),
+      lastUpdatedAt: Date.now(),
     };
   }),
-  clearCart: () => set({ cartItems: [] }),
+  clearCart: () => set({ cartItems: [], lastUpdatedAt: Date.now() }),
 }), {
   name: 'tsumugi-cart',
-  version: 1,
+  version: 2,
+  onRehydrateStorage: () => (state) => {
+    if (!state || state.cartItems.length === 0) return;
+    const elapsed = Date.now() - state.lastUpdatedAt;
+    if (elapsed > CART_TTL_MS) {
+      state.clearCart();
+    }
+  },
 }));
 
 // Debounced server-side cart sync for logged-in users

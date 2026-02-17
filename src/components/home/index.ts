@@ -8,3 +8,4 @@ export { HeroBeforeAfter } from './HeroBeforeAfter';
 export { TrustedBy } from './TrustedBy';
 export { TestimonialTicker } from './TestimonialTicker';
 export { PhysicalProductShowcase } from './PhysicalProductShowcase';
+export { CategorySelector } from './CategorySelector';
