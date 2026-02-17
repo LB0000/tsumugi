@@ -12,6 +12,11 @@ import type { OrderPaymentStatus } from './checkoutTypes.js';
  * Tech Stack: PHP 8.3 + TCPDF + FPDI
  */
 
+// Retry strategy constants
+const DEFAULT_MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 1000;  // Exponential backoff: 2s, 4s, 8s
+const API_TIMEOUT_MS = 120_000;    // 120 seconds timeout for LYLY API
+
 // TSUMUGI productId → LYLY Product Title mapping
 // NOTE: Using existing LYLY templates temporarily until TSUMUGI templates are created
 const PRODUCT_TITLE_MAP: Record<string, string> = {
@@ -21,6 +26,18 @@ const PRODUCT_TITLE_MAP: Record<string, string> = {
   'postcard': 'TSUMUGI ポストカード',
   // 'download': excluded (no PDF needed for digital download)
 };
+
+/**
+ * [C1] Escapes CSV field value to prevent CSV injection
+ *
+ * Handles double quotes, commas, and newlines according to RFC 4180
+ */
+function escapeCSVField(value: string): string {
+  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return `"${value}"`;
+}
 
 /**
  * LYLY CSV row format (based on actual LYLY specification)
@@ -119,10 +136,10 @@ export function generateLylyCSV(order: OrderPaymentStatus): string | null {
     return null; // No valid rows
   }
 
-  // Generate CSV with header
+  // [C1] Generate CSV with proper escaping (prevents CSV injection)
   const header = 'Name,Product Title,Order ID,Line Item Quantity,image1';
   const csvLines = rows.map((row) =>
-    `"${row.Name}","${row['Product Title']}",${row['Order ID']},${row['Line Item Quantity']},"${row.image1}"`
+    `${escapeCSVField(row.Name)},${escapeCSVField(row['Product Title'])},${row['Order ID']},${row['Line Item Quantity']},${escapeCSVField(row.image1)}`
   );
 
   return [header, ...csvLines].join('\n');
@@ -151,6 +168,10 @@ export async function callLylyAPI(
 
   const apiUrl = `${config.LYLY_API_URL}/api.php?action=generate_stream`;
 
+  // [H1] Setup timeout for LYLY API request (120 seconds)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   try {
     // Create FormData with CSV file
     const formData = new FormData();
@@ -164,7 +185,10 @@ export async function callLylyAPI(
         'Authorization': `Bearer ${config.LYLY_AUTH_TOKEN}`,
       },
       body: formData,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -180,7 +204,10 @@ export async function callLylyAPI(
       };
     }
 
-    // Parse SSE stream
+    // [H2] Parse SSE stream
+    // NOTE: Currently loads entire response into memory. This is acceptable for current
+    // use case (1 order = few events), but consider streaming parser if LYLY sends
+    // large amounts of progress events or if response doesn't terminate properly.
     const responseText = await response.text();
     const sseEvents = parseSSEEvents(responseText);
 
@@ -204,8 +231,22 @@ export async function callLylyAPI(
       };
     }
 
-    // Construct PDF URL
+    // [H3] Validate and construct PDF URL (prevent path traversal/SSRF)
     const pdfPath = completeEvent.files[0]; // e.g., "temp/20240101_123456.pdf"
+
+    // Validate path format: alphanumeric, dash, underscore, slash, dot, must end with .pdf
+    if (!pdfPath || pdfPath.includes('..') || pdfPath.startsWith('/') || !pdfPath.match(/^[\w\-./]+\.pdf$/)) {
+      logger.error('Invalid PDF path returned by LYLY', {
+        orderId,
+        pdfPath,
+      });
+      return {
+        success: false,
+        logs: completeEvent.logs || [],
+        errors: ['Invalid PDF path returned by LYLY'],
+      };
+    }
+
     const pdfUrl = `${config.LYLY_API_URL}/${pdfPath}`;
 
     logger.info('LYLY PDF generated successfully', {
@@ -268,8 +309,17 @@ function parseSSEEvents(sseText: string): LylySSEEvent[] {
  */
 export async function generatePDFForOrder(
   order: OrderPaymentStatus,
-  maxRetries = 3
+  maxRetries = DEFAULT_MAX_RETRIES
 ): Promise<LylyGenerateResponse> {
+  // [H4] Check configuration early to avoid pointless retries
+  if (!config.LYLY_API_URL || !config.LYLY_AUTH_TOKEN) {
+    return {
+      success: false,
+      logs: [],
+      errors: ['LYLY API configuration missing (LYLY_API_URL or LYLY_AUTH_TOKEN)'],
+    };
+  }
+
   const csvContent = generateLylyCSV(order);
 
   if (!csvContent) {
@@ -308,7 +358,7 @@ export async function generatePDFForOrder(
     lastError = result;
 
     if (attempt < maxRetries) {
-      const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+      const delayMs = Math.pow(2, attempt) * RETRY_BASE_DELAY_MS; // Exponential backoff: 2s, 4s, 8s
       logger.warn('LYLY API call failed, retrying', {
         orderId: order.orderId,
         attempt,

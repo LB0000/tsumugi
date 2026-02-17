@@ -11,6 +11,8 @@ import type { SavedAddressItem } from '../api';
 import type { ShippingAddress } from '../types';
 import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
+import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
+import { usePostalCodeLookup } from '../hooks/usePostalCodeLookup';
 import {
   validateShippingField,
   validateShippingForm,
@@ -103,6 +105,41 @@ export function CheckoutPage() {
   const [recipientFieldErrors, setRecipientFieldErrors] = useState<ShippingFieldErrors>({});
   const [recipientTouchedFields, setRecipientTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
 
+  // Postal code auto-lookup for shipping address
+  const postalLookup = usePostalCodeLookup(form.postalCode);
+  const postalAppliedRef = useRef('');
+
+  useEffect(() => {
+    const digits = form.postalCode.replace(/-/g, '');
+    if (postalLookup.prefecture && postalAppliedRef.current !== digits) {
+      postalAppliedRef.current = digits;
+      setForm((prev) => ({
+        ...prev,
+        prefecture: postalLookup.prefecture,
+        city: postalLookup.city,
+        addressLine: prev.addressLine || postalLookup.town,
+      }));
+    }
+  }, [postalLookup.prefecture, postalLookup.city, postalLookup.town, form.postalCode]);
+
+  // Postal code auto-lookup for recipient address
+  const recipientPostalLookup = usePostalCodeLookup(recipientForm.postalCode);
+  const recipientPostalAppliedRef = useRef('');
+
+  useEffect(() => {
+    if (!differentRecipient) return;
+    const digits = recipientForm.postalCode.replace(/-/g, '');
+    if (recipientPostalLookup.prefecture && recipientPostalAppliedRef.current !== digits) {
+      recipientPostalAppliedRef.current = digits;
+      setRecipientForm((prev) => ({
+        ...prev,
+        prefecture: recipientPostalLookup.prefecture,
+        city: recipientPostalLookup.city,
+        addressLine: prev.addressLine || recipientPostalLookup.town,
+      }));
+    }
+  }, [recipientPostalLookup.prefecture, recipientPostalLookup.city, recipientPostalLookup.town, recipientForm.postalCode, differentRecipient]);
+
   const wrappingPrice = useMemo(() => {
     if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
     switch (giftOptions.wrappingId) {
@@ -117,7 +154,7 @@ export function CheckoutPage() {
 
   const { subtotal, shipping, total } = useMemo(() => {
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shipping = subtotal >= 5000 ? 0 : 500;
+    const shipping = subtotal >= SHIPPING_FREE_THRESHOLD ? 0 : SHIPPING_FLAT_FEE;
     const total = subtotal + shipping + wrappingPrice;
     return { subtotal, shipping, total };
   }, [cartItems, wrappingPrice]);
@@ -418,6 +455,7 @@ export function CheckoutPage() {
                 onUpdateForm={updateForm}
                 getFieldInputClass={getFieldInputClass}
                 getFieldError={getFieldError}
+                isPostalLookupLoading={postalLookup.isLoading}
               />
 
               <PaymentSection

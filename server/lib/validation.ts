@@ -24,9 +24,10 @@ export function validatePortraitName(name: unknown): string | null {
     return null;
   }
 
-  // Allow only Unicode letters, numbers, spaces, hyphens, and apostrophes
+  // Allow only Unicode letters, numbers, spaces (NOT newlines), hyphens, and apostrophes
   // This prevents XSS attacks (e.g., <script>alert('XSS')</script>)
-  const validCharPattern = /^[\p{L}\p{N}\s\-']+$/u;
+  // Note: Use space literal instead of \s to reject newlines (\n, \r, \t)
+  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
   if (!validCharPattern.test(sanitized)) {
     return null;
   }

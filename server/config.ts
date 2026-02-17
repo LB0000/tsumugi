@@ -37,7 +37,7 @@ const envSchema = z.object({
   SUPABASE_SAVED_CARTS_TABLE: z.string().min(1).default('saved_carts'),
   SUPABASE_SCHEDULED_EMAILS_TABLE: z.string().min(1).default('scheduled_emails'),
   LYLY_API_URL: z.string().url().optional(),
-  LYLY_AUTH_TOKEN: z.string().optional(),
+  LYLY_AUTH_TOKEN: z.string().min(10).optional(),  // [H5] Minimum length validation
 }).superRefine((data, ctx) => {
   const hasUrl = Boolean(data.SUPABASE_URL);
   const hasKey = Boolean(data.SUPABASE_SERVICE_ROLE_KEY);

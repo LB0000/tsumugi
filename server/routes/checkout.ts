@@ -811,11 +811,14 @@ checkoutRouter.post('/webhook', async (req: RawBodyRequest, res) => {
           try {
             logger.info('Starting LYLY PDF generation', { orderId });
 
-            // Update status to processing
-            updateOrderPaymentStatus({
-              ...existingStatus,
-              printDataStatus: 'processing',
-            });
+            // [C2] Update status to processing (get latest state to avoid race condition)
+            const latestStatus = getOrderPaymentStatus(orderId);
+            if (latestStatus) {
+              updateOrderPaymentStatus({
+                ...latestStatus,
+                printDataStatus: 'processing',
+              });
+            }
 
             const result = await generatePDFForOrder(existingStatus);
 

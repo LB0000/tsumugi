@@ -21,12 +21,13 @@ export function ResultPage() {
   const navigate = useNavigate();
   const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName } = useAppStore();
   const { addToCart } = useCartStore();
-  const [includePostcard, setIncludePostcard] = useState(false);
+  const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
   const [showFab, setShowFab] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('23:59:59');
   const [isWithin24Hours, setIsWithin24Hours] = useState(true);
+  const discountPercent = Math.round(DISCOUNT_RATE * 100);
 
   // Text overlay for name engraving (applied to cart items)
   const { overlayedImageUrl, isProcessing: isOverlayProcessing, error: overlayError } = useTextOverlay({
@@ -146,6 +147,8 @@ export function ResultPage() {
   }
 
   const handleAddToCart = (product: ProductOption) => {
+    if (addedProductId) return; // Prevent double-click during success animation
+
     const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
     const discount = isWithin24Hours ? product.price * DISCOUNT_RATE : 0;
 
@@ -165,27 +168,45 @@ export function ResultPage() {
       name: product.name,
       artStyleId: selectedStyle.id,
       artStyleName: selectedStyle.name,
-      imageUrl: overlayedImageUrl, // Use text-overlayed image
+      imageUrl: overlayedImageUrl,
       quantity: 1,
       price: finalPrice,
-      options: portraitName ? { portraitName } : undefined, // Include name if present
+      options: portraitName ? { portraitName } : undefined,
     });
 
-    if (includePostcard && postcard) {
-      const postcardFinalPrice = isWithin24Hours ? Math.floor(postcard.price * (1 - DISCOUNT_RATE)) : postcard.price;
-      addToCart({
-        productId: postcard.id,
-        name: postcard.name,
-        artStyleId: selectedStyle.id,
-        artStyleName: selectedStyle.name,
-        imageUrl: overlayedImageUrl, // Use text-overlayed image
-        quantity: 1,
-        price: postcardFinalPrice,
-        options: portraitName ? { portraitName } : undefined, // Include name if present
-      });
-    }
+    setAddedProductId(product.id);
+    setTimeout(() => navigate('/cart'), 800);
+  };
 
-    navigate('/cart');
+  const handleAddPostcard = () => {
+    if (!postcard || addedProductId) return;
+
+    const postcardFinalPrice = isWithin24Hours ? Math.floor(postcard.price * (1 - DISCOUNT_RATE)) : postcard.price;
+
+    trackEvent('add_to_cart', {
+      productId: postcard.id,
+      price: postcardFinalPrice,
+      discount: isWithin24Hours ? postcard.price * DISCOUNT_RATE : 0,
+    });
+    trackMetaAddToCart({
+      content_ids: [postcard.id],
+      content_type: 'product',
+      value: postcardFinalPrice,
+      currency: 'JPY',
+    });
+    addToCart({
+      productId: postcard.id,
+      name: postcard.name,
+      artStyleId: selectedStyle.id,
+      artStyleName: selectedStyle.name,
+      imageUrl: overlayedImageUrl,
+      quantity: 1,
+      price: postcardFinalPrice,
+      options: portraitName ? { portraitName } : undefined,
+    });
+
+    setAddedProductId(postcard.id);
+    setTimeout(() => navigate('/cart'), 800);
   };
 
   const handleRetryWithNewStyle = () => {
@@ -326,7 +347,7 @@ export function ResultPage() {
                   🎁 今だけ特典：プレビュー完成から24時間限定
                 </p>
                 <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
-                  この作品の購入で<span className="font-semibold">全商品10%オフ</span>。<br className="hidden sm:block" />
+                  この作品の購入で<span className="font-semibold">全商品{discountPercent}%オフ</span>。<br className="hidden sm:block" />
                   24時間を過ぎると通常料金に戻ります。
                 </p>
                 <div className="mt-2 flex items-center gap-2">
@@ -358,10 +379,10 @@ export function ResultPage() {
 
         {/* Product grid - 3 columns */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <article
               key={product.id}
-              className="bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300"
+              className={`bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300 animate-cardEnter stagger-${index + 1}`}
             >
               <div className="mb-5 sm:mb-6">
                 <h3 className="font-serif text-lg sm:text-xl font-semibold text-foreground mb-2">
@@ -376,7 +397,7 @@ export function ResultPage() {
                       <span className="text-amber-600">
                         ¥{Math.floor(product.price * (1 - DISCOUNT_RATE)).toLocaleString()}
                       </span>
-                      <span className="text-xs text-amber-700 ml-2 font-normal">10%OFF</span>
+                      <span className="text-xs text-amber-700 ml-2 font-normal">{discountPercent}%OFF</span>
                     </>
                   ) : (
                     `¥${product.price.toLocaleString()}`
@@ -387,15 +408,22 @@ export function ResultPage() {
                 </p>
               </div>
 
-              <StyledButton
-                onClick={() => handleAddToCart(product)}
-                className="w-full"
-                variant="outline"
-                disabled={isOverlayProcessing || (!!overlayError && !!portraitName)}
-              >
-                {isOverlayProcessing ? '名前を追加中...' : 'カートに追加'}
-                {!isOverlayProcessing && !overlayError && <ArrowRight className="w-4 h-4 ml-2" />}
-              </StyledButton>
+              {addedProductId === product.id ? (
+                <StyledButton className="w-full bg-green-600 hover:bg-green-600 text-white border-green-600" disabled>
+                  <Check className="w-4 h-4 mr-2" />
+                  追加しました
+                </StyledButton>
+              ) : (
+                <StyledButton
+                  onClick={() => handleAddToCart(product)}
+                  className="w-full"
+                  variant="outline"
+                  disabled={!!addedProductId || isOverlayProcessing || (!!overlayError && !!portraitName)}
+                >
+                  {isOverlayProcessing ? '名前を追加中...' : 'カートに追加'}
+                  {!isOverlayProcessing && !overlayError && <ArrowRight className="w-4 h-4 ml-2" />}
+                </StyledButton>
+              )}
             </article>
           ))}
         </div>
@@ -404,36 +432,46 @@ export function ResultPage() {
         {postcard && (
           <div className="mt-8">
             <p className="text-center text-sm text-muted mb-4">一緒にいかがですか？</p>
-            <label className="max-w-2xl mx-auto p-4 bg-card rounded-2xl border border-border flex items-start gap-3 cursor-pointer">
-              <div
-                className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                  includePostcard ? 'bg-primary border-primary text-white' : 'border-muted bg-background'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={includePostcard}
-                  onChange={(e) => setIncludePostcard(e.target.checked)}
-                />
-                {includePostcard && <Check className="w-3.5 h-3.5" />}
-              </div>
-              <div>
-                <span className="block text-sm font-semibold text-foreground">
-                  ポストカードセットを追加 ({isWithin24Hours ? (
+            <article className="max-w-sm mx-auto bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300 animate-cardEnter stagger-4">
+              <div className="mb-4">
+                <h3 className="font-serif text-lg font-semibold text-foreground mb-2">
+                  {postcard.name}
+                </h3>
+                <p className="text-xl font-bold text-primary mb-2">
+                  {isWithin24Hours ? (
                     <>
-                      <span className="line-through text-muted">¥{postcard.price.toLocaleString()}</span>
-                      <span className="text-amber-600 ml-1">+¥{Math.floor(postcard.price * (1 - DISCOUNT_RATE)).toLocaleString()}</span>
+                      <span className="line-through text-muted text-lg mr-2">
+                        ¥{postcard.price.toLocaleString()}
+                      </span>
+                      <span className="text-amber-600">
+                        ¥{Math.floor(postcard.price * (1 - DISCOUNT_RATE)).toLocaleString()}
+                      </span>
+                      <span className="text-xs text-amber-700 ml-2 font-normal">{discountPercent}%OFF</span>
                     </>
                   ) : (
-                    `+¥${postcard.price.toLocaleString()}`
-                  )})
-                </span>
-                <span className="block text-xs text-muted mt-1">
-                  特製ポストカード5枚組を同時にカートへ追加します
-                </span>
+                    `¥${postcard.price.toLocaleString()}`
+                  )}
+                </p>
+                <p className="text-xs text-muted">{postcard.description}</p>
               </div>
-            </label>
+
+              {addedProductId === postcard.id ? (
+                <StyledButton className="w-full bg-green-600 hover:bg-green-600 text-white border-green-600" disabled>
+                  <Check className="w-4 h-4 mr-2" />
+                  追加しました
+                </StyledButton>
+              ) : (
+                <StyledButton
+                  onClick={handleAddPostcard}
+                  className="w-full"
+                  variant="outline"
+                  disabled={!!addedProductId || isOverlayProcessing || (!!overlayError && !!portraitName)}
+                >
+                  カートに追加
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </StyledButton>
+              )}
+            </article>
           </div>
         )}
 
@@ -497,13 +535,20 @@ export function ResultPage() {
                   )}
                 </p>
               </div>
-              <StyledButton
-                size="sm"
-                onClick={() => handleAddToCart(cheapestProduct)}
-                disabled={isOverlayProcessing || (!!overlayError && !!portraitName)}
-              >
-                {isOverlayProcessing ? '処理中...' : 'カートに追加'}
-              </StyledButton>
+              {addedProductId === cheapestProduct.id ? (
+                <StyledButton size="sm" className="bg-green-600 hover:bg-green-600 text-white border-green-600" disabled>
+                  <Check className="w-3 h-3 mr-1" />
+                  追加済
+                </StyledButton>
+              ) : (
+                <StyledButton
+                  size="sm"
+                  onClick={() => handleAddToCart(cheapestProduct)}
+                  disabled={!!addedProductId || isOverlayProcessing || (!!overlayError && !!portraitName)}
+                >
+                  {isOverlayProcessing ? '処理中...' : 'カートに追加'}
+                </StyledButton>
+              )}
             </div>
           </div>
         </div>

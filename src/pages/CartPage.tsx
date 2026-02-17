@@ -26,6 +26,21 @@ export function CartPage() {
   const remaining = SHIPPING_FREE_THRESHOLD - subtotal;
   const progress = Math.min(subtotal / SHIPPING_FREE_THRESHOLD, 1);
 
+  // 24時間限定割引の判定（アップセル価格表示用）
+  const generatedAtRaw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+  let isWithin24Hours = false;
+  if (generatedAtRaw) {
+    const generatedAt = parseInt(generatedAtRaw, 10);
+    if (!Number.isNaN(generatedAt) && generatedAt > 0) {
+      const elapsed = Date.now() - generatedAt;
+      isWithin24Hours = elapsed >= 0 && elapsed <= DISCOUNT_WINDOW_MS;
+    }
+  }
+
+  const getDisplayPrice = (catalogPrice: number) => {
+    return isWithin24Hours ? Math.floor(catalogPrice * (1 - DISCOUNT_RATE)) : catalogPrice;
+  };
+
   const handleUpsellAdd = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -33,18 +48,7 @@ export function CartPage() {
     const firstItem = cartItems[0];
     if (!firstItem) return;
 
-    // 24時間限定割引の判定
-    const generatedAtRaw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
-    let isWithin24Hours = false;
-    if (generatedAtRaw) {
-      const generatedAt = parseInt(generatedAtRaw, 10);
-      if (!Number.isNaN(generatedAt) && generatedAt > 0) {
-        const elapsed = Date.now() - generatedAt;
-        isWithin24Hours = elapsed >= 0 && elapsed <= DISCOUNT_WINDOW_MS;
-      }
-    }
-
-    const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
+    const finalPrice = getDisplayPrice(product.price);
 
     addToCart({
       productId: product.id,
@@ -225,7 +229,16 @@ export function CartPage() {
                             <p className="font-semibold text-foreground text-sm">アクリルスタンド</p>
                             <p className="text-xs text-muted mt-1">デスクに飾って毎日目が合う</p>
                           </div>
-                          <p className="text-primary font-bold text-sm whitespace-nowrap">¥{acrylicStandProduct.price.toLocaleString()}</p>
+                          <div className="text-right">
+                            {isWithin24Hours ? (
+                              <>
+                                <p className="text-xs text-muted line-through">¥{acrylicStandProduct.price.toLocaleString()}</p>
+                                <p className="text-amber-600 font-bold text-sm whitespace-nowrap">¥{getDisplayPrice(acrylicStandProduct.price).toLocaleString()}</p>
+                              </>
+                            ) : (
+                              <p className="text-primary font-bold text-sm whitespace-nowrap">¥{acrylicStandProduct.price.toLocaleString()}</p>
+                            )}
+                          </div>
                         </div>
                         <StyledButton
                           size="sm"
@@ -244,7 +257,16 @@ export function CartPage() {
                             <p className="font-semibold text-foreground text-sm">キャンバスアート</p>
                             <p className="text-xs text-muted mt-1">リビングの主役になる一生モノ</p>
                           </div>
-                          <p className="text-primary font-bold text-sm whitespace-nowrap">¥{canvasProduct.price.toLocaleString()}</p>
+                          <div className="text-right">
+                            {isWithin24Hours ? (
+                              <>
+                                <p className="text-xs text-muted line-through">¥{canvasProduct.price.toLocaleString()}</p>
+                                <p className="text-amber-600 font-bold text-sm whitespace-nowrap">¥{getDisplayPrice(canvasProduct.price).toLocaleString()}</p>
+                              </>
+                            ) : (
+                              <p className="text-primary font-bold text-sm whitespace-nowrap">¥{canvasProduct.price.toLocaleString()}</p>
+                            )}
+                          </div>
                         </div>
                         <StyledButton
                           size="sm"

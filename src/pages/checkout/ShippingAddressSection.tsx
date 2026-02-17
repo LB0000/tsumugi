@@ -12,6 +12,7 @@ interface Props {
   onUpdateForm: (field: ShippingField, value: string) => void;
   getFieldInputClass: (field: ShippingField) => string;
   getFieldError: (field: ShippingField) => string | null;
+  isPostalLookupLoading?: boolean;
 }
 
 export function ShippingAddressSection({
@@ -22,6 +23,7 @@ export function ShippingAddressSection({
   onUpdateForm,
   getFieldInputClass,
   getFieldError,
+  isPostalLookupLoading,
 }: Props) {
   return (
     <section className="bg-card rounded-xl border border-border p-6">
@@ -120,17 +122,24 @@ export function ShippingAddressSection({
         </div>
         <div>
           <label htmlFor="postalCode" className="block text-sm font-medium text-foreground mb-1">郵便番号</label>
-          <input
-            id="postalCode"
-            type="text"
-            value={form.postalCode}
-            onChange={(event) => onUpdateForm('postalCode', event.target.value)}
-            placeholder="100-0001"
-            maxLength={8}
-            className={getFieldInputClass('postalCode')}
-            aria-invalid={Boolean(getFieldError('postalCode'))}
-            aria-describedby={getFieldError('postalCode') ? 'postalCode-error' : undefined}
-          />
+          <div className="relative">
+            <input
+              id="postalCode"
+              type="text"
+              value={form.postalCode}
+              onChange={(event) => onUpdateForm('postalCode', event.target.value)}
+              placeholder="100-0001"
+              maxLength={8}
+              className={getFieldInputClass('postalCode')}
+              aria-invalid={Boolean(getFieldError('postalCode'))}
+              aria-describedby={getFieldError('postalCode') ? 'postalCode-error' : undefined}
+            />
+            {isPostalLookupLoading && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
           {getFieldError('postalCode') && (
             <p id="postalCode-error" className="mt-1 text-xs text-sale">{getFieldError('postalCode')}</p>
           )}
