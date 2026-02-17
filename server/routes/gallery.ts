@@ -35,6 +35,12 @@ galleryRouter.get('/:id/image', requireAuth, async (req, res) => {
 
   try {
     const filePath = getGalleryImagePath(item.imageFileName);
+    const MAX_GALLERY_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    const stats = await fs.stat(filePath);
+    if (stats.size > MAX_GALLERY_FILE_SIZE) {
+      res.status(413).json({ success: false, error: { code: 'FILE_TOO_LARGE', message: 'ファイルサイズが大きすぎます' } });
+      return;
+    }
     const data = await fs.readFile(filePath);
     const ext = item.imageFileName.split('.').pop();
     const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
@@ -62,6 +68,12 @@ galleryRouter.get('/:id/thumbnail', requireAuth, async (req, res) => {
 
   try {
     const filePath = getGalleryImagePath(item.thumbnailFileName);
+    const MAX_GALLERY_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+    const stats = await fs.stat(filePath);
+    if (stats.size > MAX_GALLERY_FILE_SIZE) {
+      res.status(413).json({ success: false, error: { code: 'FILE_TOO_LARGE', message: 'ファイルサイズが大きすぎます' } });
+      return;
+    }
     const data = await fs.readFile(filePath);
     const ext = item.thumbnailFileName.split('.').pop();
     const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';

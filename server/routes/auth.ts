@@ -128,8 +128,13 @@ authRouter.get('/csrf', (req, res) => {
 authRouter.use(csrfProtection({ methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }));
 
 const forgotPasswordLimiter = createRateLimiter({ windowMs: 60_000, max: 3, keyPrefix: 'forgot-password' });
+const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 5, keyPrefix: 'auth-login' });
+const registerLimiter = createRateLimiter({ windowMs: 60_000, max: 3, keyPrefix: 'auth-register' });
+const googleAuthLimiter = createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'auth-google' });
+const resetPasswordLimiter = createRateLimiter({ windowMs: 60_000, max: 3, keyPrefix: 'auth-reset-password' });
+const verifyEmailLimiter = createRateLimiter({ windowMs: 60_000, max: 5, keyPrefix: 'auth-verify-email' });
 
-authRouter.post('/register', async (req, res) => {
+authRouter.post('/register', registerLimiter, async (req, res) => {
   try {
     const parsed = validate(registerSchema, req.body);
     if (!parsed.success) {
@@ -177,7 +182,7 @@ authRouter.post('/register', async (req, res) => {
   }
 });
 
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', loginLimiter, async (req, res) => {
   try {
     const parsed = validate(loginSchema, req.body);
     if (!parsed.success) {
@@ -227,7 +232,7 @@ authRouter.post('/login', async (req, res) => {
   }
 });
 
-authRouter.post('/google', async (req, res) => {
+authRouter.post('/google', googleAuthLimiter, async (req, res) => {
   try {
     if (!googleOAuthClient) {
       res.status(500).json({
@@ -325,7 +330,7 @@ authRouter.post('/forgot-password', forgotPasswordLimiter, (req, res) => {
   });
 });
 
-authRouter.post('/reset-password', async (req, res) => {
+authRouter.post('/reset-password', resetPasswordLimiter, async (req, res) => {
   try {
     const parsed = validate(resetPasswordSchema, req.body);
     if (!parsed.success) {
@@ -444,7 +449,7 @@ authRouter.post('/change-password', requireAuth, async (_req, res) => {
   }
 });
 
-authRouter.post('/verify-email', (req, res) => {
+authRouter.post('/verify-email', verifyEmailLimiter, (req, res) => {
   const { token } = req.body as { token?: string };
   const normalizedToken = typeof token === 'string' ? token.trim() : '';
 

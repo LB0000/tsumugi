@@ -38,6 +38,23 @@ if (isProduction) {
     logger.error('Invalid FRONTEND_URL', { error: e instanceof Error ? e.message : String(e) });
     process.exit(1);
   }
+
+  const requiredVars = [
+    ['GEMINI_API_KEY', config.GEMINI_API_KEY],
+    ['SQUARE_ACCESS_TOKEN', config.SQUARE_ACCESS_TOKEN],
+    ['SQUARE_LOCATION_ID', config.SQUARE_LOCATION_ID],
+    ['SESSION_SECRET', config.SESSION_SECRET],
+  ] as const;
+
+  const missing = requiredVars.filter(([, val]) => !val).map(([name]) => name);
+  if (missing.length > 0) {
+    logger.error('Missing required environment variables', { missing });
+    process.exit(1);
+  }
+
+  if (!config.RESEND_API_KEY) {
+    logger.warn('RESEND_API_KEY not set — email functionality will be disabled');
+  }
 }
 
 if (trustProxyEnv && trustProxyEnv.trim().length > 0) {
