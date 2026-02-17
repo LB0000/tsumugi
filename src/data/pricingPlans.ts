@@ -1,81 +1,14 @@
 import type { PricingPlan, PrintSize, QuickAction } from '../types';
 
+/**
+ * @deprecated 旧価格プラン - 新しいシンプルなチャージ方式に移行しました
+ * 新しい価格定義は src/data/pricing.ts を参照してください
+ *
+ * 無料3回お試し → ¥980/10回チャージ のシンプルな構成
+ */
 export const pricingPlans: PricingPlan[] = [
-  {
-    id: 'digital',
-    name: 'ライトパック',
-    tagline: '無料プレビュー後のお試しに',
-    price: 3900,
-    priceExcludingTax: 3545,
-    credits: 5,
-    downloads: 5,
-    styleCount: 1,
-    hasWatermark: false,
-    hasRetryTools: true,
-    hasPrecisionEditor: 'none',
-    features: [
-      '5回の生成',
-      'ダウンロード5点',
-      'スタイル1種類',
-      '透かしなし',
-      'リトライツール付き',
-      '商用利用権',
-    ],
-    pricePerCredit: 780,
-    pointsEarned: 39,
-    savingsNote: '手軽に始められる',
-  },
-  {
-    id: 'starter',
-    name: 'スタンダードパック',
-    tagline: 'はじめての方に一番人気',
-    price: 5900,
-    priceExcludingTax: 5363,
-    credits: 10,
-    downloads: 10,
-    styleCount: 6,
-    hasWatermark: false,
-    hasRetryTools: true,
-    hasPrecisionEditor: 'simple',
-    features: [
-      '10回の生成',
-      'ダウンロード10点',
-      '厳選6スタイル',
-      '透かしなし',
-      '精密エディター付き',
-      '商用利用権',
-    ],
-    badge: 'popular',
-    pricePerCredit: 590,
-    pointsEarned: 59,
-    popularPercent: 68,
-    savingsNote: '透かしなし・バランス重視',
-  },
-  {
-    id: 'studio',
-    name: 'プロパック',
-    tagline: '本格派のための最高コスパ',
-    price: 16900,
-    priceExcludingTax: 15363,
-    credits: 40,
-    downloads: 'unlimited',
-    styleCount: 'all',
-    hasWatermark: false,
-    hasRetryTools: true,
-    hasPrecisionEditor: 'advanced',
-    features: [
-      '40回の生成',
-      '全作品ダウンロード',
-      '全19スタイル',
-      '無制限リトライ',
-      '高度な精密エディター',
-      '1作品あたり¥423',
-    ],
-    badge: 'best-value',
-    pricePerCredit: 423,
-    pointsEarned: 169,
-    savingsNote: '大量生成に最適',
-  }
+  // 旧プラン定義は非推奨
+  // 新しいシステムでは使用しません
 ];
 
 export const printSizes: PrintSize[] = [
