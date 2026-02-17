@@ -40,7 +40,7 @@ export function CartPage() {
       const generatedAt = parseInt(generatedAtRaw, 10);
       if (!Number.isNaN(generatedAt) && generatedAt > 0) {
         const elapsed = Date.now() - generatedAt;
-        isWithin24Hours = elapsed >= 0 && elapsed <= 24 * 60 * 60 * 1000;
+        isWithin24Hours = elapsed >= 0 && elapsed <= DISCOUNT_WINDOW_MS;
       }
     }
 
