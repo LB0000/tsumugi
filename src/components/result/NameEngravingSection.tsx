@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Sparkles, Type, Palette, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Sparkles, Type, Palette, MapPin, ChevronDown, ChevronUp, Eye, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
 import { PortraitPreview } from './PortraitPreview';
 import { FontPicker } from './FontPicker';
@@ -14,6 +15,10 @@ export interface NameEngravingSectionProps {
   onNameChange: (name: string) => void;
   overlaySettings: TextOverlaySettings;
   onSettingsChange: (settings: TextOverlaySettings) => void;
+  /** 処理中フラグ（Labor Illusion用） */
+  isProcessing?: boolean;
+  /** 処理ステージ（Labor Illusion用） */
+  processingStage?: string | null;
 }
 
 type CustomizeTab = 'font' | 'decoration' | 'position';
@@ -31,144 +36,296 @@ export function NameEngravingSection({
   onNameChange,
   overlaySettings,
   onSettingsChange,
+  isProcessing = false,
+  processingStage = null,
 }: NameEngravingSectionProps) {
   const [showCustomize, setShowCustomize] = useState(false);
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
+  const shouldReduceMotion = useReducedMotion();
 
   const hasName = portraitName.trim() !== '';
 
+  // カスタマイズ進捗計算
+  const progress = {
+    name: hasName,
+    font: overlaySettings.fontId !== null,
+    decoration: overlaySettings.decorationId !== null,
+    position: overlaySettings.position !== 'bottom-center',
+  };
+  const completionRate = Object.values(progress).filter(Boolean).length;
+  const totalSteps = 4;
+
+  // キーボードナビゲーション
+  const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      const nextIndex = (index + 1) % TABS.length;
+      setActiveTab(TABS[nextIndex].id);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const prevIndex = (index - 1 + TABS.length) % TABS.length;
+      setActiveTab(TABS[prevIndex].id);
+    }
+  };
+
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 md:p-8 space-y-6 border border-purple-100">
+    <div className="bg-white border-2 border-zinc-200 rounded-lg p-6 md:p-10 space-y-6 md:space-y-8">
       {/* ヘッダー */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-            <Sparkles className="h-5 w-5" />
-          </div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
+          <motion.div
+            initial={shouldReduceMotion ? {} : { scale: 0.8, opacity: 0 }}
+            animate={shouldReduceMotion ? {} : { scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#EC4899] text-white flex-shrink-0"
+          >
+            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
+          </motion.div>
           <div>
-            <h3 className="text-lg md:text-xl font-bold text-gray-900">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#18181B] tracking-tight" style={{ fontFamily: 'Poiret One, serif' }}>
               名前を入れて特別な1枚に
             </h3>
-            <p className="text-sm text-gray-600 mt-0.5">
+            <p className="text-sm md:text-base text-[#71717A] mt-1" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
               無料で名前を追加できます
             </p>
           </div>
         </div>
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-          NEW
-        </span>
+        <div className="flex items-center gap-3">
+          {/* 進捗インジケーター */}
+          {hasName && (
+            <div className="flex items-center gap-2 text-xs text-[#71717A]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+              <span className="hidden sm:inline">進捗</span>
+              <div className="flex gap-1">
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={shouldReduceMotion ? {} : { scale: 0 }}
+                    animate={shouldReduceMotion ? {} : { scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
+                      i < completionRate ? 'bg-[#EC4899]' : 'bg-zinc-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="font-medium text-[#18181B]">
+                {completionRate}/{totalSteps}
+              </span>
+            </div>
+          )}
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#EC4899]/10 text-[#EC4899]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+            NEW
+          </span>
+        </div>
       </div>
 
       {/* 名前入力フィールド */}
-      <div className="bg-white rounded-xl p-5 border border-gray-200">
+      <div className="bg-white rounded-xl p-5 border-2 border-zinc-200">
         <NameInputField
           value={portraitName}
           onChange={onNameChange}
           label="名前を入力（任意・無料）"
           placeholder="例: ポチ、太郎、花子"
+          isProcessing={isProcessing}
+          processingStage={processingStage}
         />
       </div>
 
-      {/* インラインプレビュー（名前入力時に常時表示） */}
-      {hasName && (
-        <div className="bg-white rounded-xl p-5 border border-gray-200 space-y-3">
-          <h4 className="text-sm font-semibold text-gray-900">
-            プレビュー
-          </h4>
-          <PortraitPreview
-            baseImageUrl={baseImageUrl}
-            styleId={styleId}
-            portraitName={portraitName}
-            overlaySettings={overlaySettings}
-            alt="名前入り肖像画プレビュー"
-            className="max-w-md mx-auto"
-          />
-          <p className="text-xs text-gray-500 text-center">
-            実際の商品もこのように名前が表示されます
-          </p>
-        </div>
+      {/* 未入力時の促し（Zeigarnik Effect） */}
+      {!hasName && (
+        <motion.div
+          initial={shouldReduceMotion ? {} : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-lg p-4 flex items-start gap-3"
+        >
+          <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-yellow-900" style={{ fontFamily: 'Poiret One, serif' }}>
+              名前を追加すると、より特別な贈り物になります
+            </p>
+            <p className="text-xs text-yellow-700 mt-1" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+              無料で追加できます（後から変更も可能）
+            </p>
+          </div>
+        </motion.div>
       )}
+
+      {/* インラインプレビュー（名前入力時に常時表示） */}
+      <AnimatePresence>
+        {hasName && (
+          <motion.div
+            initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, scale: 1 }}
+            exit={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="relative bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-[#EC4899] shadow-xl"
+          >
+            {/* LIVEバッジ */}
+            <div className="absolute -top-3 -right-3 bg-[#EC4899] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              LIVE
+            </div>
+
+            <h4 className="text-sm font-semibold text-[#18181B] flex items-center gap-2 mb-4" style={{ fontFamily: 'Poiret One, serif' }}>
+              <Eye className="h-4 w-4 text-[#EC4899]" />
+              リアルタイムプレビュー
+            </h4>
+
+            <PortraitPreview
+              baseImageUrl={baseImageUrl}
+              styleId={styleId}
+              portraitName={portraitName}
+              overlaySettings={overlaySettings}
+              alt="名前入り肖像画プレビュー"
+              className="max-w-md mx-auto rounded-lg shadow-2xl"
+            />
+
+            <p className="text-xs text-[#71717A] text-center mt-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+              実際の商品もこのように名前が表示されます
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* カスタマイズセクション（名前入力時のみ表示） */}
       {hasName && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg border-2 border-zinc-200 overflow-hidden">
           {/* トグルヘッダー */}
           <button
             type="button"
             onClick={() => setShowCustomize(!showCustomize)}
-            className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50 cursor-pointer"
+            className="w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-200 hover:bg-zinc-50 cursor-pointer group"
           >
-            <div className="flex items-center gap-2">
-              <Palette className="h-4 w-4 text-purple-500" />
-              <span className="text-sm font-medium text-gray-800">カスタマイズ</span>
-              <span className="text-xs text-gray-500">フォント・カラー・位置</span>
+            <div className="flex items-center gap-2.5">
+              <Palette className="h-5 w-5 text-[#EC4899] transition-transform group-hover:scale-110" />
+              <span className="text-sm md:text-base font-semibold text-[#18181B]" style={{ fontFamily: 'Poiret One, serif' }}>カスタマイズ</span>
+              <span className="text-xs md:text-sm text-[#71717A]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>フォント・カラー・位置</span>
             </div>
             {showCustomize
-              ? <ChevronUp className="h-4 w-4 text-gray-400" />
-              : <ChevronDown className="h-4 w-4 text-gray-400" />
+              ? <ChevronUp className="h-5 w-5 text-[#71717A]" />
+              : <ChevronDown className="h-5 w-5 text-[#71717A]" />
             }
           </button>
 
           {/* カスタマイズ内容 */}
-          {showCustomize && (
-            <div className="px-5 pb-5 space-y-4 border-t border-gray-100 pt-4">
-              {/* タブ */}
-              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`
-                        flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-colors cursor-pointer
-                        ${activeTab === tab.id
-                          ? 'bg-white text-purple-700 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700'
-                        }
-                      `}
+          <AnimatePresence>
+            {showCustomize && (
+              <motion.div
+                initial={shouldReduceMotion ? {} : { height: 0, opacity: 0 }}
+                animate={shouldReduceMotion ? {} : { height: 'auto', opacity: 1 }}
+                exit={shouldReduceMotion ? {} : { height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="px-5 pb-5 space-y-5 border-t border-zinc-200 pt-5"
+              >
+                {/* タブ */}
+                <div className="flex gap-1 bg-zinc-100 rounded-lg p-1" role="tablist" aria-label="カスタマイズオプション">
+                  {TABS.map((tab, index) => {
+                    const Icon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeTab === tab.id}
+                        aria-controls={`panel-${tab.id}`}
+                        tabIndex={activeTab === tab.id ? 0 : -1}
+                        onClick={() => setActiveTab(tab.id)}
+                        onKeyDown={(e) => handleTabKeyDown(e, index)}
+                        className={`
+                          relative flex-1 flex items-center justify-center gap-1.5
+                          px-4 py-3 min-h-[44px] rounded-md text-xs font-medium
+                          transition-all duration-200 cursor-pointer
+                          ${activeTab === tab.id
+                            ? 'text-[#EC4899]'
+                            : 'text-[#71717A] hover:text-[#18181B]'
+                          }
+                        `}
+                        style={{ fontFamily: 'Didact Gothic, sans-serif' }}
+                      >
+                        {/* アクティブ背景 */}
+                        {activeTab === tab.id && (
+                          <motion.div
+                            layoutId="activeTab"
+                            className="absolute inset-0 bg-white rounded-md shadow-md"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                          />
+                        )}
+                        <Icon className="h-4 w-4 relative z-10" />
+                        <span className="relative z-10">{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* タブコンテンツ */}
+                <AnimatePresence mode="wait">
+                  {activeTab === 'font' && (
+                    <motion.div
+                      key="font"
+                      role="tabpanel"
+                      id="panel-font"
+                      aria-labelledby="tab-font"
+                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
+                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <Icon className="h-3.5 w-3.5" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+                      <FontPicker
+                        selectedFontId={overlaySettings.fontId}
+                        onSelect={(fontId) => onSettingsChange({ ...overlaySettings, fontId })}
+                        styleId={styleId}
+                      />
+                    </motion.div>
+                  )}
 
-              {/* タブコンテンツ */}
-              {activeTab === 'font' && (
-                <FontPicker
-                  selectedFontId={overlaySettings.fontId}
-                  onSelect={(fontId) => onSettingsChange({ ...overlaySettings, fontId })}
-                  styleId={styleId}
-                />
-              )}
+                  {activeTab === 'decoration' && (
+                    <motion.div
+                      key="decoration"
+                      role="tabpanel"
+                      id="panel-decoration"
+                      aria-labelledby="tab-decoration"
+                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
+                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <DecorationPicker
+                        selectedDecorationId={overlaySettings.decorationId}
+                        onSelect={(decorationId) => onSettingsChange({ ...overlaySettings, decorationId })}
+                        styleId={styleId}
+                      />
+                    </motion.div>
+                  )}
 
-              {activeTab === 'decoration' && (
-                <DecorationPicker
-                  selectedDecorationId={overlaySettings.decorationId}
-                  onSelect={(decorationId) => onSettingsChange({ ...overlaySettings, decorationId })}
-                  styleId={styleId}
-                />
-              )}
-
-              {activeTab === 'position' && (
-                <PositionPicker
-                  selectedPosition={overlaySettings.position}
-                  onSelect={(position) => onSettingsChange({ ...overlaySettings, position })}
-                />
-              )}
-            </div>
-          )}
+                  {activeTab === 'position' && (
+                    <motion.div
+                      key="position"
+                      role="tabpanel"
+                      id="panel-position"
+                      aria-labelledby="tab-position"
+                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
+                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <PositionPicker
+                        selectedPosition={overlaySettings.position}
+                        onSelect={(position) => onSettingsChange({ ...overlaySettings, position })}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* 注意事項 */}
-      <div className="text-xs text-gray-500 space-y-1">
+      <div className="text-xs md:text-sm text-[#71717A] space-y-1.5 bg-zinc-50 rounded-lg p-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
         <p>• 名前は最大20文字まで入力できます</p>
         <p>• 日本語・英語の文字、数字、スペース、ハイフンが使用できます</p>
-        <p>• 名前は無料で追加できます（料金は変わりません）</p>
+        <p className="text-[#EC4899] font-medium">• 名前は無料で追加できます（料金は変わりません）</p>
       </div>
     </div>
   );

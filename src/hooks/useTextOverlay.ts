@@ -26,6 +26,8 @@ export interface UseTextOverlayResult {
   overlayedImageUrl: string;
   /** 処理中フラグ */
   isProcessing: boolean;
+  /** 処理ステージ（Labor Illusion用） */
+  processingStage: string | null;
   /** エラー */
   error: string | null;
   /** 手動で再適用 */
@@ -81,6 +83,7 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
 
   const [overlayedImageUrl, setOverlayedImageUrl] = useState<string>(baseImageUrl);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processingStage, setProcessingStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Store latest values in refs to avoid recreating applyOverlay
@@ -112,6 +115,7 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
     if (!portraitName || portraitName.trim() === '') {
       setOverlayedImageUrl(baseImageUrl);
       setIsProcessing(false);
+      setProcessingStage(null);
       setError(null);
       return;
     }
@@ -124,10 +128,12 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
       const { customFont, customDecoration, position } = resolveOverlaySettings(overlaySettings);
 
       // フォントを事前読み込み（カスタムフォント優先）
+      setProcessingStage('フォントを読み込み中...');
       const fontFamily = customFont?.fontFamily ?? getPortraitFont(styleId).fontFamily;
       await waitForFontLoad(fontFamily, 2000);
 
       // テキストオーバーレイを適用
+      setProcessingStage('テキストを配置中...');
       const newImageUrl = await applyTextOverlay(baseImageUrl, {
         text: portraitName,
         styleId,
@@ -138,15 +144,19 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
         position,
       });
 
+      setProcessingStage('プレビューを生成中...');
+
       // Only update if this is still the latest generation (race condition prevention)
       if (currentGeneration === generationRef.current) {
         setOverlayedImageUrl(newImageUrl);
+        setProcessingStage(null);
       }
     } catch (err) {
       console.error('Text overlay failed:', err);
       if (currentGeneration === generationRef.current) {
         setError('名前の表示に失敗しました。もう一度お試しください。');
         setOverlayedImageUrl(baseImageUrl);
+        setProcessingStage(null);
       }
     } finally {
       if (currentGeneration === generationRef.current) {
@@ -172,10 +182,10 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
     }
 
     if (nameChanged) {
-      // Text input changes: debounce 500ms to reduce Canvas redraws
+      // Text input changes: debounce 300ms to reduce Canvas redraws (Doherty Threshold: <400ms)
       debounceTimerRef.current = setTimeout(() => {
         applyOverlay();
-      }, 500);
+      }, 300);
     } else {
       // Font/decoration/position changes: apply immediately (click operations)
       applyOverlay();
@@ -195,6 +205,7 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
   return {
     overlayedImageUrl,
     isProcessing,
+    processingStage,
     error,
     reapply: applyOverlay,
   };

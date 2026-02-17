@@ -30,7 +30,7 @@ export function ResultPage() {
   const discountPercent = Math.round(DISCOUNT_RATE * 100);
 
   // Text overlay for name engraving (applied to cart items)
-  const { overlayedImageUrl, isProcessing: isOverlayProcessing, error: overlayError } = useTextOverlay({
+  const { overlayedImageUrl, isProcessing: isOverlayProcessing, processingStage, error: overlayError } = useTextOverlay({
     baseImageUrl: generatedImage || '',
     styleId: selectedStyle?.id || '',
     portraitName: portraitName,
@@ -317,6 +317,8 @@ export function ResultPage() {
               onNameChange={setPortraitName}
               overlaySettings={textOverlaySettings}
               onSettingsChange={setTextOverlaySettings}
+              isProcessing={isOverlayProcessing}
+              processingStage={processingStage}
             />
             {/* Overlay processing feedback */}
             {isOverlayProcessing && portraitName && (

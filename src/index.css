@@ -28,9 +28,18 @@
   /* Brand colors */
   --color-trustpilot: #00B67A;
 
+  /* 名入れ機能専用カラー（Exaggerated Minimalism） */
+  --color-engraving-primary: #18181B;  /* 黒（高コントラスト） */
+  --color-engraving-cta: #EC4899;      /* ピンク（CTAアクセント） */
+  --color-engraving-bg: #FAFAFA;       /* ニュートラル背景 */
+  --color-engraving-text: #09090B;     /* テキスト */
+  --color-engraving-muted: #71717A;    /* ミュートテキスト */
+
   /* フォント */
   --font-family-serif: 'Noto Serif JP', 'Playfair Display', serif;
   --font-family-sans: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
+  --font-family-heading: 'Poiret One', serif;        /* デザインシステム見出し */
+  --font-family-body: 'Didact Gothic', sans-serif;   /* デザインシステム本文 */
 
   /* 角丸（和モダンは控えめに） */
   --radius-card: 8px;
