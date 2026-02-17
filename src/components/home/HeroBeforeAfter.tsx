@@ -2,6 +2,7 @@ import { useMemo, memo } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
+import { SOCIAL_PROOF_RATING, SOCIAL_PROOF_REVIEW_COUNT } from '../../data/socialProof';
 import { categorySamples } from './hero/heroSamples';
 import { ParallaxCard } from './hero/ParallaxCard';
 import { BackgroundDecorations } from './hero/BackgroundDecorations';
@@ -105,8 +106,8 @@ function HeroBeforeAfterBase() {
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-3.5 h-3.5 text-secondary fill-secondary" />
                   ))}
-                  <span className="ml-1.5 text-foreground font-bold">4.9</span>
-                  <span className="text-muted">(2,847件)</span>
+                  <span className="ml-1.5 text-foreground font-bold">{SOCIAL_PROOF_RATING}</span>
+                  <span className="text-muted">({SOCIAL_PROOF_REVIEW_COUNT})</span>
                 </div>
               </div>
             </div>

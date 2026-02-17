@@ -23,7 +23,7 @@ export const categories: Category[] = [
     subheadline: '無料プレビュー · ¥4,900から購入可能',
     heroDescription: '何気ない家族写真が、格調高い肖像画に。額に入れて飾れば、家族みんなの自慢の一枚になります。',
     uploadHint: '人物やペットの写真を1枚以上アップロード',
-    trustText: '1,000以上のご家族に選ばれています',
+    trustText: '1,000組以上のご家族に選ばれています',
     basePrice: 4900,
     sampleImages: [
       '/images/hero/family-before.jpeg',

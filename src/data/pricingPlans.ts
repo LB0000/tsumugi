@@ -4,7 +4,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'digital',
     name: 'デジタルパック',
-    tagline: 'まずはお試しに',
+    tagline: '無料プレビュー後のお試しに',
     price: 2900,
     priceExcludingTax: 2636,
     credits: 5,
@@ -17,7 +17,7 @@ export const pricingPlans: PricingPlan[] = [
       '5回の生成',
       'ダウンロード2点',
       'スタイル1種類',
-      '透かし入り',
+      '透かし入り（プレビュー確認用）',
       'リトライツール付き',
       '商用利用権',
     ],
@@ -49,7 +49,7 @@ export const pricingPlans: PricingPlan[] = [
     pricePerCredit: 490,
     pointsEarned: 49,
     popularPercent: 68,
-    savingsNote: '単品より15%お得',
+    savingsNote: '透かしなし・単品より15%お得',
   },
   {
     id: 'studio',

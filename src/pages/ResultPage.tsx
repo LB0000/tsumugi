@@ -307,7 +307,7 @@ export function ResultPage() {
             >
               {product.isRecommended && (
                 <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                  RECOMMENDED
+                  一番人気
                 </div>
               )}
 
@@ -321,6 +321,11 @@ export function ResultPage() {
                 <p className="text-sm text-muted">
                   {product.description}
                 </p>
+                {product.isRecommended && (
+                  <p className="text-xs text-primary font-medium mt-1">
+                    デスクに飾れる、もらって嬉しいギフトNo.1
+                  </p>
+                )}
               </div>
 
               <StyledButton

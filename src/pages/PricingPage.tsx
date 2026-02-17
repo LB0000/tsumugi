@@ -50,7 +50,7 @@ export function PricingPage() {
           <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-xs text-muted">
             <span className="flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-accent-sage" />
-              全額返金保証
+              不良時交換対応
             </span>
             <span className="flex items-center gap-1.5">
               <RefreshCw className="w-3.5 h-3.5 text-accent-sage" />
@@ -84,6 +84,15 @@ export function PricingPage() {
             </h2>
             <p className="text-muted text-sm">
               まとめ買いほどお得。ポイント還元で次回もお得に
+            </p>
+          </div>
+
+          {/* 初めての方へ推薦バナー */}
+          <div className="p-4 mb-8 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0" aria-hidden="true">💡</span>
+            <p className="text-sm text-foreground">
+              <span className="font-semibold">迷ったら「スターターパック」がおすすめ。</span>
+              透かしなしで10回生成でき、一番人気のプランです。
             </p>
           </div>
 
@@ -195,11 +204,11 @@ export function PricingPage() {
           <div className="text-center mb-12 p-8 rounded-2xl bg-gradient-to-br from-accent-sage/5 to-accent-sage/10 border border-accent-sage/20">
             <Shield className="w-8 h-8 text-accent-sage mx-auto mb-3" />
             <h3 className="font-serif text-lg font-semibold text-foreground mb-2">
-              安心の全額返金保証
+              品質対応ポリシー
             </h3>
             <p className="text-sm text-muted leading-relaxed max-w-lg mx-auto">
-              仕上がりにご満足いただけない場合は、購入後30日以内であれば全額返金いたします。
-              まずは無料プレビューで仕上がりをお確かめください。
+              デジタル商品は性質上、ダウンロード後の返品・返金は承っておりません。
+              プリント商品は商品不良に限り、到着後7日以内に交換対応いたします。
             </p>
           </div>
 
@@ -227,8 +236,8 @@ export function PricingPage() {
               a="はい、すべてのプランで商用利用権が付属しています。SNSへの投稿、グッズ制作、販促物への使用など、自由にご活用いただけます。"
             />
             <FAQItem
-              q="返金は本当にできますか？"
-              a="はい、購入後30日以内であれば理由を問わず全額返金いたします。お問い合わせフォームからご連絡ください。"
+              q="返品・交換はできますか？"
+              a="デジタル商品はダウンロード後の返品・返金はできません。プリント商品は商品不良の場合に限り、到着後7日以内に交換対応いたします。"
             />
           </div>
         </section>

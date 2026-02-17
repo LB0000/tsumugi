@@ -18,6 +18,32 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().optional(),
   INTERNAL_API_KEY: z.string().optional(),
   TSUMUGI_ADMIN_API_URL: z.string().url().optional(),
+  SUPABASE_URL: z.string().url().optional().refine(
+    (val) => !val || val.startsWith('https://'),
+    { message: 'SUPABASE_URL must use HTTPS' },
+  ),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
+  SUPABASE_AUTH_USERS_TABLE: z.string().min(1).default('auth_users'),
+  SUPABASE_AUTH_SESSIONS_TABLE: z.string().min(1).default('auth_sessions'),
+  SUPABASE_AUTH_RESET_TOKENS_TABLE: z.string().min(1).default('auth_reset_tokens'),
+  SUPABASE_AUTH_VERIFICATION_TOKENS_TABLE: z.string().min(1).default('auth_verification_tokens'),
+  SUPABASE_AUTH_ADDRESSES_TABLE: z.string().min(1).default('auth_saved_addresses'),
+  SUPABASE_AUTH_STATE_TABLE: z.string().min(1).default('app_state'),
+  SUPABASE_AUTH_STATE_KEY: z.string().min(1).default('auth-store'),
+  SUPABASE_CHECKOUT_ORDERS_TABLE: z.string().min(1).default('checkout_orders'),
+  SUPABASE_CHECKOUT_EVENTS_TABLE: z.string().min(1).default('checkout_webhook_events'),
+  SUPABASE_STYLE_ANALYTICS_TABLE: z.string().min(1).default('style_analytics'),
+  SUPABASE_GALLERY_TABLE: z.string().min(1).default('gallery_items'),
+  SUPABASE_GALLERY_BUCKET: z.string().min(1).default('gallery'),
+}).superRefine((data, ctx) => {
+  const hasUrl = Boolean(data.SUPABASE_URL);
+  const hasKey = Boolean(data.SUPABASE_SERVICE_ROLE_KEY);
+  if (hasUrl !== hasKey) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must both be set or both be omitted',
+    });
+  }
 });
 
 export const config = envSchema.parse(process.env);

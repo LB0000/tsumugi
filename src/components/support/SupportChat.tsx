@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Send, Download, Truck, Edit, Sparkles, CreditCard, RefreshCw, HelpCircle, Loader2 } from 'lucide-react';
 import { quickActions } from '../../data/pricingPlans';
 import { sendSupportChat } from '../../api';
@@ -30,6 +30,12 @@ export function SupportChat() {
   ]);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+  }, [messages, isSending]);
 
   const pushMessage = (nextMessage: ChatMessage) => {
     setMessages((prev) => [...prev, nextMessage]);
@@ -91,7 +97,10 @@ export function SupportChat() {
         </p>
       </div>
 
-      <div className="mb-6 bg-card border border-border rounded-2xl p-4 sm:p-5 max-h-[360px] overflow-y-auto space-y-3">
+      <div
+        ref={messagesContainerRef}
+        className="mb-6 bg-card border border-border rounded-2xl p-4 sm:p-5 max-h-[360px] overflow-y-auto space-y-3"
+      >
         {messages.map((item) => (
           <div
             key={item.id}
@@ -119,7 +128,7 @@ export function SupportChat() {
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSubmit} className="mb-8">
+      <form onSubmit={(e) => void handleSubmit(e)} className="mb-8">
         <div className="flex gap-3">
           <input
             type="text"

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { faqs } from '../data/legal';
 import { Breadcrumb, SearchBar } from '../components/common';
@@ -155,12 +156,12 @@ export function FaqPage() {
           <p className="text-muted mb-4">
             お気軽にサポートチームまでお問い合わせください。
           </p>
-          <a
-            href="/support"
+          <Link
+            to="/support"
             className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white rounded-[var(--radius-button)] hover:bg-primary-hover transition-colors font-medium"
           >
             お問い合わせ
-          </a>
+          </Link>
         </div>
       </div>
     </div>

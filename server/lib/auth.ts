@@ -1,10 +1,10 @@
 import path from 'path';
 import { randomBytes } from 'crypto';
 
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
 import { logger } from './logger.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import { initAddressManager, getSavedAddresses, addSavedAddress, deleteSavedAddress } from './auth/savedAddresses.js';
+import { loadAuthStateSnapshot, persistAuthStateSnapshot } from './authStateStore.js';
 
 // Re-export address functions for consumers that import from auth.js
 export { getSavedAddresses, addSavedAddress, deleteSavedAddress };
@@ -140,16 +140,16 @@ function persistAuthState(): void {
   };
 
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(AUTH_STORE_PATH, snapshot))
+    .then(() => persistAuthStateSnapshot(AUTH_STORE_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist auth store', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 
-function hydrateAuthState(): void {
-  const parsed = readJsonFile<PersistedAuthState>(
+async function hydrateAuthState(): Promise<void> {
+  const parsed = await loadAuthStateSnapshot<PersistedAuthState>(
     AUTH_STORE_PATH,
-    { version: 1, users: [], sessions: [], resetTokens: [] },
+    { version: 1, users: [], sessions: [], resetTokens: [], verificationTokens: [] },
   );
   const now = Date.now();
 
@@ -515,7 +515,22 @@ function cleanupExpiredRecords(): void {
 
 // --- Initialize ---
 
-hydrateAuthState();
+const HYDRATION_TIMEOUT_MS = 15_000;
+
+{
+  let timeoutId: ReturnType<typeof setTimeout>;
+  await Promise.race([
+    hydrateAuthState().then(() => clearTimeout(timeoutId)),
+    new Promise<void>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Auth hydration timed out')), HYDRATION_TIMEOUT_MS);
+    }),
+  ]).catch((error) => {
+    clearTimeout(timeoutId!);
+    logger.error('Auth hydration failed or timed out, starting with empty state', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+}
 
 // Wire up address manager with auth internals
 initAddressManager({

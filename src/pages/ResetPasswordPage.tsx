@@ -120,6 +120,8 @@ export function ResetPasswordPage() {
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                  aria-label={showNewPassword ? '新しいパスワードを隠す' : '新しいパスワードを表示'}
+                  aria-pressed={showNewPassword}
                 >
                   {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -146,6 +148,8 @@ export function ResetPasswordPage() {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors"
+                  aria-label={showConfirmPassword ? '確認用パスワードを隠す' : '確認用パスワードを表示'}
+                  aria-pressed={showConfirmPassword}
                 >
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

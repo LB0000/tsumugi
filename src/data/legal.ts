@@ -1,14 +1,16 @@
 import type { LegalInfo, FAQ } from '../types';
 
+export const SUPPORT_PHONE_NUMBER = '03-1234-5678';
+
 export const legalInfo: LegalInfo = {
   販売業者: '株式会社TSUMUGI',
   運営統括責任者: '山田 太郎',
   所在地: '〒150-0001 東京都渋谷区神宮前1-2-3 アートビル5F',
-  電話番号: '03-1234-5678（受付時間：平日10:00〜18:00）',
+  電話番号: `${SUPPORT_PHONE_NUMBER}（受付時間：平日10:00〜18:00）`,
   メールアドレス: 'support@tsumugi.jp',
   商品代金以外の必要料金: '消費税（価格に含む）、送料（5,000円以上無料、5,000円未満は全国一律500円）',
-  支払方法: 'クレジットカード（VISA、Mastercard、JCB、American Express）、PayPay、銀行振込',
-  支払時期: 'クレジットカード・PayPay：ご注文時に決済、銀行振込：ご注文後7日以内にお支払い',
+  支払方法: 'クレジットカード（VISA、Mastercard、JCB、American Express）',
+  支払時期: 'クレジットカード：ご注文時に決済',
   商品の引渡時期: 'デジタル商品：決済完了後即時ダウンロード可能、プリント商品：ご注文から7〜14営業日でお届け',
   返品について: 'デジタル商品の性質上、ダウンロード後の返品・返金は原則お受けできません。プリント商品は到着後7日以内に限り、商品不良の場合のみ交換対応いたします。',
 };
@@ -35,7 +37,7 @@ export const faqs: FAQ[] = [
   {
     id: 'faq-4',
     question: 'どのような支払い方法が使えますか？',
-    answer: 'クレジットカード（VISA、Mastercard、JCB、American Express）、PayPay、銀行振込をご利用いただけます。',
+    answer: 'クレジットカード（VISA、Mastercard、JCB、American Express）をご利用いただけます。',
     category: 'payment'
   },
   {

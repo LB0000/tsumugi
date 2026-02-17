@@ -19,6 +19,7 @@ import { reviewRouter } from './routes/reviews.js';
 import { cartRouter } from './routes/cart.js';
 import { startCartAbandonmentChecker } from './lib/cartAbandonment.js';
 import { startScheduledEmailChecker } from './lib/scheduledEmails.js';
+import { checkoutHydrationReady } from './lib/checkoutState.js';
 
 const app = express();
 const PORT = config.PORT;
@@ -118,7 +119,8 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   }
 });
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
+  await checkoutHydrationReady;
   logger.info(`Server running on http://localhost:${PORT}`);
   startCartAbandonmentChecker();
   startScheduledEmailChecker();

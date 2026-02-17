@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import {
+  SOCIAL_PROOF_GENERATION_COUNT,
+  SOCIAL_PROOF_RATING_NUM,
+  SOCIAL_PROOF_SATISFACTION_RATE,
+} from '../../data/socialProof';
 
 const metrics = [
-  { value: 10000, suffix: '+', label: '作品を生成' },
-  { value: 4.9, suffix: '/5.0', label: '平均評価', decimals: 1 },
-  { value: 98, suffix: '%', label: '満足度' },
+  { value: SOCIAL_PROOF_GENERATION_COUNT, suffix: '+', label: '作品を生成' },
+  { value: SOCIAL_PROOF_RATING_NUM, suffix: '/5.0', label: '平均評価', decimals: 1 },
+  { value: SOCIAL_PROOF_SATISFACTION_RATE, suffix: '%', label: '満足度' },
 ];
 
 function AnimatedNumber({
@@ -25,6 +30,7 @@ function AnimatedNumber({
 
     const duration = 1800;
     const startTime = performance.now();
+    let rafId: number;
 
     function animate(now: number) {
       const elapsed = now - startTime;
@@ -32,13 +38,14 @@ function AnimatedNumber({
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
       setCurrent(target * eased);
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        rafId = requestAnimationFrame(animate);
       } else {
         setDone(true);
       }
     }
 
-    requestAnimationFrame(animate);
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
   }, [isVisible, target]);
 
   const formatted = decimals > 0

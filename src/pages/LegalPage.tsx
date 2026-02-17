@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { legalInfo } from '../data/legal';
 import { Breadcrumb } from '../components/common';
 
@@ -58,12 +59,12 @@ export function LegalPage() {
           <p className="text-muted mb-4">
             ご不明な点がございましたら、お気軽にお問い合わせください。
           </p>
-          <a
-            href="/support"
+          <Link
+            to="/support"
             className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white rounded-[var(--radius-button)] hover:bg-primary-hover transition-colors font-medium"
           >
             お問い合わせはこちら
-          </a>
+          </Link>
         </div>
       </div>
     </div>

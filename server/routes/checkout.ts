@@ -87,6 +87,7 @@ interface RawBodyRequest extends Request {
 
 const MAX_ITEM_QUANTITY = 10;
 const MAX_CART_ITEMS = 20;
+const ORDER_LINK_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 hours
 
 export function sanitizeReceiptUrl(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
@@ -875,8 +876,7 @@ checkoutRouter.post('/link-order', requireAuth, (req, res) => {
     return;
   }
 
-  // セキュリティ: 注文作成から1時間以内のみ紐付け可能（古い注文の横取り防止）
-  const ORDER_LINK_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+  // セキュリティ: 注文作成から72時間以内のみ紐付け可能（古い注文の横取り防止）
   const orderCreatedAt = orderStatus.createdAt ? new Date(orderStatus.createdAt).getTime() : 0;
   if (Date.now() - orderCreatedAt > ORDER_LINK_WINDOW_MS) {
     res.status(403).json({

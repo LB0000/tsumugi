@@ -3,7 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
 
 import { useCartStore } from '../stores/cartStore';
-import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
+import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE, MAX_ITEM_QUANTITY } from '../data/shipping';
+import { products, type Product } from '../data/products';
+
+const featuredProducts = [
+  products.find((p) => p.isRecommended),
+  products.find((p) => p.id === 'canvas'),
+].filter((p): p is Product => p !== undefined);
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -47,7 +53,7 @@ export function CartPage() {
               カートに商品がありません
             </h2>
             <p className="text-muted mb-8 max-w-md mx-auto">
-              素敵な肖像画を作成して、大切な思い出をアートに変えましょう。
+              まずは写真をアップロードして作品を作りましょう。
             </p>
             <Link to="/">
               <StyledButton size="lg">
@@ -55,6 +61,26 @@ export function CartPage() {
                 <ArrowRight className="w-5 h-5" />
               </StyledButton>
             </Link>
+
+            {/* 人気商品の紹介 */}
+            {featuredProducts.length > 0 && (
+              <div className="mt-12 max-w-lg mx-auto">
+                <p className="text-sm text-muted mb-4">こんな商品が選ばれています</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {featuredProducts.map((product) => (
+                    <Link
+                      key={product.id}
+                      to="/"
+                      className="p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-colors text-left"
+                    >
+                      <p className="font-semibold text-foreground text-sm">{product.name}</p>
+                      <p className="text-primary font-bold text-sm mt-1">¥{product.price.toLocaleString()}</p>
+                      <p className="text-xs text-muted mt-1">{product.description}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -115,8 +141,9 @@ export function CartPage() {
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
                         <button
                           onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
+                          disabled={item.quantity >= MAX_ITEM_QUANTITY}
                           aria-label="数量を増やす"
-                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors"
+                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -124,6 +151,9 @@ export function CartPage() {
                       <div className="text-right">
                         <p className="text-sm text-muted">¥{item.price.toLocaleString()} / 点</p>
                         <p className="font-semibold text-primary">¥{(item.price * item.quantity).toLocaleString()}</p>
+                        {item.quantity >= MAX_ITEM_QUANTITY && (
+                          <p className="text-xs text-muted">数量上限（{MAX_ITEM_QUANTITY}点）</p>
+                        )}
                       </div>
                     </div>
                   </div>

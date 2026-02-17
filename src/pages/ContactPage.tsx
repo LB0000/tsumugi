@@ -3,7 +3,7 @@ import { Mail, Phone, MapPin, Clock, Send, MessageSquare, HelpCircle, Package } 
 import { Link } from 'react-router-dom';
 import { StyledButton, Breadcrumb } from '../components/common';
 import { submitContact } from '../api';
-import { legalInfo } from '../data/legal';
+import { legalInfo, SUPPORT_PHONE_NUMBER } from '../data/legal';
 
 type ContactReason = 'order' | 'product' | 'other';
 
@@ -129,10 +129,9 @@ export function ContactPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">電話</p>
-                    <a href="tel:0120-000-000" className="text-sm text-primary hover:underline">
-                      0120-000-000
+                    <a href={`tel:${SUPPORT_PHONE_NUMBER}`} className="text-sm text-primary hover:underline">
+                      {legalInfo['電話番号']}
                     </a>
-                    <p className="text-xs text-muted mt-0.5">（通話無料）</p>
                   </div>
                 </div>
 
@@ -187,6 +186,8 @@ export function ContactPage() {
                         key={reason.id}
                         type="button"
                         onClick={() => setSelectedReason(reason.id)}
+                        aria-pressed={selectedReason === reason.id}
+                        aria-label={`お問い合わせ種別: ${reason.label}`}
                         className={`p-4 rounded-xl border-2 transition-all text-center ${
                           selectedReason === reason.id
                             ? 'border-primary bg-primary/5'

@@ -5,7 +5,7 @@ export const categoryMetadata: Record<'pets' | 'family' | 'kids', { title: strin
   },
   family: {
     title: 'ファミリー肖像画 - 家族の笑顔を一枚の芸術に | TSUMUGI',
-    description: '家族写真を格調高い肖像画に変換。1,000以上のご家族に選ばれたサービス。無料プレビュー、¥4,900から。',
+    description: '家族写真を格調高い肖像画に変換。1,000組以上のご家族に選ばれたサービス。無料プレビュー、¥4,900から。',
   },
   kids: {
     title: 'キッズ・ベビー肖像画 - 今だけの表情を一生の宝物に | TSUMUGI',

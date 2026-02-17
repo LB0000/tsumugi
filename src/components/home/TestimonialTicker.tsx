@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Star, ArrowRight } from 'lucide-react';
+import { SOCIAL_PROOF_RATING, SOCIAL_PROOF_REVIEW_COUNT } from '../../data/socialProof';
 
 interface Testimonial {
   id: string;
@@ -19,9 +20,8 @@ const categoryLabels: Record<Testimonial['category'], string> = {
   kids: 'キッズ',
 };
 
-// 2025年2月時点の集計値
-const REVIEW_COUNT_LABEL = '2,800件以上のレビューで';
-const REVIEW_RATING_LABEL = '平均4.9の高評価';
+const REVIEW_COUNT_LABEL = `${SOCIAL_PROOF_REVIEW_COUNT}のレビューで`;
+const REVIEW_RATING_LABEL = `平均${SOCIAL_PROOF_RATING}の高評価`;
 
 const testimonials: Testimonial[] = [
   {
@@ -90,9 +90,42 @@ const testimonials: Testimonial[] = [
     beforeImage: '/images/hero/family2-before.jpeg',
     afterImage: '/images/hero/family2-after.jpeg',
   },
+  {
+    id: '7',
+    name: 'H.M様',
+    initial: 'H',
+    rating: 5,
+    comment: '娘の七五三の写真を肖像画にしてもらいました。着物姿がまるで絵画のようで、実家の両親も大感激。家族の宝物です。',
+    style: '古典名画',
+    category: 'kids',
+    beforeImage: '/images/hero/kids-before.jpeg',
+    afterImage: '/images/hero/kids-after.jpeg',
+  },
+  {
+    id: '8',
+    name: 'N.Y様',
+    initial: 'N',
+    rating: 5,
+    comment: '入学記念に息子の写真をアニメ風に。本人も「かっこいい！」と大喜び。毎日眺めています。',
+    style: 'アニメ',
+    category: 'kids',
+    beforeImage: '/images/hero/kids2-before.jpg',
+    afterImage: '/images/hero/kids-after.jpeg',
+  },
+  {
+    id: '9',
+    name: 'T.O様',
+    initial: 'T',
+    rating: 5,
+    comment: '還暦祝いに両親の写真を豪華油絵風に。額装してプレゼントしたら、父が「美術館に飾れるレベルだ」と感動していました。',
+    style: '豪華油絵',
+    category: 'family',
+    beforeImage: '/images/hero/family-before.jpeg',
+    afterImage: '/images/hero/family-after.jpeg',
+  },
 ];
 
-function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
+const TestimonialCard = memo(function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
     <div className="flex-shrink-0 w-[80vw] sm:w-80 snap-center glass-card rounded-2xl overflow-hidden hover:shadow-lg hover:shadow-secondary/5 transition-all duration-300 hover:-translate-y-0.5">
       {/* ビフォーアフター サムネイル */}
@@ -156,9 +189,13 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
       </div>
     </div>
   );
+});
+
+interface TestimonialTickerProps {
+  categoryFilter?: Testimonial['category'];
 }
 
-function TestimonialTickerBase() {
+function TestimonialTickerBase({ categoryFilter }: TestimonialTickerProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
     () => (typeof window !== 'undefined')
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -181,7 +218,11 @@ function TestimonialTickerBase() {
     }
   }, []);
 
-  const items = prefersReducedMotion ? testimonials : [...testimonials, ...testimonials];
+  const filtered = categoryFilter
+    ? testimonials.filter((t) => t.category === categoryFilter)
+    : testimonials;
+  const displayTestimonials = filtered.length >= 2 ? filtered : testimonials;
+  const items = prefersReducedMotion ? displayTestimonials : [...displayTestimonials, ...displayTestimonials];
 
   return (
     <section className="py-12" aria-labelledby="testimonial-heading">

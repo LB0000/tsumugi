@@ -2,6 +2,7 @@ import { Gift } from 'lucide-react';
 import { giftWrappingOptions, noshiTypes } from '../../data/giftOptions';
 import type { ShippingAddress } from '../../types';
 import { PREFECTURES } from './constants';
+import type { ShippingField } from './validation';
 
 type GiftOptionsValue = {
   isGift: boolean;
@@ -17,7 +18,9 @@ interface Props {
   differentRecipient: boolean;
   setDifferentRecipient: (value: boolean) => void;
   recipientForm: ShippingAddress;
-  updateRecipientForm: (field: keyof ShippingAddress, value: string) => void;
+  updateRecipientForm: (field: ShippingField, value: string) => void;
+  getRecipientFieldInputClass: (field: ShippingField) => string;
+  getRecipientFieldError: (field: ShippingField) => string | null;
 }
 
 export function GiftOptionsSection({
@@ -28,6 +31,8 @@ export function GiftOptionsSection({
   setDifferentRecipient,
   recipientForm,
   updateRecipientForm,
+  getRecipientFieldInputClass,
+  getRecipientFieldError,
 }: Props) {
   const activeGiftOptions = giftOptions?.isGift ? giftOptions : null;
 
@@ -162,8 +167,13 @@ export function GiftOptionsSection({
                       value={recipientForm.lastName}
                       onChange={(event) => updateRecipientForm('lastName', event.target.value)}
                       placeholder="山田"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('lastName')}
+                      aria-invalid={Boolean(getRecipientFieldError('lastName'))}
+                      aria-describedby={getRecipientFieldError('lastName') ? 'recipientLastName-error' : undefined}
                     />
+                    {getRecipientFieldError('lastName') && (
+                      <p id="recipientLastName-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('lastName')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="recipientFirstName" className="block text-sm font-medium text-foreground mb-1">名</label>
@@ -173,8 +183,13 @@ export function GiftOptionsSection({
                       value={recipientForm.firstName}
                       onChange={(event) => updateRecipientForm('firstName', event.target.value)}
                       placeholder="太郎"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('firstName')}
+                      aria-invalid={Boolean(getRecipientFieldError('firstName'))}
+                      aria-describedby={getRecipientFieldError('firstName') ? 'recipientFirstName-error' : undefined}
                     />
+                    {getRecipientFieldError('firstName') && (
+                      <p id="recipientFirstName-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('firstName')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="recipientEmail" className="block text-sm font-medium text-foreground mb-1">メールアドレス</label>
@@ -184,8 +199,13 @@ export function GiftOptionsSection({
                       value={recipientForm.email}
                       onChange={(event) => updateRecipientForm('email', event.target.value)}
                       placeholder="example@email.com"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('email')}
+                      aria-invalid={Boolean(getRecipientFieldError('email'))}
+                      aria-describedby={getRecipientFieldError('email') ? 'recipientEmail-error' : undefined}
                     />
+                    {getRecipientFieldError('email') && (
+                      <p id="recipientEmail-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('email')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="recipientPhone" className="block text-sm font-medium text-foreground mb-1">電話番号</label>
@@ -195,8 +215,13 @@ export function GiftOptionsSection({
                       value={recipientForm.phone}
                       onChange={(event) => updateRecipientForm('phone', event.target.value)}
                       placeholder="090-1234-5678"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('phone')}
+                      aria-invalid={Boolean(getRecipientFieldError('phone'))}
+                      aria-describedby={getRecipientFieldError('phone') ? 'recipientPhone-error' : undefined}
                     />
+                    {getRecipientFieldError('phone') && (
+                      <p id="recipientPhone-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('phone')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="recipientPostalCode" className="block text-sm font-medium text-foreground mb-1">郵便番号</label>
@@ -207,8 +232,13 @@ export function GiftOptionsSection({
                       onChange={(event) => updateRecipientForm('postalCode', event.target.value)}
                       placeholder="100-0001"
                       maxLength={8}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('postalCode')}
+                      aria-invalid={Boolean(getRecipientFieldError('postalCode'))}
+                      aria-describedby={getRecipientFieldError('postalCode') ? 'recipientPostalCode-error' : undefined}
                     />
+                    {getRecipientFieldError('postalCode') && (
+                      <p id="recipientPostalCode-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('postalCode')}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="recipientPrefecture" className="block text-sm font-medium text-foreground mb-1">都道府県</label>
@@ -216,13 +246,18 @@ export function GiftOptionsSection({
                       id="recipientPrefecture"
                       value={recipientForm.prefecture}
                       onChange={(event) => updateRecipientForm('prefecture', event.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('prefecture')}
+                      aria-invalid={Boolean(getRecipientFieldError('prefecture'))}
+                      aria-describedby={getRecipientFieldError('prefecture') ? 'recipientPrefecture-error' : undefined}
                     >
                       <option value="">選択してください</option>
                       {PREFECTURES.map((prefecture) => (
                         <option key={prefecture} value={prefecture}>{prefecture}</option>
                       ))}
                     </select>
+                    {getRecipientFieldError('prefecture') && (
+                      <p id="recipientPrefecture-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('prefecture')}</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="recipientCity" className="block text-sm font-medium text-foreground mb-1">市区町村</label>
@@ -232,8 +267,13 @@ export function GiftOptionsSection({
                       value={recipientForm.city}
                       onChange={(event) => updateRecipientForm('city', event.target.value)}
                       placeholder="千代田区"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('city')}
+                      aria-invalid={Boolean(getRecipientFieldError('city'))}
+                      aria-describedby={getRecipientFieldError('city') ? 'recipientCity-error' : undefined}
                     />
+                    {getRecipientFieldError('city') && (
+                      <p id="recipientCity-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('city')}</p>
+                    )}
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="recipientAddressLine" className="block text-sm font-medium text-foreground mb-1">番地・建物名</label>
@@ -243,8 +283,13 @@ export function GiftOptionsSection({
                       value={recipientForm.addressLine}
                       onChange={(event) => updateRecipientForm('addressLine', event.target.value)}
                       placeholder="千代田1-1 〇〇ビル 101号室"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className={getRecipientFieldInputClass('addressLine')}
+                      aria-invalid={Boolean(getRecipientFieldError('addressLine'))}
+                      aria-describedby={getRecipientFieldError('addressLine') ? 'recipientAddressLine-error' : undefined}
                     />
+                    {getRecipientFieldError('addressLine') && (
+                      <p id="recipientAddressLine-error" className="mt-1 text-xs text-sale">{getRecipientFieldError('addressLine')}</p>
+                    )}
                   </div>
                 </div>
               </div>

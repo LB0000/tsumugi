@@ -34,12 +34,6 @@ const PaymentIcons = {
       <text x="24" y="20" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">AMEX</text>
     </svg>
   ),
-  paypay: (
-    <svg viewBox="0 0 48 32" className="h-6 w-auto" aria-label="PayPay">
-      <rect fill="#FF0033" width="48" height="32" rx="4" />
-      <text x="24" y="20" fill="white" fontSize="8" fontWeight="bold" textAnchor="middle">PayPay</text>
-    </svg>
-  ),
 };
 
 const trustItems = [
@@ -59,8 +53,8 @@ const trustItems = [
   },
   {
     icon: RefreshCcw,
-    label: '返品保証',
-    description: '30日間',
+    label: '不良時交換',
+    description: '7日以内',
     color: 'text-primary',
     bgColor: 'bg-primary/10',
   },

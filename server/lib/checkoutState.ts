@@ -1,62 +1,12 @@
 import path from 'path';
-import { readJsonFile, writeJsonAtomic } from './persistence.js';
+import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
+import { hasSupabaseConfig } from './supabaseClient.js';
+import { loadCheckoutStateSnapshot, persistCheckoutStateSnapshot } from './checkoutStateStore.js';
+import type { OrderItem, OrderShippingAddress, OrderGiftInfo, PersistedCheckoutState } from './checkoutTypes.js';
+import type { OrderPaymentStatus, ProcessedWebhookEvent } from './checkoutTypes.js';
 
-export interface OrderItem {
-  productId: string;
-  name: string;
-  quantity: number;
-  price: number;
-}
-
-export interface OrderShippingAddress {
-  lastName: string;
-  firstName: string;
-  email: string;
-  phone: string;
-  postalCode: string;
-  prefecture: string;
-  city: string;
-  addressLine: string;
-}
-
-export interface OrderGiftInfo {
-  wrappingId?: string;
-  noshiType?: string;
-  messageCard?: string;
-  recipientAddress?: OrderShippingAddress;
-}
-
-export interface OrderPaymentStatus {
-  orderId: string;
-  paymentId: string;
-  status: string;
-  updatedAt: string;
-  userId?: string;
-  totalAmount?: number;
-  createdAt?: string;
-  items?: OrderItem[];
-  shippingAddress?: OrderShippingAddress;
-  receiptUrl?: string;
-  couponCode?: string;
-  couponUsed?: boolean;
-  giftInfo?: OrderGiftInfo;
-}
-
-export interface ProcessedWebhookEvent {
-  eventId: string;
-  eventType: string;
-  receivedAt: string;
-  orderId?: string;
-  paymentId?: string;
-  status?: string;
-}
-
-interface PersistedCheckoutState {
-  version: number;
-  processedEvents: ProcessedWebhookEvent[];
-  paymentStatuses: OrderPaymentStatus[];
-}
+export type { OrderItem, OrderShippingAddress, OrderGiftInfo, OrderPaymentStatus, ProcessedWebhookEvent } from './checkoutTypes.js';
 
 const CHECKOUT_STATE_PATH = path.resolve(process.cwd(), 'server', '.data', 'checkout-state.json');
 const MAX_STORED_EVENTS = 5000;
@@ -113,27 +63,25 @@ function isOrderPaymentStatus(value: unknown): value is OrderPaymentStatus {
   );
 }
 
-function persistCheckoutState(): void {
-  const snapshot: PersistedCheckoutState = {
+function buildSnapshot(): PersistedCheckoutState {
+  return {
     version: 1,
     processedEvents: [...getPersistedProcessedEvents()],
     paymentStatuses: [...paymentStatusByOrderId.values()],
   };
+}
+
+function persistCheckoutState(): void {
+  const snapshot = buildSnapshot();
 
   persistQueue = persistQueue
-    .then(() => writeJsonAtomic(CHECKOUT_STATE_PATH, snapshot))
+    .then(() => persistCheckoutStateSnapshot(CHECKOUT_STATE_PATH, snapshot))
     .catch((error) => {
       logger.error('Failed to persist checkout state', { error: error instanceof Error ? error.message : String(error) });
     });
 }
 
-function hydrateCheckoutState(): void {
-  const parsed = readJsonFile<PersistedCheckoutState>(CHECKOUT_STATE_PATH, {
-    version: 1,
-    processedEvents: [],
-    paymentStatuses: [],
-  });
-
+function hydrateFromParsed(parsed: PersistedCheckoutState): void {
   for (const event of parsed.processedEvents) {
     if (!isProcessedWebhookEvent(event)) continue;
     if (processedEventIds.has(event.eventId)) continue;
@@ -151,6 +99,27 @@ function hydrateCheckoutState(): void {
   for (const status of parsed.paymentStatuses) {
     if (!isOrderPaymentStatus(status)) continue;
     paymentStatusByOrderId.set(status.orderId, status);
+  }
+}
+
+function hydrateCheckoutStateSync(): void {
+  const parsed = readJsonFile<PersistedCheckoutState>(CHECKOUT_STATE_PATH, {
+    version: 1,
+    processedEvents: [],
+    paymentStatuses: [],
+  });
+  hydrateFromParsed(parsed);
+}
+
+async function hydrateCheckoutStateAsync(): Promise<void> {
+  try {
+    const parsed = await loadCheckoutStateSnapshot(CHECKOUT_STATE_PATH);
+    hydrateFromParsed(parsed);
+  } catch (error) {
+    logger.error('Failed to hydrate checkout state from Supabase, falling back to local.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    hydrateCheckoutStateSync();
   }
 }
 
@@ -185,8 +154,8 @@ export function getOrderPaymentStatus(orderId: string): OrderPaymentStatus | nul
 export function claimCouponUsage(orderId: string): boolean {
   const status = getOrderPaymentStatus(orderId);
   if (!status || status.couponUsed || !status.couponCode) return false;
-  // Synchronously set the flag (safe in Node.js single-threaded model)
-  status.couponUsed = true;
+  const updated = { ...status, couponUsed: true };
+  paymentStatusByOrderId.set(orderId, updated);
   persistCheckoutState();
   return true;
 }
@@ -194,7 +163,8 @@ export function claimCouponUsage(orderId: string): boolean {
 export function unclaimCouponUsage(orderId: string): void {
   const status = getOrderPaymentStatus(orderId);
   if (status) {
-    status.couponUsed = false;
+    const updated = { ...status, couponUsed: false };
+    paymentStatusByOrderId.set(orderId, updated);
     persistCheckoutState();
   }
 }
@@ -227,4 +197,19 @@ export function getAllOrdersGroupedByUserId(): Map<string, OrderPaymentStatus[]>
   return grouped;
 }
 
-hydrateCheckoutState();
+// Initial hydration: sync for local-only, async for Supabase.
+// Export the promise so the server can await it before accepting requests.
+const CHECKOUT_HYDRATION_TIMEOUT_MS = 15_000;
+
+export const checkoutHydrationReady: Promise<void> = hasSupabaseConfig()
+  ? Promise.race([
+      hydrateCheckoutStateAsync(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Checkout hydration timed out')), CHECKOUT_HYDRATION_TIMEOUT_MS),
+      ),
+    ]).catch((error) => {
+      logger.error('Checkout state async hydration failed or timed out.', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    })
+  : Promise.resolve(hydrateCheckoutStateSync());

@@ -4,7 +4,7 @@ import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { categoryMetadata } from '../data/categoryMetadata';
 import { updateMetaTags } from '../lib/seo';
-import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker } from '../components/home';
+import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker, PhysicalProductShowcase } from '../components/home';
 
 const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
@@ -137,7 +137,13 @@ export function HomePage() {
       <div className="divider-japanese max-w-3xl mx-auto" />
 
       {/* テスティモニアルティッカー */}
-      <TestimonialTicker />
+      <TestimonialTicker categoryFilter={selectedCategory} />
+
+      {/* 区切り線 */}
+      <div className="divider-japanese max-w-3xl mx-auto" />
+
+      {/* フィジカル商品ショーケース */}
+      <PhysicalProductShowcase />
 
       {/* 区切り線 */}
       <div className="divider-japanese max-w-3xl mx-auto" />

@@ -1,5 +1,6 @@
 import { Shield } from 'lucide-react';
 import { Breadcrumb } from '../components/common';
+import { legalInfo } from '../data/legal';
 
 export function PrivacyPage() {
   return (
@@ -152,7 +153,7 @@ export function PrivacyPage() {
               <div className="bg-card p-4 rounded-lg border border-border mt-4">
                 <p className="font-medium text-foreground mb-2">TSUMUGI 個人情報保護担当</p>
                 <p>メール: privacy@tsumugi.jp</p>
-                <p>電話: 0120-000-000（平日 10:00-18:00）</p>
+                <p>電話: {legalInfo['電話番号']}</p>
               </div>
             </div>
           </section>

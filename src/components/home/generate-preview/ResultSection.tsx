@@ -77,7 +77,7 @@ export function ResultSection({
         </StyledButton>
         <StyledButton variant="secondary" size="lg" onClick={onNavigateResult}>
           <Download className="w-5 h-5" />
-          ダウンロード (¥2,900)
+          データ購入へ
         </StyledButton>
         <StyledButton size="lg" onClick={onNavigateResult}>
           <ShoppingCart className="w-5 h-5" />

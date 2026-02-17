@@ -1,5 +1,7 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+// Note: ErrorBoundary fallbacks intentionally use <a href> instead of <Link>
+// for maximum resilience when Router context may be broken.
 import { Header, Sidebar, Footer, LoadingSpinner, ErrorBoundary, FloatingCTA } from './components/common';
 import { getCurrentUser } from './api';
 import { useAuthStore } from './stores/authStore';
@@ -76,9 +78,9 @@ function NotFoundPage() {
         <p className="text-6xl font-serif font-bold text-primary/20 mb-4">404</p>
         <h1 className="text-xl font-semibold text-foreground mb-2">ページが見つかりません</h1>
         <p className="text-muted mb-6">お探しのページは存在しないか、移動した可能性があります。</p>
-        <a href="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">
+        <Link to="/" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors">
           トップページへ戻る
-        </a>
+        </Link>
       </div>
     </div>
   );

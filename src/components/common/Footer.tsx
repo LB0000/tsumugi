@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CreditCard, Shield, Truck, Mail, Phone, MapPin } from 'lucide-react';
+import { legalInfo } from '../../data/legal';
+import { SOCIAL_PROOF_RATING, SOCIAL_PROOF_REVIEW_COUNT } from '../../data/socialProof';
 
 export function Footer() {
   return (
@@ -32,7 +34,7 @@ export function Footer() {
               </div>
               <div>
                 <p className="font-medium text-background text-xs sm:text-sm">品質保証</p>
-                <p className="hidden sm:block text-xs text-background/70">ご満足いただけない場合は全額返金</p>
+                <p className="hidden sm:block text-xs text-background/70">商品不良時は7日以内に交換対応</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
@@ -75,8 +77,8 @@ export function Footer() {
                   <span key={i} className="text-secondary text-xs sm:text-sm">★</span>
                 ))}
               </div>
-              <span className="text-xs sm:text-sm text-background/80">4.8 / 5.0</span>
-              <span className="text-[10px] sm:text-xs text-background/50">（1,247件）</span>
+              <span className="text-xs sm:text-sm text-background/80">{SOCIAL_PROOF_RATING} / 5.0</span>
+              <span className="text-[10px] sm:text-xs text-background/50">（{SOCIAL_PROOF_REVIEW_COUNT}）</span>
             </div>
 
             {/* 連絡先 */}
@@ -87,7 +89,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-background/70">
                 <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary flex-shrink-0" />
-                <span className="text-xs sm:text-sm">0120-000-000（平日 10:00-18:00）</span>
+                <span className="text-xs sm:text-sm">{legalInfo['電話番号']}</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 text-background/70">
                 <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-secondary flex-shrink-0" />
@@ -203,7 +205,6 @@ export function Footer() {
                 <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-background/10 border border-background/20 rounded text-[10px] sm:text-xs font-medium text-background/80">Mastercard</div>
                 <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-background/10 border border-background/20 rounded text-[10px] sm:text-xs font-medium text-background/80">JCB</div>
                 <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-background/10 border border-background/20 rounded text-[10px] sm:text-xs font-medium text-background/80">AMEX</div>
-                <div className="px-2 py-1 sm:px-3 sm:py-1.5 bg-background/10 border border-background/20 rounded text-[10px] sm:text-xs font-medium text-background/80">PayPay</div>
               </div>
             </div>
 

@@ -99,6 +99,8 @@ export function CheckoutPage() {
   });
   const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
   const [touchedFields, setTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
+  const [recipientFieldErrors, setRecipientFieldErrors] = useState<ShippingFieldErrors>({});
+  const [recipientTouchedFields, setRecipientTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
 
   const wrappingPrice = useMemo(() => {
     if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
@@ -155,6 +157,12 @@ export function CheckoutPage() {
   }, [cartItems]);
 
   useEffect(() => {
+    if (differentRecipient) return;
+    setRecipientTouchedFields({});
+    setRecipientFieldErrors({});
+  }, [differentRecipient]);
+
+  useEffect(() => {
     if (!authUser) return;
     dispatch({ type: 'LOADING_ADDRESSES' });
     void getAddresses()
@@ -206,8 +214,11 @@ export function CheckoutPage() {
     setFieldErrors((prevErrors) => ({ ...prevErrors, [field]: message ?? undefined }));
   };
 
-  const updateRecipientForm = (field: keyof ShippingAddress, value: string) => {
+  const updateRecipientForm = (field: ShippingField, value: string) => {
+    setRecipientTouchedFields((prev) => ({ ...prev, [field]: true }));
     setRecipientForm((prev) => ({ ...prev, [field]: value }));
+    const message = validateShippingField(field, value);
+    setRecipientFieldErrors((prevErrors) => ({ ...prevErrors, [field]: message ?? undefined }));
   };
 
   const touchAllFields = () => {
@@ -218,6 +229,14 @@ export function CheckoutPage() {
     setTouchedFields(touched);
   };
 
+  const touchAllRecipientFields = () => {
+    const touched: Partial<Record<ShippingField, boolean>> = {};
+    for (const field of SHIPPING_FIELD_ORDER) {
+      touched[field] = true;
+    }
+    setRecipientTouchedFields(touched);
+  };
+
   const getFieldError = (field: ShippingField): string | null => {
     if (!touchedFields[field]) return null;
     return fieldErrors[field] ?? null;
@@ -225,6 +244,20 @@ export function CheckoutPage() {
 
   const getFieldInputClass = (field: ShippingField): string => {
     const hasError = Boolean(getFieldError(field));
+    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
+      hasError
+        ? 'border-sale focus:ring-sale/30'
+        : 'border-border focus:ring-primary/50'
+    }`;
+  };
+
+  const getRecipientFieldError = (field: ShippingField): string | null => {
+    if (!recipientTouchedFields[field]) return null;
+    return recipientFieldErrors[field] ?? null;
+  };
+
+  const getRecipientFieldInputClass = (field: ShippingField): string => {
+    const hasError = Boolean(getRecipientFieldError(field));
     return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
       hasError
         ? 'border-sale focus:ring-sale/30'
@@ -244,6 +277,17 @@ export function CheckoutPage() {
     if (validationError) {
       dispatch({ type: 'SET_ERROR', payload: `配送先情報: ${validationError}` });
       return;
+    }
+
+    if (differentRecipient) {
+      const recipientErrors = validateShippingForm(recipientForm);
+      setRecipientFieldErrors(recipientErrors);
+      touchAllRecipientFields();
+      const recipientValidationError = getFirstShippingError(recipientErrors);
+      if (recipientValidationError) {
+        dispatch({ type: 'SET_ERROR', payload: `ギフト送り先情報: ${recipientValidationError}` });
+        return;
+      }
     }
 
     dispatch({ type: 'START_PROCESSING' });
@@ -351,6 +395,8 @@ export function CheckoutPage() {
                 setDifferentRecipient={setDifferentRecipient}
                 recipientForm={recipientForm}
                 updateRecipientForm={updateRecipientForm}
+                getRecipientFieldInputClass={getRecipientFieldInputClass}
+                getRecipientFieldError={getRecipientFieldError}
               />
 
               <ShippingAddressSection
