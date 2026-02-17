@@ -23,10 +23,6 @@
   --color-sale: #C53D43;               /* 朱色（セール） */
   --color-new: #2E7D32;                /* 松葉色（新着） */
 
-  /* 旧変数の互換性維持 */
-  --color-accent-green: #2E7D32;
-  --color-accent-yellow: #B8860B;
-  --color-accent-pink: #C53D43;
   --color-overlay: rgba(26, 26, 26, 0.6);
 
   /* Brand colors */
@@ -200,7 +196,7 @@ textarea:focus-visible {
   transform: translateX(-50%);
   width: 40px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--category-accent, var(--color-secondary)), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-secondary), transparent);
 }
 
 /* スクロールバーカスタマイズ */
@@ -251,16 +247,12 @@ textarea:focus-visible {
     90deg,
     transparent,
     var(--color-border) 20%,
-    var(--category-accent, var(--color-secondary)) 50%,
+    var(--color-secondary) 50%,
     var(--color-border) 80%,
     transparent
   );
 }
 
-/* カテゴリアクセント — ホームページ内の装飾的要素で使用 */
-.text-category-accent { color: var(--category-accent, var(--color-secondary)); }
-.bg-category-accent { background-color: var(--category-accent, var(--color-secondary)); }
-.border-category-accent { border-color: var(--category-accent, var(--color-secondary)); }
 
 /* ==================== Liquid Glass Design System ==================== */
 
@@ -296,7 +288,7 @@ textarea:focus-visible {
     rgba(184, 134, 11, 0.08) 50%,
     rgba(139, 69, 19, 0.12) 100%
   );
-  border: 2px solid var(--category-accent, var(--color-primary));
+  border: 2px solid var(--color-primary);
   box-shadow:
     0 12px 40px rgba(139, 69, 19, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.4);

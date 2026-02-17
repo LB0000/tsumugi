@@ -135,12 +135,12 @@ export function SupportChat() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="メッセージを入力..."
-            className="flex-1 px-4 py-3 rounded-[var(--radius-button)] bg-card border border-foreground/20 text-foreground placeholder:text-muted focus:outline-none focus:border-accent-green transition-colors"
+            className="flex-1 px-4 py-3 rounded-[var(--radius-button)] bg-card border border-foreground/20 text-foreground placeholder:text-muted focus:outline-none focus:border-accent-sage transition-colors"
             disabled={isSending}
           />
           <button
             type="submit"
-            className="px-4 py-3 rounded-[var(--radius-button)] bg-accent-green text-black hover:bg-accent-green/90 transition-colors disabled:opacity-50"
+            className="px-4 py-3 rounded-[var(--radius-button)] bg-accent-sage text-black hover:bg-accent-sage/90 transition-colors disabled:opacity-50"
             disabled={isSending || message.trim().length === 0}
           >
             {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
@@ -163,7 +163,7 @@ export function SupportChat() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card hover:bg-card/80 transition-colors whitespace-nowrap disabled:opacity-50"
                 disabled={isSending}
               >
-                <Icon className="w-4 h-4 text-accent-green" />
+                <Icon className="w-4 h-4 text-accent-sage" />
                 <span className="text-sm text-foreground">{action.label}</span>
               </button>
             );

@@ -2,13 +2,10 @@ export interface Category {
   id: 'pets' | 'family' | 'kids';
   name: string;
   headline: string;
-  subheadline: string;
   heroDescription: string;
   uploadHint: string;
   trustText: string;
-  basePrice: number;
   sampleImages: string[];
-  accent: `#${string}`;
 }
 
 export type StyleCategoryId = 'all' | 'western' | 'japanese' | 'pop' | 'narikiri' | 'digital';

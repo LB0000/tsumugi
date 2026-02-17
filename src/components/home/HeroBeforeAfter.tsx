@@ -38,7 +38,7 @@ function HeroBeforeAfterBase() {
           >
             <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn" style={{ animationDelay: '0.3s' }}>
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
-              <span className="text-category-accent text-xs sm:text-sm tracking-[0.3em] uppercase font-semibold">
+              <span className="text-secondary text-xs sm:text-sm tracking-[0.3em] uppercase font-semibold">
                 Portrait Art
               </span>
               <div className="w-10 h-px bg-gradient-to-l from-transparent to-secondary" />
@@ -95,7 +95,7 @@ function HeroBeforeAfterBase() {
                 </span>
               </button>
               <span className="text-sm text-muted">
-                ¥{(currentCategory?.basePrice || 2900).toLocaleString()}〜 · プレビューで仕上がりを確認できます
+                プレビューで仕上がりを確認できます · クレジットカード不要
               </span>
             </div>
 
