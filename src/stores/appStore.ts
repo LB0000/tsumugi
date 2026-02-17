@@ -151,6 +151,7 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   clearGiftOptions: () => set({ giftOptions: null }),
 }), {
   name: 'tsumugi-app',
+  version: 1, // 将来のマイグレーション用
   storage: {
     getItem: (name) => {
       try {
@@ -164,8 +165,26 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     setItem: (name, value) => {
       try {
         sessionStorage.setItem(name, JSON.stringify(value));
-      } catch {
-        // sessionStorage quota exceeded — graceful degradation
+      } catch (error) {
+        // sessionStorage quota exceeded — previewUrlをクリアして再試行
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          console.warn('[Storage] QuotaExceededError: uploadState.previewUrlをクリアして容量確保');
+          try {
+            const fallbackState = {
+              ...value,
+              state: {
+                ...value.state,
+                uploadState: {
+                  ...value.state.uploadState,
+                  previewUrl: null,
+                },
+              },
+            };
+            sessionStorage.setItem(name, JSON.stringify(fallbackState));
+          } catch {
+            console.error('[Storage] previewUrlクリア後も保存失敗');
+          }
+        }
       }
     },
     removeItem: (name) => {
@@ -178,5 +197,13 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     gallerySaved: state.gallerySaved,
     portraitName: state.portraitName,
     textOverlaySettings: state.textOverlaySettings,
+    uploadState: {
+      status: state.uploadState.status,
+      progress: state.uploadState.progress,
+      previewUrl: state.uploadState.previewUrl,
+      errorMessage: state.uploadState.errorMessage,
+      // IMPORTANT: rawFile (File object) はシリアライズ不可のため除外
+      rawFile: null,
+    },
   } as AppState),
 }));

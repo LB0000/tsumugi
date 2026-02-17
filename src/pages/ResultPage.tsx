@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock } from 'lucide-react';
+import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
@@ -267,8 +267,14 @@ export function ResultPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted text-sm">
-                    元の写真
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-4">
+                    <ImageIcon className="w-8 h-8 text-muted/50" />
+                    <p className="text-muted text-xs sm:text-sm text-center">
+                      元の写真が読み込めませんでした
+                    </p>
+                    <p className="text-muted/70 text-xs text-center">
+                      生成画像はカートに保存されています
+                    </p>
                   </div>
                 )}
               </div>
