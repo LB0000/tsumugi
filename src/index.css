@@ -594,12 +594,66 @@ textarea:focus-visible {
   .animate-tickerScroll,
   .animate-newBadgePulse,
   .animate-circularProgressGlow,
-  .animate-stageIconSpin {
-    animation: none;
-    transition: none;
+  .animate-stageIconSpin,
+  .animate-fadeIn,
+  .animate-fadeInUp,
+  .animate-slideUp,
+  .animate-scaleIn {
+    animation: none !important;
+    transition: opacity 0.15s ease !important;
+    opacity: 1 !important;
   }
 
   .glass-card:hover {
     transform: none;
+  }
+
+  /* Hero アニメーションも無効化 */
+  .hero-animate-fadeIn,
+  .hero-animate-fadeIn-delay-1,
+  .hero-animate-fadeIn-delay-2,
+  .hero-animate-fadeIn-delay-3,
+  .hero-animate-fadeIn-delay-4,
+  .hero-animate-fadeIn-delay-5,
+  .hero-animate-fadeIn-delay-6,
+  .hero-animate-float,
+  .hero-animate-float-delayed,
+  .hero-animate-float-slow,
+  .hero-animate-float-particle,
+  .hero-animate-spin-slow,
+  .hero-animate-pulse-slow {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Stagger ディレイも無効化 */
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4,
+  .stagger-5,
+  .stagger-6,
+  .stagger-7,
+  .stagger-8 {
+    animation-delay: 0s !important;
+  }
+}
+
+/* モバイルパフォーマンス最適化 */
+@media (max-width: 640px) {
+  /* モバイルではアニメーション時間を短縮 */
+  .hero-animate-fadeIn,
+  .hero-animate-fadeIn-delay-1,
+  .hero-animate-fadeIn-delay-2,
+  .hero-animate-fadeIn-delay-3,
+  .hero-animate-fadeIn-delay-4,
+  .hero-animate-fadeIn-delay-5,
+  .hero-animate-fadeIn-delay-6 {
+    animation-duration: 0.5s !important;
+  }
+
+  /* モバイルでは複雑なアニメーションを簡素化 */
+  .animate-subtlePulse {
+    animation: none !important;
   }
 }

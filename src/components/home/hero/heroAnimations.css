@@ -1,18 +1,18 @@
 @keyframes hero-float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-25px); }
+  0%, 100% { transform: translateY(0px) translateZ(0); }
+  50% { transform: translateY(-25px) translateZ(0); }
 }
 
 @keyframes hero-float-particle {
-  0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
-  25% { transform: translateY(-15px) translateX(8px); opacity: 0.6; }
-  50% { transform: translateY(-25px) translateX(-5px); opacity: 0.4; }
-  75% { transform: translateY(-10px) translateX(12px); opacity: 0.5; }
+  0%, 100% { transform: translateY(0px) translateX(0px) translateZ(0); opacity: 0.3; }
+  25% { transform: translateY(-15px) translateX(8px) translateZ(0); opacity: 0.6; }
+  50% { transform: translateY(-25px) translateX(-5px) translateZ(0); opacity: 0.4; }
+  75% { transform: translateY(-10px) translateX(12px) translateZ(0); opacity: 0.5; }
 }
 
 @keyframes hero-spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from { transform: rotate(0deg) translateZ(0); }
+  to { transform: rotate(360deg) translateZ(0); }
 }
 
 @keyframes hero-pulse-slow {
@@ -21,30 +21,40 @@
 }
 
 @keyframes hero-fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) translateZ(0); }
+  to { opacity: 1; transform: translateY(0) translateZ(0); }
 }
 
 .hero-animate-float {
   animation: hero-float 8s ease-in-out infinite;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .hero-animate-float-delayed {
   animation: hero-float 10s ease-in-out infinite;
   animation-delay: -4s;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .hero-animate-float-slow {
   animation: hero-float 12s ease-in-out infinite;
   animation-delay: -2s;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .hero-animate-float-particle {
   animation: hero-float-particle 5s ease-in-out infinite;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .hero-animate-spin-slow {
   animation: hero-spin-slow 30s linear infinite;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .hero-animate-pulse-slow {
@@ -53,5 +63,41 @@
 
 .hero-animate-fadeIn {
   animation: hero-fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-1 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-2 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.5s;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-3 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.7s;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-4 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.8s;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-5 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 0.9s;
+  opacity: 0;
+}
+
+.hero-animate-fadeIn-delay-6 {
+  animation: hero-fadeIn 0.8s ease-out forwards;
+  animation-delay: 1.1s;
   opacity: 0;
 }

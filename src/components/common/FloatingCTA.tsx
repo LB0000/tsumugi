@@ -3,6 +3,9 @@ import { Sparkles, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 
+// ヒーローCTAが見えなくなるまでのスクロール量（フォールバック用）
+const FALLBACK_SCROLL_THRESHOLD = 600;
+
 export function FloatingCTA() {
   const [visibilityByPath, setVisibilityByPath] = useState<Record<string, boolean>>({});
   const [dismissedPath, setDismissedPath] = useState<string | null>(null);
@@ -14,6 +17,8 @@ export function FloatingCTA() {
 
   useEffect(() => {
     if (!isHomePage || isDismissed) {
+      // パスが変わったら可視性をリセット
+      setVisibilityByPath((prev) => ({ ...prev, [pathname]: false }));
       return;
     }
 
@@ -33,10 +38,11 @@ export function FloatingCTA() {
     const heroCTA = document.getElementById('hero-cta');
     if (heroCTA) {
       observer.observe(heroCTA);
+      return () => observer.disconnect();
     } else {
       // フォールバック: スクロール量で判定
       const handleScroll = () => {
-        const nextVisible = window.scrollY > 600;
+        const nextVisible = window.scrollY > FALLBACK_SCROLL_THRESHOLD;
         setVisibilityByPath((prev) => (
           prev[pathname] === nextVisible
             ? prev
@@ -46,8 +52,6 @@ export function FloatingCTA() {
       window.addEventListener('scroll', handleScroll, { passive: true });
       return () => window.removeEventListener('scroll', handleScroll);
     }
-
-    return () => observer.disconnect();
   }, [isDismissed, isHomePage, pathname]);
 
   const handleClick = () => {

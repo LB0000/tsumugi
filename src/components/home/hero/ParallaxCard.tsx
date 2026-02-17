@@ -16,6 +16,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // モバイル検出
   useEffect(() => {
@@ -34,40 +35,69 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
   // エントリーアニメーション
   useEffect(() => {
+    setIsAnimating(true);
     const timer = setTimeout(() => {
       setIsVisible(true);
+      // アニメーション完了後に will-change をクリア
+      setTimeout(() => setIsAnimating(false), 1000);
     }, index * 300);
     return () => clearTimeout(timer);
   }, [index]);
 
   // Before/After 切り替え（CSS transition で描画）
   useEffect(() => {
+    // prefers-reduced-motion 対応
+    const prefersReducedMotion = typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
+    if (prefersReducedMotion) {
+      setShowAfter(true); // 常に After を表示
+      return;
+    }
+
+    // 全カードで同期した切り替え（indexに依存しない）
+    let interval: NodeJS.Timeout | null = null;
+
     const startTimer = setTimeout(() => {
       setShowAfter(true);
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setShowAfter(prev => !prev);
-      }, 3500);
-      return () => clearInterval(interval);
-    }, sample.revealDelay + 800);
-    return () => clearTimeout(startTimer);
-  }, [sample.revealDelay]);
+      }, 5000); // 5秒間隔に延長
+    }, 1500); // 初回表示を統一
+
+    return () => {
+      clearTimeout(startTimer);
+      if (interval) clearInterval(interval);
+    };
+  }, []);
 
   const sizeClasses = 'w-44 h-44 sm:w-[17rem] sm:h-[17rem] lg:w-[19rem] lg:h-[19rem]';
 
   const zIndex = sample.size === 'large' ? 'z-20' : 'z-10';
   const mobileTranslateX = index === 0 ? '-95%' : '-5%';
 
+  // Transform を構築する関数
+  const getTransform = () => {
+    const translateY = isVisible ? 'translateY(0)' : 'translateY(8px)';
+    const rotate = `rotate(${sample.rotation}deg)`;
+
+    if (isMobile) {
+      return `translateX(${mobileTranslateX}) ${rotate} ${translateY}`;
+    }
+    return `${rotate} ${translateY}`;
+  };
+
   return (
     <div
-      className={`absolute ${sizeClasses} ${zIndex} transition-all duration-1000 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      className={`absolute ${sizeClasses} ${zIndex} transition-opacity duration-1000 ease-out ${
+        isVisible ? 'opacity-100' : 'opacity-0'
       }`}
       style={{
         left: isMobile ? '50%' : sample.position.x,
         top: isMobile ? sample.mobilePosition.y : sample.position.y,
-        transform: isMobile
-          ? `translateX(${mobileTranslateX}) rotate(${sample.rotation}deg)`
-          : `rotate(${sample.rotation}deg)`,
+        transform: getTransform(),
+        willChange: isAnimating ? 'transform, opacity' : 'auto',
       }}
     >
       {/* メイン画像コンテナ */}
@@ -86,22 +116,25 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
           />
         )}
 
-        {/* After Image (水平ワイプ) */}
-        <div
-          className="absolute inset-0 transition-[clip-path] duration-[1.2s] ease-in-out"
-          style={{
-            clipPath: showAfter ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
-          }}
-        >
+        {/* After Image (水平ワイプ) - overflow で clip-path 効果を再現 */}
+        <div className="absolute inset-0 overflow-hidden">
           {hasAfterError ? (
-            <div className="w-full h-full">
+            <div
+              className="w-full h-full transition-transform duration-[1.2s] ease-in-out"
+              style={{
+                transform: showAfter ? 'translateX(0)' : 'translateX(100%)',
+              }}
+            >
               <ImagePlaceholder label="After" />
             </div>
           ) : (
             <img
               src={sample.afterImage}
               alt={`${sample.customerName} - ${sample.style}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-[1.2s] ease-in-out"
+              style={{
+                transform: showAfter ? 'translateX(0)' : 'translateX(100%)',
+              }}
               onError={() => handleImageError('after')}
             />
           )}

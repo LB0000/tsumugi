@@ -43,10 +43,25 @@ const StyleCardMini = memo(function StyleCardMini({ style, isSelected, onClick, 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showBounce, setShowBounce] = useState(false);
+  const [prefersReducedMotion] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
+
+  // Bounce アニメーションのクリーンアップ
+  useEffect(() => {
+    if (!showBounce) return;
+
+    const timer = setTimeout(() => {
+      setShowBounce(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [showBounce]);
 
   const handleClick = () => {
     setShowBounce(true);
-    setTimeout(() => setShowBounce(false), 400);
     onClick();
   };
 
@@ -64,7 +79,7 @@ const StyleCardMini = memo(function StyleCardMini({ style, isSelected, onClick, 
         ${isSelected ? 'glass-card-selected' : 'glass-card'}
         ${showBounce ? 'animate-selectBounce' : ''}
       `}
-      style={{ animationDelay: `${index * 50}ms` }}
+      style={{ animationDelay: prefersReducedMotion ? '0ms' : `${index * 50}ms` }}
     >
       {/* NEWバッジ */}
       {style.isNew && !isSelected && (
@@ -168,19 +183,11 @@ function StyleSectionBase() {
     el.scrollTo({ left: page * cardWidth * 3, behavior: 'smooth' });
   };
 
-  // ピークアニメーション（モバイル初回表示時）
+  // スクロール状態の初期化
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     updateScrollState();
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!prefersReducedMotion && el.scrollWidth > el.clientWidth) {
-      const timer = setTimeout(() => {
-        el.scrollTo({ left: 40, behavior: 'smooth' });
-        setTimeout(() => el.scrollTo({ left: 0, behavior: 'smooth' }), 600);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
   }, [updateScrollState]);
 
   const handleStyleClick = useCallback((style: ArtStyle) => {

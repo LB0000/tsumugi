@@ -19,9 +19,9 @@ export function BackgroundDecorations() {
         }}
       />
 
-      {/* 浮遊するぼかし円 */}
-      <div className="absolute top-16 left-[5%] w-80 h-80 rounded-full bg-secondary/8 blur-[100px] hero-animate-float" />
-      <div className="absolute bottom-16 right-[5%] w-[30rem] h-[30rem] rounded-full bg-primary/6 blur-[120px] hero-animate-float-delayed" />
+      {/* 浮遊するぼかし円 - モバイルでは軽量化 */}
+      <div className="absolute top-16 left-[5%] w-80 h-80 rounded-full bg-secondary/8 sm:blur-[100px] blur-[60px] hero-animate-float" />
+      <div className="hidden sm:block absolute bottom-16 right-[5%] w-[30rem] h-[30rem] rounded-full bg-primary/6 blur-[120px] hero-animate-float-delayed" />
       <div className="hidden sm:block absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-secondary/5 blur-[80px] hero-animate-float-slow" />
 
       {/* 装飾線 — デスクトップのみ */}

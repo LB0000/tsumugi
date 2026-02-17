@@ -36,7 +36,7 @@ function HeroBeforeAfterBase() {
             key={`headline-${displayCategory}`}
             className="order-1 lg:col-start-2 lg:row-start-1 text-center lg:text-left space-y-3 hero-animate-fadeIn"
           >
-            <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn-delay-1">
               <div className="w-10 h-px bg-gradient-to-r from-transparent to-secondary" />
               <span className="text-secondary text-xs sm:text-sm tracking-[0.3em] uppercase font-semibold">
                 Portrait Art
@@ -44,7 +44,7 @@ function HeroBeforeAfterBase() {
               <div className="w-10 h-px bg-gradient-to-l from-transparent to-secondary" />
             </div>
 
-            <h1 className="font-serif text-[1.6rem] sm:text-[2.8rem] lg:text-[3.4rem] font-bold text-foreground leading-[1.15] tracking-wide hero-animate-fadeIn" style={{ animationDelay: '0.5s' }}>
+            <h1 className="font-serif text-[1.6rem] sm:text-[2.8rem] lg:text-[3.4rem] font-bold text-foreground leading-[1.15] tracking-wide hero-animate-fadeIn-delay-2">
               <span className="block">{currentCategory?.headline.split('、')[0] || '1枚の写真が'}、</span>
               <span className="block mt-1 lg:mt-2 bg-gradient-to-r from-foreground via-foreground to-secondary bg-clip-text">
                 {currentCategory?.headline.split('、')[1] || '世界に一つのアートに'}
@@ -67,12 +67,12 @@ function HeroBeforeAfterBase() {
             key={`cta-${displayCategory}`}
             className="order-3 lg:col-start-2 lg:row-start-2 text-center lg:text-left space-y-3 sm:space-y-5 lg:space-y-8 hero-animate-fadeIn"
           >
-            <p className="text-muted text-sm sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 hero-animate-fadeIn" style={{ animationDelay: '0.7s' }}>
+            <p className="text-muted text-sm sm:text-lg lg:text-xl leading-relaxed max-w-md mx-auto lg:mx-0 hero-animate-fadeIn-delay-3">
               {currentCategory?.heroDescription}
             </p>
 
             {/* 無料プレビュー・登録不要バッジ */}
-            <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn" style={{ animationDelay: '0.8s' }}>
+            <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn-delay-4">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-accent-sage/15 text-accent-sage text-xs sm:text-sm font-medium rounded-full">
                 <span className="w-1.5 h-1.5 bg-accent-sage rounded-full" />
                 無料プレビュー
@@ -83,7 +83,7 @@ function HeroBeforeAfterBase() {
             </div>
 
             {/* CTA ボタン */}
-            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn" style={{ animationDelay: '0.9s' }}>
+            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-5">
               <button
                 onClick={scrollToUpload}
                 className="group relative px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
@@ -95,12 +95,12 @@ function HeroBeforeAfterBase() {
                 </span>
               </button>
               <span className="text-sm text-muted">
-                プレビューで仕上がりを確認できます · クレジットカード不要
+                無料プレビュー可能 · クレジットカード不要 · 30秒で完成
               </span>
             </div>
 
             {/* 信頼指標 */}
-            <div className="hero-animate-fadeIn pt-1" style={{ animationDelay: '1.1s' }}>
+            <div className="hero-animate-fadeIn-delay-6 pt-1">
               <div className="flex items-center justify-center lg:justify-start gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   {[...Array(5)].map((_, i) => (

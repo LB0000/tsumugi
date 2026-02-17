@@ -86,7 +86,7 @@ export function HomePage() {
             </h2>
           </div>
 
-          <div className="animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+          <div className="animate-fadeInUp stagger-2">
             <ImageUploader />
           </div>
         </div>
@@ -109,7 +109,7 @@ export function HomePage() {
             </h2>
           </div>
 
-          <div className="animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+          <div className="animate-fadeInUp stagger-4">
             <StyleSection />
           </div>
         </div>
@@ -132,7 +132,7 @@ export function HomePage() {
             </h2>
           </div>
 
-          <div className="animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+          <div className="animate-fadeInUp stagger-6">
             <GeneratePreview />
           </div>
         </div>
@@ -153,14 +153,14 @@ export function HomePage() {
           <div className="text-center mb-12">
             <p className="text-secondary text-sm tracking-[0.2em] uppercase mb-3">Gallery</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground ornament-line pb-4">
-              作品サンプル
+              あなたの写真も、こんな風に変わります
             </h2>
             <p className="text-muted text-sm sm:text-base mt-3">
-              写真がどう変わるか、スタイル別にご覧ください
+              スタイル別の仕上がりをご覧ください
             </p>
           </div>
 
-          <div className="animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+          <div className="animate-fadeInUp stagger-6">
             <SampleGallery />
           </div>
         </div>

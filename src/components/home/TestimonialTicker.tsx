@@ -203,6 +203,9 @@ function TestimonialTickerBase({ categoryFilter }: TestimonialTickerProps) {
   );
   const [showHint, setShowHint] = useState(true);
   const hasScrolledRef = useRef(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 640 : false
+  );
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -210,6 +213,19 @@ function TestimonialTickerBase({ categoryFilter }: TestimonialTickerProps) {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
+
+  // 画面サイズ変更を監視
+  useEffect(() => {
+    const handleResize = () => {
+      const newIsDesktop = window.innerWidth >= 640;
+      if (newIsDesktop !== isDesktop) {
+        setIsDesktop(newIsDesktop);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isDesktop]);
 
   const handleScroll = useCallback(() => {
     if (!hasScrolledRef.current) {
