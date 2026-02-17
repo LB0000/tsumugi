@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Sparkles, Type, Palette, MapPin, ChevronDown, ChevronUp, Eye, AlertCircle } from 'lucide-react';
+import { Sparkles, Type, Palette, MapPin, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
 import { PortraitPreview } from './PortraitPreview';
 import { FontPicker } from './FontPicker';
@@ -165,11 +165,6 @@ export function NameEngravingSection({
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               LIVE
             </div>
-
-            <h4 className="text-sm font-semibold text-[#18181B] flex items-center gap-2 mb-4" style={{ fontFamily: 'Poiret One, serif' }}>
-              <Eye className="h-4 w-4 text-[#EC4899]" />
-              リアルタイムプレビュー
-            </h4>
 
             <PortraitPreview
               baseImageUrl={baseImageUrl}

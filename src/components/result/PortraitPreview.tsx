@@ -62,13 +62,6 @@ export function PortraitPreview({
           </div>
         </div>
       )}
-
-      {/* 名前入力時のラベル */}
-      {portraitName && portraitName.trim() !== '' && !isProcessing && !error && (
-        <div className="absolute bottom-4 left-4 bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-sm">
-          名前入り: {portraitName}
-        </div>
-      )}
     </div>
   );
 }
