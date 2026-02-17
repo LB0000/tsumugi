@@ -15,13 +15,13 @@ const catalogItems: CatalogItem[] = [
   {
     id: 'acrylic-stand',
     name: 'アクリルスタンド',
-    price: 3900,
+    price: 4500,
     requiresShipping: true,
   },
   {
     id: 'canvas',
     name: 'キャンバスアート',
-    price: 4900,
+    price: 6900,
     requiresShipping: true,
   },
   {

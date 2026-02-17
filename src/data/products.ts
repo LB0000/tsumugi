@@ -18,14 +18,14 @@ export const products: Product[] = [
     {
         id: 'acrylic-stand',
         name: 'アクリルスタンド',
-        price: 3900,
+        price: 4500,
         description: 'デスクや棚に飾れる透明感のある仕上がり。一番人気の商品です。',
         type: 'physical'
     },
     {
         id: 'canvas',
         name: 'キャンバスアート',
-        price: 4900,
+        price: 6900,
         description: '本物のキャンバス地で美術館のような質感を。特別な一枚に。',
         type: 'physical'
     }
