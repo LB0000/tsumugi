@@ -99,11 +99,13 @@ export function generateLylyCSV(order: OrderPaymentStatus): string | null {
     const productTitle = PRODUCT_TITLE_MAP[item.productId];
 
     if (!productTitle) {
-      logger.warn('Product not mapped to LYLY template', {
+      // [M3] Log as error and return null to trigger failure in PDF generation
+      logger.error('Product not mapped to LYLY template', {
         orderId: order.orderId,
         productId: item.productId,
+        message: 'This product cannot be printed - LYLY template mapping not configured',
       });
-      continue; // Skip unmapped products
+      return null; // Fail CSV generation for unmapped products
     }
 
     if (!item.imageUrl) {
@@ -323,15 +325,33 @@ export async function generatePDFForOrder(
   const csvContent = generateLylyCSV(order);
 
   if (!csvContent) {
-    logger.info('No PDF generation needed for order', {
-      orderId: order.orderId,
-      reason: 'No physical products or missing images',
-    });
-    return {
-      success: false,
-      logs: [],
-      errors: ['No physical products requiring PDF generation'],
-    };
+    // [M3] Check if there are physical products in the order
+    const hasPhysicalProducts = order.items?.some(item => item.productId !== 'download');
+
+    if (hasPhysicalProducts) {
+      // Physical products exist but CSV generation failed
+      // This could be due to unmapped products or missing images
+      logger.error('CSV generation failed for order with physical products', {
+        orderId: order.orderId,
+        items: order.items?.map(i => i.productId),
+      });
+      return {
+        success: false,
+        logs: [],
+        errors: ['印刷データの生成に失敗しました。商品のLYLYテンプレートマッピングまたは画像が不足している可能性があります。'],
+      };
+    } else {
+      // No physical products (digital download only)
+      logger.info('No PDF generation needed for order', {
+        orderId: order.orderId,
+        reason: 'No physical products',
+      });
+      return {
+        success: false,
+        logs: [],
+        errors: ['No physical products requiring PDF generation'],
+      };
+    }
   }
 
   logger.info('Generating LYLY CSV for order', {

@@ -11,8 +11,10 @@ export interface CatalogProduct {
   name: string;
   price: number;
   description: string;
+  emotionalCopy?: string; // 感情フォーカスのサブヘッドライン
   type: 'digital' | 'physical' | 'addon';
   requiresShipping: boolean;
+  isPopular?: boolean; // 人気商品フラグ（社会的証明）
 }
 
 export const catalogProducts: CatalogProduct[] = [
@@ -21,6 +23,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: '高解像度画像データ',
     price: 2900,
     description: 'スマホの待ち受けやSNSアイコンに最適。メールでお届けします。',
+    emotionalCopy: '何度でも見返したくなる、あなただけの一枚',
     type: 'digital',
     requiresShipping: false,
   },
@@ -29,14 +32,17 @@ export const catalogProducts: CatalogProduct[] = [
     name: 'アクリルスタンド',
     price: 4500,
     description: 'デスクや棚に飾れる透明感のある仕上がり。一番人気の商品です。',
+    emotionalCopy: 'いつもそばに。毎日目が合う、特別な場所に',
     type: 'physical',
     requiresShipping: true,
+    isPopular: true,
   },
   {
     id: 'canvas',
     name: 'キャンバスアート',
     price: 6900,
     description: '本物のキャンバス地で美術館のような質感を。特別な一枚に。',
+    emotionalCopy: '家族の誇り。来客に自慢したくなる一生モノ',
     type: 'physical',
     requiresShipping: true,
   },
@@ -48,6 +54,7 @@ export const catalogCrossSellProducts: CatalogProduct[] = [
     name: '特製ポストカード（5枚組）',
     price: 1500,
     description: '大切な人への贈り物や、お部屋のアクセントに。',
+    emotionalCopy: '想いを届ける、5つの物語',
     type: 'addon',
     requiresShipping: true,
   },

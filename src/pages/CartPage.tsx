@@ -115,7 +115,14 @@ export function CartPage() {
                     >
                       <p className="font-semibold text-foreground text-sm">{product.name}</p>
                       <p className="text-primary font-bold text-sm mt-1">¥{product.price.toLocaleString()}</p>
-                      <p className="text-xs text-muted mt-1">{product.description}</p>
+                      <div className="space-y-1 mt-1">
+                        <p className="text-xs text-muted">{product.description}</p>
+                        {product.emotionalCopy && (
+                          <p className="text-xs font-medium text-primary/80 italic">
+                            {product.emotionalCopy}
+                          </p>
+                        )}
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -227,7 +234,9 @@ export function CartPage() {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-semibold text-foreground text-sm">アクリルスタンド</p>
-                            <p className="text-xs text-muted mt-1">デスクに飾って毎日目が合う</p>
+                            <p className="text-xs text-muted mt-1">
+                              {acrylicStandProduct.emotionalCopy || acrylicStandProduct.description}
+                            </p>
                           </div>
                           <div className="text-right">
                             {isWithin24Hours ? (
@@ -255,7 +264,9 @@ export function CartPage() {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <p className="font-semibold text-foreground text-sm">キャンバスアート</p>
-                            <p className="text-xs text-muted mt-1">リビングの主役になる一生モノ</p>
+                            <p className="text-xs text-muted mt-1">
+                              {canvasProduct.emotionalCopy || canvasProduct.description}
+                            </p>
                           </div>
                           <div className="text-right">
                             {isWithin24Hours ? (

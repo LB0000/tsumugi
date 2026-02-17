@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 import { StyledButton } from '../../components/common';
 import type { CartItem } from '../../types';
 
+type ProcessingStep = 'paying' | 'confirming';
+
+const PROCESSING_STEP_LABELS: Record<ProcessingStep, string> = {
+  paying: 'カード情報を検証中...',
+  confirming: '注文を確定中...',
+};
+
 interface Props {
   cartItems: CartItem[];
   subtotal: number;
@@ -11,6 +18,7 @@ interface Props {
   total: number;
   error: string | null;
   isProcessing: boolean;
+  processingStep?: ProcessingStep | null;
   cardAttached: boolean;
 }
 
@@ -22,6 +30,7 @@ export function OrderSummaryCard({
   total,
   error,
   isProcessing,
+  processingStep,
   cardAttached,
 }: Props) {
   return (
@@ -82,7 +91,7 @@ export function OrderSummaryCard({
         {isProcessing ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            処理中...
+            {(processingStep && PROCESSING_STEP_LABELS[processingStep]) ?? '処理中...'}
           </>
         ) : (
           `¥${total.toLocaleString()} を支払う`

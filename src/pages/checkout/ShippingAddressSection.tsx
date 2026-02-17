@@ -61,6 +61,7 @@ export function ShippingAddressSection({
           <input
             id="lastName"
             type="text"
+            autoComplete="family-name"
             value={form.lastName}
             onChange={(event) => onUpdateForm('lastName', event.target.value)}
             placeholder="山田"
@@ -77,6 +78,7 @@ export function ShippingAddressSection({
           <input
             id="firstName"
             type="text"
+            autoComplete="given-name"
             value={form.firstName}
             onChange={(event) => onUpdateForm('firstName', event.target.value)}
             placeholder="太郎"
@@ -93,6 +95,7 @@ export function ShippingAddressSection({
           <input
             id="email"
             type="email"
+            autoComplete="email"
             value={form.email}
             onChange={(event) => onUpdateForm('email', event.target.value)}
             placeholder="example@email.com"
@@ -109,6 +112,7 @@ export function ShippingAddressSection({
           <input
             id="phone"
             type="tel"
+            autoComplete="tel"
             value={form.phone}
             onChange={(event) => onUpdateForm('phone', event.target.value)}
             placeholder="090-1234-5678"
@@ -126,6 +130,7 @@ export function ShippingAddressSection({
             <input
               id="postalCode"
               type="text"
+              autoComplete="postal-code"
               value={form.postalCode}
               onChange={(event) => onUpdateForm('postalCode', event.target.value)}
               placeholder="100-0001"
@@ -148,6 +153,7 @@ export function ShippingAddressSection({
           <label htmlFor="prefecture" className="block text-sm font-medium text-foreground mb-1">都道府県</label>
           <select
             id="prefecture"
+            autoComplete="address-level1"
             value={form.prefecture}
             onChange={(event) => onUpdateForm('prefecture', event.target.value)}
             className={getFieldInputClass('prefecture')}
@@ -168,6 +174,7 @@ export function ShippingAddressSection({
           <input
             id="city"
             type="text"
+            autoComplete="address-level2"
             value={form.city}
             onChange={(event) => onUpdateForm('city', event.target.value)}
             placeholder="千代田区"
@@ -184,6 +191,7 @@ export function ShippingAddressSection({
           <input
             id="addressLine"
             type="text"
+            autoComplete="street-address"
             value={form.addressLine}
             onChange={(event) => onUpdateForm('addressLine', event.target.value)}
             placeholder="千代田1-1 〇〇ビル 101号室"

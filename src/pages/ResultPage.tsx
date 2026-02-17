@@ -403,9 +403,16 @@ export function ResultPage() {
                     `¥${product.price.toLocaleString()}`
                   )}
                 </p>
-                <p className="text-xs sm:text-sm text-muted">
-                  {product.description}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted">
+                    {product.description}
+                  </p>
+                  {product.emotionalCopy && (
+                    <p className="text-xs sm:text-sm font-medium text-primary/80 italic">
+                      {product.emotionalCopy}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {addedProductId === product.id ? (
@@ -452,7 +459,14 @@ export function ResultPage() {
                     `¥${postcard.price.toLocaleString()}`
                   )}
                 </p>
-                <p className="text-xs text-muted">{postcard.description}</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted">{postcard.description}</p>
+                  {postcard.emotionalCopy && (
+                    <p className="text-xs sm:text-sm font-medium text-primary/80 italic">
+                      {postcard.emotionalCopy}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {addedProductId === postcard.id ? (

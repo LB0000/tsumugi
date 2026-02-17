@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useReducer, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Check, CreditCard, Gift, Loader2, Truck } from 'lucide-react';
 import { Breadcrumb } from '../components/common';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
@@ -26,8 +26,11 @@ import { ShippingAddressSection } from './checkout/ShippingAddressSection';
 import { PaymentSection } from './checkout/PaymentSection';
 import { OrderSummaryCard } from './checkout/OrderSummaryCard';
 
+type ProcessingStep = 'paying' | 'confirming' | null;
+
 type CheckoutState = {
   isProcessing: boolean;
+  processingStep: ProcessingStep;
   error: string | null;
   cardAttached: boolean;
   isLoadingAddresses: boolean;
@@ -36,6 +39,7 @@ type CheckoutState = {
 type CheckoutAction =
   | { type: 'START_PROCESSING' }
   | { type: 'FINISH_PROCESSING' }
+  | { type: 'SET_PROCESSING_STEP'; payload: ProcessingStep }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'CARD_ATTACHED' }
   | { type: 'LOADING_ADDRESSES' }
@@ -44,11 +48,13 @@ type CheckoutAction =
 function checkoutReducer(state: CheckoutState, action: CheckoutAction): CheckoutState {
   switch (action.type) {
     case 'START_PROCESSING':
-      return { ...state, isProcessing: true, error: null };
+      return { ...state, isProcessing: true, processingStep: 'paying', error: null };
     case 'FINISH_PROCESSING':
-      return { ...state, isProcessing: false };
+      return { ...state, isProcessing: false, processingStep: null };
+    case 'SET_PROCESSING_STEP':
+      return { ...state, processingStep: action.payload };
     case 'SET_ERROR':
-      return { ...state, isProcessing: false, error: action.payload };
+      return { ...state, isProcessing: false, processingStep: null, error: action.payload };
     case 'CARD_ATTACHED':
       return { ...state, cardAttached: true };
     case 'LOADING_ADDRESSES':
@@ -68,6 +74,7 @@ export function CheckoutPage() {
 
   const [state, dispatch] = useReducer(checkoutReducer, {
     isProcessing: false,
+    processingStep: null,
     error: null,
     cardAttached: false,
     isLoadingAddresses: false,
@@ -75,6 +82,7 @@ export function CheckoutPage() {
   const checkoutAttemptIdRef = useRef<string | null>(null);
   const formTouchedRef = useRef(false);
   const cardInitRef = useRef(false);
+  const orderCompleteRef = useRef(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
   const { giftOptions, setGiftOptions, clearGiftOptions } = useAppStore();
@@ -104,6 +112,34 @@ export function CheckoutPage() {
   const [touchedFields, setTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
   const [recipientFieldErrors, setRecipientFieldErrors] = useState<ShippingFieldErrors>({});
   const [recipientTouchedFields, setRecipientTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
+  const [activeSection, setActiveSection] = useState<'gift' | 'shipping' | 'payment'>('gift');
+
+  // IntersectionObserver for stepper section tracking
+  useEffect(() => {
+    const sectionIds = ['gift', 'shipping', 'payment'] as const;
+    const observers: IntersectionObserver[] = [];
+
+    for (const id of sectionIds) {
+      const element = document.getElementById(id);
+      if (!element) continue;
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setActiveSection(id);
+          }
+        },
+        { rootMargin: '-20% 0px -60% 0px' },
+      );
+      observer.observe(element);
+      observers.push(observer);
+    }
+
+    return () => {
+      for (const observer of observers) {
+        observer.disconnect();
+      }
+    };
+  }, []);
 
   // Postal code auto-lookup for shipping address
   const postalLookup = usePostalCodeLookup(form.postalCode);
@@ -170,7 +206,7 @@ export function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && !orderCompleteRef.current) {
       navigate('/cart');
     }
   }, [cartItems.length, navigate]);
@@ -342,6 +378,7 @@ export function CheckoutPage() {
       const generatedAtNum = generatedAtRaw ? parseInt(generatedAtRaw, 10) : undefined;
       const validGeneratedAt = generatedAtNum && Number.isFinite(generatedAtNum) ? generatedAtNum : undefined;
 
+      dispatch({ type: 'SET_PROCESSING_STEP', payload: 'confirming' });
       const orderResponse = await createOrder({
         items: cartItems.map((item) => ({
           productId: item.productId,
@@ -371,6 +408,7 @@ export function CheckoutPage() {
         clientRequestId,
       });
 
+      orderCompleteRef.current = true;
       clearCart();
       clearGiftOptions();
       checkoutAttemptIdRef.current = null;
@@ -417,6 +455,47 @@ export function CheckoutPage() {
         />
       </div>
 
+      <nav aria-label="チェックアウト手順" className="max-w-5xl mx-auto px-4 pt-6 pb-2 sticky top-16 z-10 bg-background/95 backdrop-blur-sm">
+        <ol className="flex items-center justify-center gap-0">
+          {([
+            { id: 'gift', label: 'ギフト', icon: Gift },
+            { id: 'shipping', label: '配送先', icon: Truck },
+            { id: 'payment', label: 'お支払い', icon: CreditCard },
+          ] as const).map((step, index) => {
+            const sectionOrder = ['gift', 'shipping', 'payment'] as const;
+            const activeIndex = sectionOrder.indexOf(activeSection);
+            const stepIndex = sectionOrder.indexOf(step.id);
+            const isActive = step.id === activeSection;
+            const isCompleted = stepIndex < activeIndex;
+            const Icon = isCompleted ? Check : step.icon;
+
+            return (
+              <li key={step.id} className="flex items-center">
+                {index > 0 && (
+                  <div className={`w-8 sm:w-12 h-px mx-1 ${isCompleted || isActive ? 'bg-primary' : 'bg-border'}`} />
+                )}
+                <button
+                  type="button"
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-label={step.label}
+                  onClick={() => document.getElementById(step.id)?.scrollIntoView({ behavior: 'smooth' })}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                    isActive
+                      ? 'text-primary font-semibold bg-primary/10'
+                      : isCompleted
+                        ? 'text-primary'
+                        : 'text-muted'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{step.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="font-serif text-3xl font-semibold text-foreground mb-8">お支払い</h1>
 
@@ -435,6 +514,7 @@ export function CheckoutPage() {
                 </aside>
               )}
 
+              <div id="gift">
               <GiftOptionsSection
                 giftOptions={giftOptions}
                 setGiftOptions={setGiftOptions}
@@ -446,7 +526,9 @@ export function CheckoutPage() {
                 getRecipientFieldInputClass={getRecipientFieldInputClass}
                 getRecipientFieldError={getRecipientFieldError}
               />
+              </div>
 
+              <div id="shipping">
               <ShippingAddressSection
                 isLoadingAddresses={state.isLoadingAddresses}
                 savedAddresses={savedAddresses}
@@ -457,12 +539,15 @@ export function CheckoutPage() {
                 getFieldError={getFieldError}
                 isPostalLookupLoading={postalLookup.isLoading}
               />
+              </div>
 
+              <div id="payment">
               <PaymentSection
                 squareError={squareError}
                 isReady={isReady}
                 onRetry={retry}
               />
+              </div>
             </div>
 
             <div className="lg:col-span-1">
@@ -474,6 +559,7 @@ export function CheckoutPage() {
                 total={total}
                 error={state.error}
                 isProcessing={state.isProcessing}
+                processingStep={state.processingStep}
                 cardAttached={state.cardAttached}
               />
             </div>

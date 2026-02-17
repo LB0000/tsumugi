@@ -164,6 +164,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientLastName"
                       type="text"
+                      autoComplete="shipping family-name"
                       value={recipientForm.lastName}
                       onChange={(event) => updateRecipientForm('lastName', event.target.value)}
                       placeholder="山田"
@@ -180,6 +181,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientFirstName"
                       type="text"
+                      autoComplete="shipping given-name"
                       value={recipientForm.firstName}
                       onChange={(event) => updateRecipientForm('firstName', event.target.value)}
                       placeholder="太郎"
@@ -196,6 +198,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientEmail"
                       type="email"
+                      autoComplete="section-recipient email"
                       value={recipientForm.email}
                       onChange={(event) => updateRecipientForm('email', event.target.value)}
                       placeholder="example@email.com"
@@ -212,6 +215,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientPhone"
                       type="tel"
+                      autoComplete="section-recipient tel"
                       value={recipientForm.phone}
                       onChange={(event) => updateRecipientForm('phone', event.target.value)}
                       placeholder="090-1234-5678"
@@ -228,6 +232,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientPostalCode"
                       type="text"
+                      autoComplete="shipping postal-code"
                       value={recipientForm.postalCode}
                       onChange={(event) => updateRecipientForm('postalCode', event.target.value)}
                       placeholder="100-0001"
@@ -244,6 +249,7 @@ export function GiftOptionsSection({
                     <label htmlFor="recipientPrefecture" className="block text-sm font-medium text-foreground mb-1">都道府県</label>
                     <select
                       id="recipientPrefecture"
+                      autoComplete="shipping address-level1"
                       value={recipientForm.prefecture}
                       onChange={(event) => updateRecipientForm('prefecture', event.target.value)}
                       className={getRecipientFieldInputClass('prefecture')}
@@ -264,6 +270,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientCity"
                       type="text"
+                      autoComplete="shipping address-level2"
                       value={recipientForm.city}
                       onChange={(event) => updateRecipientForm('city', event.target.value)}
                       placeholder="千代田区"
@@ -280,6 +287,7 @@ export function GiftOptionsSection({
                     <input
                       id="recipientAddressLine"
                       type="text"
+                      autoComplete="shipping street-address"
                       value={recipientForm.addressLine}
                       onChange={(event) => updateRecipientForm('addressLine', event.target.value)}
                       placeholder="千代田1-1 〇〇ビル 101号室"
