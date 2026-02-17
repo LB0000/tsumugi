@@ -9,9 +9,9 @@ export const categories: Category[] = [
     uploadHint: 'ペットの顔がはっきり写った写真をアップロード',
     trustText: '10,000人以上のペットオーナーに選ばれています',
     sampleImages: [
-      '/images/hero/dog-before.jpg',
-      '/images/hero/cat-before.jpg',
-      '/images/styles/pet/pet-royalty.jpeg'
+      '/images/hero/dog-before.webp',
+      '/images/hero/cat-before.webp',
+      '/images/styles/pet/pet-royalty.webp'
     ],
   },
   {
@@ -22,9 +22,9 @@ export const categories: Category[] = [
     uploadHint: '人物やペットの写真を1枚以上アップロード',
     trustText: '1,000組以上のご家族に選ばれています',
     sampleImages: [
-      '/images/hero/family-before.jpeg',
-      '/images/hero/family2-before.jpeg',
-      '/images/hero/family-after.jpeg'
+      '/images/hero/family-before.webp',
+      '/images/hero/family2-before.webp',
+      '/images/hero/family-after.webp'
     ],
   },
   {
@@ -35,9 +35,9 @@ export const categories: Category[] = [
     uploadHint: 'お子様やペットの写真を1枚以上アップロード',
     trustText: '1,000人以上の保護者に選ばれています',
     sampleImages: [
-      '/images/hero/kids-before.jpeg',
-      '/images/hero/kids2-before.jpg',
-      '/images/hero/kids-after.jpeg'
+      '/images/hero/kids-before.webp',
+      '/images/hero/kids2-before.webp',
+      '/images/hero/kids-after.webp'
     ],
   }
 ];

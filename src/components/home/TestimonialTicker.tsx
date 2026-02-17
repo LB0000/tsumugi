@@ -32,8 +32,8 @@ const testimonials: Testimonial[] = [
     comment: '愛犬の肖像画、想像以上の出来栄えでした！額に入れて玄関に飾っていますが、来客の方にも好評です。',
     style: '古典名画',
     category: 'pets',
-    beforeImage: '/images/hero/dog-before.jpg',
-    afterImage: '/images/hero/dog-after.jpeg',
+    beforeImage: '/images/hero/dog-before.webp',
+    afterImage: '/images/hero/dog-after.webp',
   },
   {
     id: '2',
@@ -43,8 +43,8 @@ const testimonials: Testimonial[] = [
     comment: '家族写真をやわらか絵画で仕上げてもらいました。祖母の誕生日に贈ったら涙を流して喜んでくれました。',
     style: 'やわらか絵画',
     category: 'family',
-    beforeImage: '/images/hero/family-before.jpeg',
-    afterImage: '/images/hero/family-after.jpeg',
+    beforeImage: '/images/hero/family-before.webp',
+    afterImage: '/images/hero/family-after.webp',
   },
   {
     id: '3',
@@ -54,8 +54,8 @@ const testimonials: Testimonial[] = [
     comment: '猫の肖像画がとても可愛くて、友人にも勧めました。プレビューで仕上がりを確認できるのが安心でした。',
     style: 'アニメ',
     category: 'pets',
-    beforeImage: '/images/hero/cat-before.jpg',
-    afterImage: '/images/hero/cat-after.jpeg',
+    beforeImage: '/images/hero/cat-before.webp',
+    afterImage: '/images/hero/cat-after.webp',
   },
   {
     id: '4',
@@ -65,8 +65,8 @@ const testimonials: Testimonial[] = [
     comment: '子供の七五三写真を古典名画風に。成長の記念として一生の宝物になりました。リビングに飾るたびに温かい気持ちになります。',
     style: '古典名画',
     category: 'kids',
-    beforeImage: '/images/hero/kids-before.jpeg',
-    afterImage: '/images/hero/kids-after.jpeg',
+    beforeImage: '/images/hero/kids-before.webp',
+    afterImage: '/images/hero/kids-after.webp',
   },
   {
     id: '5',
@@ -76,8 +76,8 @@ const testimonials: Testimonial[] = [
     comment: '豪華油絵スタイルが本当に美術館の絵のよう。技術の高さに感動しました。部屋の雰囲気が一気に変わりました。',
     style: '豪華油絵',
     category: 'pets',
-    beforeImage: '/images/hero/dog-before.jpg',
-    afterImage: '/images/styles/pet/baroque.jpeg',
+    beforeImage: '/images/hero/dog-before.webp',
+    afterImage: '/images/styles/pet/baroque.webp',
   },
   {
     id: '6',
@@ -87,8 +87,8 @@ const testimonials: Testimonial[] = [
     comment: '結婚記念日のサプライズに。家族の肖像画をジブリ風で仕上げてもらいました。妻がとても喜んでくれて大満足です。',
     style: 'ジブリ風',
     category: 'family',
-    beforeImage: '/images/hero/family2-before.jpeg',
-    afterImage: '/images/hero/family2-after.jpeg',
+    beforeImage: '/images/hero/family2-before.webp',
+    afterImage: '/images/hero/family2-after.webp',
   },
   {
     id: '7',
@@ -98,8 +98,8 @@ const testimonials: Testimonial[] = [
     comment: '娘の七五三の写真を肖像画にしてもらいました。着物姿がまるで絵画のようで、実家の両親も大感激。家族の宝物です。',
     style: '古典名画',
     category: 'kids',
-    beforeImage: '/images/hero/kids-before.jpeg',
-    afterImage: '/images/hero/kids-after.jpeg',
+    beforeImage: '/images/hero/kids-before.webp',
+    afterImage: '/images/hero/kids-after.webp',
   },
   {
     id: '8',
@@ -109,8 +109,8 @@ const testimonials: Testimonial[] = [
     comment: '入学記念に息子の写真をアニメ風に。本人も「かっこいい！」と大喜び。毎日眺めています。',
     style: 'アニメ',
     category: 'kids',
-    beforeImage: '/images/hero/kids2-before.jpg',
-    afterImage: '/images/hero/kids-after.jpeg',
+    beforeImage: '/images/hero/kids2-before.webp',
+    afterImage: '/images/hero/kids-after.webp',
   },
   {
     id: '9',
@@ -120,8 +120,8 @@ const testimonials: Testimonial[] = [
     comment: '還暦祝いに両親の写真を豪華油絵風に。額装してプレゼントしたら、父が「美術館に飾れるレベルだ」と感動していました。',
     style: '豪華油絵',
     category: 'family',
-    beforeImage: '/images/hero/family-before.jpeg',
-    afterImage: '/images/hero/family-after.jpeg',
+    beforeImage: '/images/hero/family-before.webp',
+    afterImage: '/images/hero/family-after.webp',
   },
 ];
 

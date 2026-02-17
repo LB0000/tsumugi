@@ -15,8 +15,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
   pets: [
     {
       id: 'dog',
-      beforeImage: '/images/hero/dog-before.jpg',
-      afterImage: '/images/hero/dog-after.jpeg',
+      beforeImage: '/images/hero/dog-before.webp',
+      afterImage: '/images/hero/dog-after.webp',
       style: '浮世絵風',
       customerName: '田中様の愛犬',
       size: 'large',
@@ -27,8 +27,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
     },
     {
       id: 'cat',
-      beforeImage: '/images/hero/cat-before.jpg',
-      afterImage: '/images/hero/cat-after.jpeg',
+      beforeImage: '/images/hero/cat-before.webp',
+      afterImage: '/images/hero/cat-after.webp',
       style: 'アニメ・イラスト風',
       customerName: '佐藤様の猫',
       size: 'medium',
@@ -41,8 +41,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
   family: [
     {
       id: 'family1',
-      beforeImage: '/images/hero/family-before.jpeg',
-      afterImage: '/images/hero/family-after.jpeg',
+      beforeImage: '/images/hero/family-before.webp',
+      afterImage: '/images/hero/family-after.webp',
       style: '古典名画',
       customerName: '山田家の肖像',
       size: 'large',
@@ -53,8 +53,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
     },
     {
       id: 'family2',
-      beforeImage: '/images/hero/family2-before.jpeg',
-      afterImage: '/images/hero/family2-after.jpeg',
+      beforeImage: '/images/hero/family2-before.webp',
+      afterImage: '/images/hero/family2-after.webp',
       style: '豪華油絵',
       customerName: '鈴木家の思い出',
       size: 'medium',
@@ -67,8 +67,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
   kids: [
     {
       id: 'kid1',
-      beforeImage: '/images/hero/kids-before.jpeg',
-      afterImage: '/images/hero/kids-after.jpeg',
+      beforeImage: '/images/hero/kids-before.webp',
+      afterImage: '/images/hero/kids-after.webp',
       style: 'ロココ',
       customerName: 'ゆいちゃんの肖像',
       size: 'large',
@@ -79,8 +79,8 @@ export const categorySamples: Record<string, TransformationSample[]> = {
     },
     {
       id: 'kid2',
-      beforeImage: '/images/hero/kids2-before.jpg',
-      afterImage: '/images/hero/kids2-after.jpeg',
+      beforeImage: '/images/hero/kids2-before.webp',
+      afterImage: '/images/hero/kids2-after.webp',
       style: 'アニメ・イラスト風',
       customerName: 'けんたくんの冒険',
       size: 'medium',
