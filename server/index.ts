@@ -48,6 +48,13 @@ if (isProduction) {
 
   const missing = requiredVars.filter(([, val]) => !val).map(([name]) => name);
   if (missing.length > 0) {
+    // Console output for Railway logs (logger may not format objects correctly)
+    console.error('❌ Missing required environment variables:', missing);
+    console.error('📋 Environment variable status:');
+    requiredVars.forEach(([name, val]) => {
+      console.error(`  ${val ? '✓' : '✗'} ${name}`);
+    });
+
     logger.error('Missing required environment variables', { missing });
     process.exit(1);
   }
