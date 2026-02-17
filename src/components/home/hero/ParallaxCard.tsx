@@ -57,7 +57,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
     }
 
     // 全カードで同期した切り替え（indexに依存しない）
-    let interval: NodeJS.Timeout | null = null;
+    let interval: number | null = null;
 
     const startTimer = setTimeout(() => {
       setShowAfter(true);
