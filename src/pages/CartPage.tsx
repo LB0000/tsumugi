@@ -7,7 +7,7 @@ import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE, MAX_ITEM_QUANTITY } from '.
 import { products, type Product } from '../data/products';
 
 const featuredProducts = [
-  products.find((p) => p.isRecommended),
+  products.find((p) => p.id === 'acrylic-stand'),
   products.find((p) => p.id === 'canvas'),
 ].filter((p): p is Product => p !== undefined);
 

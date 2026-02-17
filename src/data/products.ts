@@ -4,7 +4,6 @@ export interface Product {
     price: number;
     description: string;
     type: 'digital' | 'physical' | 'addon';
-    isRecommended?: boolean;
     image?: string; // 将来的に商品画像のパスを入れる
 }
 
@@ -21,21 +20,13 @@ export const products: Product[] = [
         name: 'アクリルスタンド',
         price: 3900,
         description: 'デスクや棚に飾れる透明感のある仕上がり。一番人気の商品です。',
-        type: 'physical',
-        isRecommended: true
+        type: 'physical'
     },
     {
         id: 'canvas',
         name: 'キャンバスアート',
         price: 4900,
         description: '本物のキャンバス地で美術館のような質感を。特別な一枚に。',
-        type: 'physical'
-    },
-    {
-        id: 'phone-case',
-        name: 'オリジナルスマホケース',
-        price: 3500,
-        description: 'いつも一緒。耐久性のあるハードケース。iPhone/Android対応。',
         type: 'physical'
     }
 ];

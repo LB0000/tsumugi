@@ -25,12 +25,6 @@ const catalogItems: CatalogItem[] = [
     requiresShipping: true,
   },
   {
-    id: 'phone-case',
-    name: 'オリジナルスマホケース',
-    price: 3500,
-    requiresShipping: true,
-  },
-  {
     id: 'postcard',
     name: '特製ポストカード（5枚組）',
     price: 1500,

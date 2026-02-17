@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, ArrowLeft, Palette, AlertTriangle, Share2, Loader2 } from 'lucide-react';
+import { Check, ArrowRight, Palette, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
 import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
 import { ShareButtons } from '../components/common/ShareButtons';
+import { TrustBadges } from '../components/common/TrustBadges';
 import { trackEvent, trackMetaAddToCart } from '../lib/analytics';
 import { updateMetaTags } from '../lib/seo';
 
@@ -21,11 +22,9 @@ export function ResultPage() {
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
   const [showFab, setShowFab] = useState(false);
-  const [fabExpanded, setFabExpanded] = useState(false);
 
   const handleScroll = useCallback(() => {
     setShowFab(window.scrollY > 200);
-    if (window.scrollY <= 200) setFabExpanded(false);
   }, []);
 
   useEffect(() => {
@@ -132,7 +131,6 @@ export function ResultPage() {
     sessionStorage.removeItem(SESSION_KEY);
     setGeneratedImage(null);
     navigate('/');
-    // スタイルセクションへスクロール（遷移後に実行）
     setTimeout(() => {
       document.getElementById('style-section')?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -144,40 +142,41 @@ export function ResultPage() {
     navigate('/');
   };
 
+  const cheapestProduct = products[0];
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Hero: Before/After */}
-      <div className="bg-primary/5 pt-8 pb-16 px-4">
+      <div className="bg-primary/5 pt-6 pb-12 px-4">
         <div className="max-w-5xl mx-auto">
-          {/* Navigation */}
-          <div className="text-center mb-6">
+          {/* Navigation - right-aligned */}
+          <div className="flex justify-end mb-4">
             <button
               onClick={handleBackToHome}
-              className="inline-flex items-center text-sm text-muted hover:text-foreground transition-colors"
+              className="text-sm text-muted hover:text-foreground transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 mr-1" />
               トップに戻る
             </button>
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-2">
-              傑作が完成しました
+          <div className="text-center mb-6">
+            <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-semibold text-foreground mb-2">
+              あなただけの傑作です
             </h1>
-            <p className="text-muted">
+            <p className="text-muted text-sm sm:text-base">
               {selectedStyle.name} スタイルで変換しました
             </p>
           </div>
 
-          {/* Before / After comparison */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 max-w-4xl mx-auto items-center">
+          {/* Before / After comparison - always side by side */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 md:gap-10 max-w-4xl mx-auto items-center">
             {/* Before */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-muted/40" />
-                <p className="text-sm font-medium text-muted tracking-wide">Before</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-muted/40" />
+                <p className="text-xs sm:text-sm font-medium text-muted tracking-wide">Before</p>
               </div>
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg">
+              <div className="aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden bg-card border-2 border-border/50 shadow-lg animate-morphIn">
                 {beforeImage ? (
                   <img
                     src={beforeImage}
@@ -192,18 +191,13 @@ export function ResultPage() {
               </div>
             </div>
 
-            {/* Arrow connector (desktop only) */}
-            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-              {/* Rendered via the gap between grid items */}
-            </div>
-
             {/* After */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-                <p className="text-sm font-medium text-primary tracking-wide">After</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-primary" />
+                <p className="text-xs sm:text-sm font-medium text-primary tracking-wide">After</p>
               </div>
-              <div className="aspect-[4/5] rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative">
+              <div className="aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden bg-card border-2 border-primary/30 shadow-xl shadow-primary/10 relative animate-morphIn" style={{ animationDelay: '0.2s' }}>
                 <img
                   src={generatedImage}
                   alt="生成された肖像画"
@@ -211,20 +205,13 @@ export function ResultPage() {
                 />
                 {/* Watermark */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
-                    <p className="text-foreground/30 text-xl font-serif tracking-wider">
+                  <div className="px-4 py-2 sm:px-6 sm:py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
+                    <p className="text-foreground/30 text-base sm:text-xl font-serif tracking-wider">
                       PREVIEW
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Mobile arrow between images */}
-          <div className="flex md:hidden justify-center -mt-3 -mb-3 relative z-10">
-            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <ArrowRight className="w-4 h-4 text-primary rotate-90" />
             </div>
           </div>
 
@@ -237,101 +224,48 @@ export function ResultPage() {
               </p>
             </div>
           )}
-
-          {/* Retry with different style */}
-          <div className="flex justify-center mt-8">
-            <button
-              onClick={handleRetryWithNewStyle}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-full transition-colors"
-            >
-              <Palette className="w-4 h-4" />
-              別のスタイルで試す
-            </button>
-          </div>
-
-          {/* Share section */}
-          <div className="mt-10 text-center">
-            <h2 className="font-serif text-lg font-semibold text-foreground mb-4">
-              この作品をシェアする
-            </h2>
-            <ShareButtons
-              url={window.location.href}
-              title={`「${selectedStyle.name}」スタイルで肖像画を作りました！ #TSUMUGI #AI肖像画`}
-              className="justify-center"
-            />
-          </div>
         </div>
       </div>
 
-      {/* Product options */}
-      <div className="max-w-6xl mx-auto px-4 -mt-4">
-        <div className="text-center mb-8 pt-8">
+      {/* Product section */}
+      <div className="max-w-6xl mx-auto px-4 pt-8">
+        {/* Urgency notice */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-full text-xs sm:text-sm text-amber-800">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            プレビュー画像は保存されません。商品購入で高解像度版をお届けします。
+          </div>
+        </div>
+
+        <div className="text-center mb-8">
           <p className="text-muted text-sm">
             この美しい肖像画を、どのアイテムで残しますか？
           </p>
         </div>
 
-        {postcard && (
-          <label className="max-w-2xl mx-auto mb-8 p-4 bg-card rounded-2xl border border-border flex items-start gap-3 cursor-pointer">
-            <div
-              className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
-                includePostcard ? 'bg-primary border-primary text-white' : 'border-muted bg-background'
-              }`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={includePostcard}
-                onChange={(e) => setIncludePostcard(e.target.checked)}
-              />
-              {includePostcard && <Check className="w-3.5 h-3.5" />}
-            </div>
-            <div>
-              <span className="block text-sm font-semibold text-foreground">
-                ポストカードセットを追加 (+¥{postcard.price.toLocaleString()})
-              </span>
-              <span className="block text-xs text-muted mt-1">
-                特製ポストカード5枚組を同時にカートへ追加します
-              </span>
-            </div>
-          </label>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Product grid - 3 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           {products.map((product) => (
             <article
               key={product.id}
-              className={`bg-card rounded-2xl p-6 shadow-lg border-2 transition-all duration-300 relative overflow-hidden ${
-                product.isRecommended ? 'border-primary ring-4 ring-primary/10' : 'border-border hover:border-primary/50'
-              }`}
+              className="bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300"
             >
-              {product.isRecommended && (
-                <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                  一番人気
-                </div>
-              )}
-
-              <div className="mb-6 min-h-[116px]">
-                <h3 className="font-serif text-xl font-semibold text-foreground mb-2">
+              <div className="mb-5 sm:mb-6">
+                <h3 className="font-serif text-lg sm:text-xl font-semibold text-foreground mb-2">
                   {product.name}
                 </h3>
-                <p className="text-2xl font-bold text-primary mb-2">
+                <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
                   ¥{product.price.toLocaleString()}
                 </p>
-                <p className="text-sm text-muted">
+                <p className="text-xs sm:text-sm text-muted">
                   {product.description}
                 </p>
-                {product.isRecommended && (
-                  <p className="text-xs text-primary font-medium mt-1">
-                    デスクに飾れる、もらって嬉しいギフトNo.1
-                  </p>
-                )}
               </div>
 
               <StyledButton
                 onClick={() => handleAddToCart(product)}
                 className="w-full"
-                variant={product.isRecommended ? 'primary' : 'outline'}
+                variant="outline"
               >
                 カートに追加
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -339,26 +273,96 @@ export function ResultPage() {
             </article>
           ))}
         </div>
+
+        {/* Postcard cross-sell */}
+        {postcard && (
+          <div className="mt-8">
+            <p className="text-center text-sm text-muted mb-4">一緒にいかがですか？</p>
+            <label className="max-w-2xl mx-auto p-4 bg-card rounded-2xl border border-border flex items-start gap-3 cursor-pointer">
+              <div
+                className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                  includePostcard ? 'bg-primary border-primary text-white' : 'border-muted bg-background'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={includePostcard}
+                  onChange={(e) => setIncludePostcard(e.target.checked)}
+                />
+                {includePostcard && <Check className="w-3.5 h-3.5" />}
+              </div>
+              <div>
+                <span className="block text-sm font-semibold text-foreground">
+                  ポストカードセットを追加 (+¥{postcard.price.toLocaleString()})
+                </span>
+                <span className="block text-xs text-muted mt-1">
+                  特製ポストカード5枚組を同時にカートへ追加します
+                </span>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {/* Trust badges */}
+        <div className="mt-8">
+          <TrustBadges variant="horizontal" />
+        </div>
+
+        {/* Share section - downgraded */}
+        <div className="mt-10 text-center">
+          <p className="text-sm text-muted mb-3">この作品をシェアする</p>
+          <ShareButtons
+            url={window.location.href}
+            title={`「${selectedStyle.name}」スタイルで肖像画を作りました！ #TSUMUGI #AI肖像画`}
+            className="justify-center"
+          />
+        </div>
+
+        {/* Retry with different style - ghost text */}
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleRetryWithNewStyle}
+            className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+          >
+            <Palette className="w-4 h-4" />
+            別のスタイルで試す
+          </button>
+        </div>
+
+        {/* Back to home - bottom */}
+        <div className="flex justify-center mt-4 mb-8">
+          <button
+            onClick={handleBackToHome}
+            className="text-sm text-muted hover:text-foreground transition-colors"
+          >
+            トップに戻る
+          </button>
+        </div>
       </div>
 
-      {/* Floating share FAB */}
+      {/* Mobile fixed purchase CTA bar */}
       {showFab && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
-          {fabExpanded && (
-            <div className="bg-card rounded-2xl shadow-xl border border-border p-3 animate-fade-in">
-              <ShareButtons
-                url={window.location.href}
-                title={`「${selectedStyle.name}」スタイルで肖像画を作りました！ #TSUMUGI #AI肖像画`}
+        <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
+          <div className="bg-background/95 backdrop-blur-md border-t border-border px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-center gap-3">
+              <img
+                src={generatedImage}
+                alt=""
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
               />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground truncate">{cheapestProduct.name}</p>
+                <p className="text-xs text-primary font-bold">¥{cheapestProduct.price.toLocaleString()}</p>
+              </div>
+              <StyledButton
+                size="sm"
+                onClick={() => handleAddToCart(cheapestProduct)}
+              >
+                カートに追加
+              </StyledButton>
             </div>
-          )}
-          <button
-            onClick={() => setFabExpanded((prev) => !prev)}
-            aria-label="シェアメニューを開く"
-            className="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center transition-transform duration-200 hover:scale-110"
-          >
-            <Share2 className="w-6 h-6" />
-          </button>
+          </div>
         </div>
       )}
     </div>
