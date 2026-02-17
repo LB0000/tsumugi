@@ -12,9 +12,15 @@ Thumbs.db
 .codex/
 .venv-skill/
 .tmp-skill-deps/
+.agent/
+.agents/
+.cursor/
+.kiro/
+.windsurf/
 
 # Temporary files
 tmp-*.md
+dist_tmp_copycheck/
 
 # Logs
 logs
