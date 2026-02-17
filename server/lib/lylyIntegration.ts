@@ -1,6 +1,7 @@
 import { config } from '../config.js';
 import { logger } from './logger.js';
 import type { OrderPaymentStatus } from './checkoutTypes.js';
+import { LYLY_PRODUCT_TITLE_MAP } from './catalog.js';
 
 /**
  * LYLY PDF Generation System Integration
@@ -17,16 +18,6 @@ const DEFAULT_MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1000;  // Exponential backoff: 2s, 4s, 8s
 const API_TIMEOUT_MS = 120_000;    // 120 seconds timeout for LYLY API
 
-// TSUMUGI productId → LYLY Product Title mapping
-// NOTE: Using existing LYLY templates temporarily until TSUMUGI templates are created
-const PRODUCT_TITLE_MAP: Record<string, string> = {
-  'acrylic-stand': 'TSUMUGI アクリルスタンド',
-  'canvas': 'TSUMUGI キャンバスアート',
-  'phone-case': 'TSUMUGI スマホケース',
-  'postcard': 'TSUMUGI ポストカード',
-  // 'download': excluded (no PDF needed for digital download)
-};
-
 /**
  * [C1] Escapes CSV field value to prevent CSV injection
  *
@@ -37,6 +28,78 @@ function escapeCSVField(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return `"${value}"`;
+}
+
+/**
+ * [L4] Validates URL to prevent SSRF attacks
+ *
+ * Blocks:
+ * - localhost and loopback addresses (127.0.0.0/8, ::1)
+ * - Private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+ * - Link-local addresses (169.254.0.0/16, fe80::/10)
+ *
+ * @param url - URL to validate
+ * @returns true if URL is safe, false otherwise
+ */
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+
+    // Only allow HTTP/HTTPS
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block localhost variants
+    if (hostname === 'localhost' || hostname === '0.0.0.0') {
+      return false;
+    }
+
+    // Block IPv6 loopback
+    if (hostname === '[::1]' || hostname === '::1') {
+      return false;
+    }
+
+    // Check if hostname is an IPv4 address
+    const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4Match) {
+      const octets = ipv4Match.slice(1, 5).map(Number);
+
+      // Validate octets are in valid range
+      if (octets.some((octet) => octet < 0 || octet > 255)) {
+        return false;
+      }
+
+      const [a, b, c] = octets;
+
+      // Block loopback (127.0.0.0/8)
+      if (a === 127) {
+        return false;
+      }
+
+      // Block private networks
+      if (a === 10) {
+        return false; // 10.0.0.0/8
+      }
+      if (a === 172 && b >= 16 && b <= 31) {
+        return false; // 172.16.0.0/12
+      }
+      if (a === 192 && b === 168) {
+        return false; // 192.168.0.0/16
+      }
+
+      // Block link-local (169.254.0.0/16)
+      if (a === 169 && b === 254) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false; // Invalid URL
+  }
 }
 
 /**
@@ -96,7 +159,7 @@ export function generateLylyCSV(order: OrderPaymentStatus): string | null {
   const rows: LylyCSVRow[] = [];
 
   for (const item of physicalItems) {
-    const productTitle = PRODUCT_TITLE_MAP[item.productId];
+    const productTitle = LYLY_PRODUCT_TITLE_MAP[item.productId];
 
     if (!productTitle) {
       // [M3] Log as error and return null to trigger failure in PDF generation
@@ -250,6 +313,19 @@ export async function callLylyAPI(
     }
 
     const pdfUrl = `${config.LYLY_API_URL}/${pdfPath}`;
+
+    // [L4] Validate PDF URL to prevent SSRF
+    if (!isSafeUrl(pdfUrl)) {
+      logger.error('LYLY returned unsafe PDF URL', {
+        orderId,
+        pdfUrl,
+      });
+      return {
+        success: false,
+        logs: completeEvent.logs || [],
+        errors: ['Invalid PDF URL returned by LYLY (SSRF protection)'],
+      };
+    }
 
     logger.info('LYLY PDF generated successfully', {
       orderId,

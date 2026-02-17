@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ArtStyle, UploadState, StyleFilterState, StyleCategoryId } from '../types';
+import type { TextOverlaySettings } from '../types/textOverlay';
+import { DEFAULT_TEXT_OVERLAY_SETTINGS } from '../types/textOverlay';
 import { artStyles } from '../data/artStyles';
 
 const initialStyleFilterState: StyleFilterState = {
@@ -41,6 +43,12 @@ interface AppState {
   portraitName: string;
   setPortraitName: (name: string) => void;
   clearPortraitName: () => void;
+
+  // Text Overlay Settings (名入れカスタマイズ)
+  textOverlaySettings: TextOverlaySettings;
+  setTextOverlaySettings: (settings: TextOverlaySettings) => void;
+  updateTextOverlaySettings: (partial: Partial<TextOverlaySettings>) => void;
+  resetTextOverlaySettings: () => void;
 
   // Sidebar
   isSidebarOpen: boolean;
@@ -103,7 +111,8 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     uploadState: initialUploadState,
     generatedImage: null,
     gallerySaved: null,
-    portraitName: '',  // Clear portrait name on reset
+    portraitName: '',
+    textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS,
     currentStep: 'upload'
   }),
 
@@ -117,6 +126,14 @@ export const useAppStore = create<AppState>()(persist((set) => ({
   portraitName: '',
   setPortraitName: (name) => set({ portraitName: name }),
   clearPortraitName: () => set({ portraitName: '' }),
+
+  // Text Overlay Settings (名入れカスタマイズ)
+  textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS,
+  setTextOverlaySettings: (settings) => set({ textOverlaySettings: settings }),
+  updateTextOverlaySettings: (partial) => set((state) => ({
+    textOverlaySettings: { ...state.textOverlaySettings, ...partial },
+  })),
+  resetTextOverlaySettings: () => set({ textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS }),
 
   // Sidebar
   isSidebarOpen: false,
@@ -160,5 +177,6 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     selectedStyle: state.selectedStyle,
     gallerySaved: state.gallerySaved,
     portraitName: state.portraitName,
+    textOverlaySettings: state.textOverlaySettings,
   } as AppState),
 }));

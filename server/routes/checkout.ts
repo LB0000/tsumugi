@@ -457,26 +457,60 @@ checkoutRouter.post('/create-order', async (req, res) => {
         let imageUrl: string | undefined = undefined;
 
         // Upload image if provided
+        // [M1] Retry strategy (max 3 attempts, exponential backoff)
         if (sourceItem.imageData && order.id) {
-          try {
-            const uploadResult = await uploadImageToStorage(sourceItem.imageData, order.id);
-            if (uploadResult.success) {
-              imageUrl = uploadResult.publicUrl;
-              logger.info('Image uploaded to Supabase Storage', {
-                orderId: order.id,
-                imageUrl: uploadResult.publicUrl,
-                size: uploadResult.size,
-              });
-            } else {
-              logger.error('Image upload failed', {
-                orderId: order.id,
-                error: uploadResult.error,
-              });
+          let uploadResult;
+          let lastError: string | undefined;
+
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              uploadResult = await uploadImageToStorage(sourceItem.imageData, order.id);
+
+              if (uploadResult.success) {
+                imageUrl = uploadResult.publicUrl;
+                logger.info('Image uploaded to Supabase Storage', {
+                  orderId: order.id,
+                  imageUrl: uploadResult.publicUrl,
+                  size: uploadResult.size,
+                  attempt,
+                });
+                break; // Success, exit retry loop
+              } else {
+                lastError = uploadResult.error;
+
+                if (attempt < 3) {
+                  const delayMs = Math.pow(2, attempt) * 1000; // 2s, 4s
+                  logger.warn('Image upload failed, retrying', {
+                    orderId: order.id,
+                    attempt,
+                    delayMs,
+                    error: uploadResult.error,
+                  });
+                  await new Promise((resolve) => setTimeout(resolve, delayMs));
+                }
+              }
+            } catch (error) {
+              lastError = error instanceof Error ? error.message : String(error);
+
+              if (attempt < 3) {
+                const delayMs = Math.pow(2, attempt) * 1000;
+                logger.warn('Image upload exception, retrying', {
+                  orderId: order.id,
+                  attempt,
+                  delayMs,
+                  error: lastError,
+                });
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+              }
             }
-          } catch (error) {
-            logger.error('Image upload exception', {
+          }
+
+          // Final error logging if all retries failed
+          if (!imageUrl) {
+            logger.error('Image upload failed after all retries', {
               orderId: order.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: lastError,
+              attempts: 3,
             });
           }
         }
@@ -495,6 +529,30 @@ checkoutRouter.post('/create-order', async (req, res) => {
         };
       })
     );
+
+    // [Phase 10] Log business metrics: name engraving usage and product mix
+    const itemsWithNames = normalizedItemsWithImages.filter((item) => item.options?.portraitName);
+    if (itemsWithNames.length > 0) {
+      logger.info('Name engraving feature used in order', {
+        orderId: order.id,
+        itemsWithNames: itemsWithNames.length,
+        totalItems: normalizedItemsWithImages.length,
+        usageRate: `${Math.round((itemsWithNames.length / normalizedItemsWithImages.length) * 100)}%`,
+      });
+    }
+
+    // [Phase 10] Log product mix for analytics
+    const productCounts = normalizedItemsWithImages.reduce((acc, item) => {
+      acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+      return acc;
+    }, {} as Record<string, number>);
+
+    logger.info('Order product mix', {
+      orderId: order.id,
+      totalAmount,
+      productCounts,
+      uniqueProducts: Object.keys(productCounts).length,
+    });
 
     // Link order to user if logged in
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);

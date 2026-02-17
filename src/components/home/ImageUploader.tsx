@@ -1,5 +1,5 @@
 import { useCallback, useRef, useMemo, useState } from 'react';
-import { Upload, FileImage, HardDrive, Info, ImageIcon } from 'lucide-react';
+import { Upload, FileImage, HardDrive, Info, ImageIcon, Camera } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
@@ -9,6 +9,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function ImageUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const {
     selectedCategory,
     uploadState,
@@ -190,6 +191,19 @@ export function ImageUploader() {
           className="hidden"
           aria-hidden="true"
         />
+        <label htmlFor="camera-upload" className="sr-only">
+          カメラで写真を撮影
+        </label>
+        <input
+          id="camera-upload"
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+          aria-hidden="true"
+        />
 
         {uploadState.status === 'complete' && uploadState.previewUrl ? (
           <div className="relative w-full h-full min-h-[280px] p-6 animate-fadeIn">
@@ -230,9 +244,27 @@ export function ImageUploader() {
             <div className="text-center">
               <p className="text-lg font-semibold text-foreground mb-2">写真をアップロード</p>
               <p className="text-sm text-muted mb-3">{currentCategory?.uploadHint}</p>
-              <p className="text-xs text-muted/70">
+              <p className="text-xs text-muted/70 hidden sm:block">
                 クリックまたはドラッグ&ドロップ
               </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:hidden w-full px-4" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="w-full py-3 rounded-lg bg-primary text-white font-medium flex items-center justify-center gap-2 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              >
+                <Camera className="w-5 h-5" />
+                カメラで撮影
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-3 rounded-lg border border-primary text-primary font-medium flex items-center justify-center gap-2 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              >
+                <ImageIcon className="w-5 h-5" />
+                ライブラリから選ぶ
+              </button>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted bg-card/50 rounded-lg px-4 py-2 border border-border/30">
               <div className="flex items-center gap-1.5">

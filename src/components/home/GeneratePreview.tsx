@@ -110,6 +110,17 @@ export function GeneratePreview() {
     };
   }, []);
 
+  // タブを閉じる/リロード時の警告
+  useEffect(() => {
+    if (!isGenerating) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isGenerating]);
+
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle || !uploadState.rawFile) return;
 

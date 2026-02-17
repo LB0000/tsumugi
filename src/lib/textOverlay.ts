@@ -1,4 +1,5 @@
 import { getPortraitFont, type PortraitFontConfig } from '../data/portraitFonts';
+import type { TextPosition } from '../types/textOverlay';
 
 export interface TextOverlayOptions {
   /** 表示するテキスト（名前） */
@@ -9,6 +10,56 @@ export interface TextOverlayOptions {
   imageWidth: number;
   /** 画像の高さ（px） */
   imageHeight: number;
+  /** カスタムフォント（指定時はスタイル推奨を上書き） */
+  customFont?: {
+    fontFamily: string;
+    fontWeight: string | number;
+  };
+  /** カスタム装飾（指定時はスタイル推奨を上書き） */
+  customDecoration?: {
+    color: string;
+    shadow?: PortraitFontConfig['shadow'];
+    stroke?: PortraitFontConfig['stroke'];
+    glow?: PortraitFontConfig['glow'];
+  };
+  /** テキスト位置 */
+  position?: TextPosition;
+}
+
+interface PositionResult {
+  x: number;
+  y: number;
+  textAlign: CanvasTextAlign;
+}
+
+/**
+ * テキスト位置プリセットに基づいて描画座標を計算
+ */
+function calculatePosition(
+  position: TextPosition,
+  canvasWidth: number,
+  canvasHeight: number,
+  fontSize: number
+): PositionResult {
+  const padding = canvasHeight * 0.05;
+  const halfFont = fontSize / 2;
+  const sidePadding = canvasWidth * 0.05;
+
+  switch (position) {
+    case 'bottom-left':
+      return { x: sidePadding, y: canvasHeight - padding - halfFont, textAlign: 'left' };
+    case 'bottom-right':
+      return { x: canvasWidth - sidePadding, y: canvasHeight - padding - halfFont, textAlign: 'right' };
+    case 'top-center':
+      return { x: canvasWidth / 2, y: padding + halfFont, textAlign: 'center' };
+    case 'top-left':
+      return { x: sidePadding, y: padding + halfFont, textAlign: 'left' };
+    case 'top-right':
+      return { x: canvasWidth - sidePadding, y: padding + halfFont, textAlign: 'right' };
+    case 'bottom-center':
+    default:
+      return { x: canvasWidth / 2, y: canvasHeight - padding - halfFont, textAlign: 'center' };
+  }
 }
 
 /**
@@ -29,7 +80,6 @@ export async function applyTextOverlay(
   }
 
   return new Promise((resolve, reject) => {
-    // Canvas要素を作成
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
@@ -38,26 +88,21 @@ export async function applyTextOverlay(
       return;
     }
 
-    // 画像をロード
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
     img.onload = () => {
       try {
-        // Canvasサイズを画像サイズに設定
         canvas.width = img.width;
         canvas.height = img.height;
-
-        // ベース画像を描画
         ctx.drawImage(img, 0, 0);
 
-        // フォント設定を取得
-        const fontConfig = getPortraitFont(styleId);
+        // フォント設定を解決（カスタム > スタイル推奨）
+        const styleFontConfig = getPortraitFont(styleId);
+        const resolvedConfig = resolveConfig(styleFontConfig, options);
 
-        // テキストをレンダリング
-        renderText(ctx, text, fontConfig, canvas.width, canvas.height);
+        renderText(ctx, text, resolvedConfig, canvas.width, canvas.height, options.position ?? 'bottom-center');
 
-        // 新しい画像data URLを生成
         const newDataUrl = canvas.toDataURL('image/jpeg', 0.95);
         resolve(newDataUrl);
       } catch (error) {
@@ -74,6 +119,25 @@ export async function applyTextOverlay(
 }
 
 /**
+ * カスタム設定とスタイル推奨設定をマージ
+ */
+function resolveConfig(
+  styleConfig: PortraitFontConfig,
+  options: TextOverlayOptions
+): PortraitFontConfig {
+  const { customFont, customDecoration } = options;
+
+  return {
+    fontFamily: customFont?.fontFamily ?? styleConfig.fontFamily,
+    fontWeight: customFont?.fontWeight ?? styleConfig.fontWeight,
+    color: customDecoration?.color ?? styleConfig.color,
+    shadow: customDecoration ? customDecoration.shadow : styleConfig.shadow,
+    stroke: customDecoration ? customDecoration.stroke : styleConfig.stroke,
+    glow: customDecoration ? customDecoration.glow : styleConfig.glow,
+  };
+}
+
+/**
  * Canvasにテキストをレンダリング
  */
 function renderText(
@@ -81,24 +145,22 @@ function renderText(
   text: string,
   fontConfig: PortraitFontConfig,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  position: TextPosition
 ): void {
-  // レスポンシブなフォントサイズを計算
   const baseFontSize = calculateFontSize(canvasWidth, canvasHeight, text.length);
 
-  // フォントを設定
   const fontWeight = typeof fontConfig.fontWeight === 'number'
     ? fontConfig.fontWeight
     : fontConfig.fontWeight;
   ctx.font = `${fontWeight} ${baseFontSize}px "${fontConfig.fontFamily}", sans-serif`;
-  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // テキスト描画位置（画像下部中央、5%パディング）
-  const x = canvasWidth / 2;
-  const y = canvasHeight - (canvasHeight * 0.05) - baseFontSize / 2;
+  // 位置プリセットに基づいて座標・テキスト揃えを設定
+  const { x, y, textAlign } = calculatePosition(position, canvasWidth, canvasHeight, baseFontSize);
+  ctx.textAlign = textAlign;
 
-  // グロー効果（あれば）
+  // グロー効果
   if (fontConfig.glow) {
     ctx.save();
     ctx.shadowBlur = fontConfig.glow.blur;
@@ -108,7 +170,7 @@ function renderText(
     ctx.restore();
   }
 
-  // 影（あれば）
+  // 影
   if (fontConfig.shadow) {
     ctx.save();
     ctx.shadowBlur = fontConfig.shadow.blur;
@@ -120,7 +182,7 @@ function renderText(
     ctx.restore();
   }
 
-  // 縁取り（あれば）
+  // 縁取り
   if (fontConfig.stroke) {
     ctx.strokeStyle = fontConfig.stroke.color;
     ctx.lineWidth = fontConfig.stroke.width;
@@ -134,16 +196,10 @@ function renderText(
 
 /**
  * 画像サイズと文字数に応じてフォントサイズを計算
- * @param width Canvas幅
- * @param height Canvas高さ
- * @param textLength テキストの長さ
- * @returns フォントサイズ（px）
  */
 function calculateFontSize(width: number, _height: number, textLength: number): number {
-  // ベースサイズ：画像幅の5%
   const baseSize = width * 0.05;
 
-  // 文字数に応じて調整（長いテキストは小さく）
   let adjustedSize = baseSize;
   if (textLength > 15) {
     adjustedSize = baseSize * 0.7;
@@ -153,21 +209,17 @@ function calculateFontSize(width: number, _height: number, textLength: number): 
     adjustedSize = baseSize * 0.9;
   }
 
-  // 最小値: 10px、最大値: 100px
   return Math.max(10, Math.min(100, adjustedSize));
 }
 
 /**
  * フォントが読み込まれるまで待機
- * @param fontFamily フォント名
- * @param timeout タイムアウト（ms）
  */
 export async function waitForFontLoad(
   fontFamily: string,
   timeout: number = 3000
 ): Promise<boolean> {
   if (!('fonts' in document)) {
-    // Font Loading API未対応の場合は待機せずに続行
     return true;
   }
 
@@ -181,14 +233,12 @@ export async function waitForFontLoad(
     return true;
   } catch (error) {
     console.warn(`Failed to load font "${fontFamily}":`, error);
-    // フォント読み込み失敗でもシステムフォントフォールバックで続行
     return false;
   }
 }
 
 /**
  * 複数フォントの読み込みを待機
- * @param fontFamilies フォント名の配列
  */
 export async function waitForFontsLoad(fontFamilies: string[]): Promise<void> {
   await Promise.all(fontFamilies.map(font => waitForFontLoad(font)));

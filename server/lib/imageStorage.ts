@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { logger } from './logger.js';
 
 /**
  * Supabase Storage API client for portrait image uploads
@@ -10,6 +11,7 @@ import { config } from '../config.js';
 const STORAGE_BUCKET = 'portraits';
 const MAX_IMAGE_SIZE_MB = 5;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 30_000; // [L2] 30 seconds timeout for image uploads
 
 // Allowed MIME types (whitelist)
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -137,6 +139,10 @@ export async function uploadImageToStorage(
   // Upload to Supabase Storage
   const uploadUrl = `${config.SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`;
 
+  // [L2] Setup timeout for upload request
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
   try {
     const response = await fetch(uploadUrl, {
       method: 'POST',
@@ -145,7 +151,10 @@ export async function uploadImageToStorage(
         'Content-Type': mimeType,
       },
       body: blob,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -165,6 +174,7 @@ export async function uploadImageToStorage(
       size: blob.size,
     };
   } catch (error) {
+    clearTimeout(timeoutId);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown upload error',
@@ -180,13 +190,13 @@ export async function uploadImageToStorage(
  */
 export async function deleteImageFromStorage(path: string): Promise<boolean> {
   if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Supabase configuration missing');
+    logger.error('Supabase configuration missing for image deletion');
     return false;
   }
 
   // [HIGH] Prevent path traversal attacks
   if (path.includes('..') || !path.startsWith('orders/')) {
-    console.error('Invalid image path for deletion:', path);
+    logger.error('Invalid image path for deletion', { path });
     return false;
   }
 
@@ -202,7 +212,10 @@ export async function deleteImageFromStorage(path: string): Promise<boolean> {
 
     return response.ok;
   } catch (error) {
-    console.error('Failed to delete image:', error);
+    logger.error('Failed to delete image from storage', {
+      path,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }

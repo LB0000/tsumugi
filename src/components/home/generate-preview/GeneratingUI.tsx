@@ -109,6 +109,10 @@ export function GeneratingUI({
         ))}
       </div>
 
+      <p className="text-xs text-muted text-center px-4" role="status">
+        画像を生成しています。このページを閉じないでください。
+      </p>
+
       {/* キャンセルボタン */}
       <button
         onClick={onCancel}
