@@ -1,4 +1,5 @@
 import { Check, X, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { PricingPlan } from '../../types';
 import { StyledButton } from '../common/StyledButton';
 
@@ -7,6 +8,7 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ plan }: PricingCardProps) {
+  const navigate = useNavigate();
   const isPopular = plan.badge === 'popular';
   const isBestValue = plan.badge === 'best-value';
 
@@ -147,6 +149,7 @@ export function PricingCard({ plan }: PricingCardProps) {
         <StyledButton
           variant={isPopular ? 'primary' : plan.badge ? 'outline' : 'outline'}
           className={`w-full ${isPopular ? 'shadow-lg shadow-primary/20' : ''}`}
+          onClick={() => navigate('/')}
         >
           {isPopular ? 'このプランで始める' : `${plan.name}を選ぶ`}
         </StyledButton>

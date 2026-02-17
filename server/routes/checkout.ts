@@ -2,8 +2,8 @@ import { createHash } from 'crypto';
 import { Router } from 'express';
 import type { Request } from 'express';
 import { SquareError, WebhooksHelper } from 'square';
-import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, catalogById } from '../lib/catalog.js';
-import { isValidEmail } from '../lib/validation.js';
+import { SHIPPING_FLAT_FEE, SHIPPING_FREE_THRESHOLD, DISCOUNT_RATE, DISCOUNT_WINDOW_MS, catalogById } from '../lib/catalog.js';
+import { isValidEmail, validatePortraitName } from '../lib/validation.js';
 import { validate } from '../lib/schemas.js';
 import { z } from 'zod';
 import { logger } from '../lib/logger.js';
@@ -32,6 +32,7 @@ import { validateCoupon, applyDiscount, useCoupon } from '../lib/coupon.js';
 import { extractSessionTokenFromHeaders, parseCookies, type HeaderMap } from '../lib/requestAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
+import { uploadImageToStorage } from '../lib/imageStorage.js';
 
 export const checkoutRouter = Router();
 checkoutRouter.use(csrfProtection({ skipPaths: ['/webhook'] }));
@@ -68,6 +69,9 @@ function handleSquareOrServerError(
 interface CartItemPayload {
   productId: string;
   quantity: number;
+  price?: number;  // 24時間割引対応（クライアント側の価格）
+  imageData?: string;  // Base64 image data for upload to Supabase Storage
+  options?: Record<string, unknown>;  // Product options (e.g., portraitName)
 }
 
 export interface ShippingAddressPayload {
@@ -243,6 +247,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
         throw new Error('UNKNOWN_PRODUCT');
       }
 
+      // サーバーカタログ価格を使用（クライアント送信価格は無視）
       subtotal += catalogItem.price * quantity;
       requiresShipping = requiresShipping || catalogItem.requiresShipping;
 
@@ -415,6 +420,52 @@ checkoutRouter.post('/create-order', async (req, res) => {
       throw new Error('Order creation failed: no order returned');
     }
 
+    // Upload images to Supabase Storage and add imageUrl + options to normalized items
+    const normalizedItemsWithImages = await Promise.all(
+      normalizedItems.map(async (item, index) => {
+        const sourceItem = items[index];
+        let imageUrl: string | undefined = undefined;
+
+        // Upload image if provided
+        if (sourceItem.imageData && order.id) {
+          try {
+            const uploadResult = await uploadImageToStorage(sourceItem.imageData, order.id);
+            if (uploadResult.success) {
+              imageUrl = uploadResult.publicUrl;
+              logger.info('Image uploaded to Supabase Storage', {
+                orderId: order.id,
+                imageUrl: uploadResult.publicUrl,
+                size: uploadResult.size,
+              });
+            } else {
+              logger.error('Image upload failed', {
+                orderId: order.id,
+                error: uploadResult.error,
+              });
+            }
+          } catch (error) {
+            logger.error('Image upload exception', {
+              orderId: order.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+
+        // [M7] Validate and sanitize options (prevent XSS attacks)
+        const validatedOptions = sourceItem.options ? {
+          portraitName: typeof sourceItem.options.portraitName === 'string'
+            ? validatePortraitName(sourceItem.options.portraitName) || undefined
+            : undefined,
+        } : undefined;
+
+        return {
+          ...item,
+          imageUrl,
+          options: validatedOptions,
+        };
+      })
+    );
+
     // Link order to user if logged in
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
@@ -437,7 +488,7 @@ checkoutRouter.post('/create-order', async (req, res) => {
         userId: sessionUser?.id,
         totalAmount,
         createdAt: new Date().toISOString(),
-        items: normalizedItems,
+        items: normalizedItemsWithImages,
         shippingAddress: normalizedAddress ?? undefined,
         couponCode: appliedCoupon?.code,
         giftInfo,

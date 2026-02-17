@@ -1,6 +1,8 @@
 import { Shield, RefreshCw, Clock, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { pricingPlans, printSizes } from '../data/pricingPlans';
+import { products } from '../data/products';
 import { PricingCard } from '../components/pricing';
 
 function FAQItem({ q, a }: { q: string; a: string }) {
@@ -91,13 +93,13 @@ export function PricingPage() {
           <div className="p-4 mb-8 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
             <span className="text-2xl flex-shrink-0" aria-hidden="true">💡</span>
             <p className="text-sm text-foreground">
-              <span className="font-semibold">迷ったら「スターターパック」がおすすめ。</span>
-              透かしなしで10回生成でき、一番人気のプランです。
+              <span className="font-semibold">68%のお客様が「スタンダードパック」を選択。</span>
+              透かしなし・6スタイル・10回生成で、初めての方に最適です。
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 items-start">
-            {pricingPlans.map((plan) => (
+            {[pricingPlans[2], pricingPlans[1], pricingPlans[0]].map((plan) => (
               <PricingCard key={plan.id} plan={plan} />
             ))}
           </div>
@@ -124,29 +126,23 @@ export function PricingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            <div className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">🐾</span>
-                <h3 className="font-serif font-semibold text-foreground">ペット肖像画</h3>
-              </div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-2xl font-bold text-foreground">¥2,900</span>
-                <span className="text-xs text-muted">（税込）</span>
-              </div>
-              <p className="text-xs text-muted">ペット1匹 · 高解像度ダウンロード</p>
-            </div>
-            <div className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">👨‍👩‍👧‍👦</span>
-                <h3 className="font-serif font-semibold text-foreground">ファミリー肖像画</h3>
-              </div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-2xl font-bold text-foreground">¥4,900</span>
-                <span className="text-xs text-muted">（税込）</span>
-              </div>
-              <p className="text-xs text-muted">複数の人物＆ペット · 高解像度ダウンロード</p>
-            </div>
+          <div className={`grid grid-cols-1 ${products.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-6 max-w-3xl mx-auto`}>
+            {products.map((product) => (
+              <Link
+                key={product.id}
+                to="/"
+                className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all duration-300"
+              >
+                <h3 className="font-serif font-semibold text-foreground mb-3">
+                  {product.name}
+                </h3>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-2xl font-bold text-foreground">¥{product.price.toLocaleString()}</span>
+                  <span className="text-xs text-muted">（税込）</span>
+                </div>
+                <p className="text-xs text-muted">{product.description}</p>
+              </Link>
+            ))}
           </div>
 
           {/* Upsell nudge */}
