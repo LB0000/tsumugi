@@ -56,15 +56,11 @@ export function Footer() {
           {/* Company Info - 2カラム分 */}
           <div className="lg:col-span-2">
             <Link to="/" className="inline-block mb-4 sm:mb-6">
-              <div className="flex flex-col">
-                <h2 className="font-serif text-3xl sm:text-5xl md:text-7xl font-bold tracking-wider text-foreground/10 mb-3 sm:mb-6">
-                  紡
-                </h2>
-                <p className="text-foreground/20 text-xs sm:text-sm tracking-[0.5em] mb-4 sm:mb-8 font-serif">TSUMUGI</p>
-                <span className="text-[10px] text-secondary tracking-[0.3em] uppercase mt-1">
-                  TSUMUGI
-                </span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="TSUMUGI"
+                className="h-16 sm:h-24 w-auto brightness-0 invert opacity-20"
+              />
             </Link>
             <p className="text-xs sm:text-sm text-background/70 mb-4 sm:mb-6 leading-relaxed max-w-sm">
               AIの技術と日本の美意識を融合し、大切な方の写真を格調高い肖像画に変換いたします。唯一無二の贈り物をお届けする、それが私たちの使命です。
