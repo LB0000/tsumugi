@@ -151,6 +151,7 @@ function getOrCreateAnonId(req: Request, res: Response): string {
 
 generateRouter.post('/', upload.single('image'), async (req: Request, res: Response) => {
   let userId = '';
+  let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
   try {
     const styleId = typeof req.body.styleId === 'string' ? req.body.styleId : '';
     const category = typeof req.body.category === 'string' ? req.body.category : '';
@@ -297,6 +298,31 @@ CRITICAL REQUIREMENTS:
 
     logger.info('Generating image with Gemini 3 Pro Image', { styleId, category, requestId: req.requestId });
 
+    // --- Keep-alive streaming response ---
+    // Gemini API calls take 30-90+ seconds. Without data flowing, browsers and
+    // intermediate proxies (Railway Edge, corporate firewalls) drop idle TCP
+    // connections, causing "Failed to fetch" on the client.
+    //
+    // Solution: Start a chunked response and send periodic space characters.
+    // JSON.parse ignores leading whitespace, so the client's response.json()
+    // still works correctly. Status code is always 200 since headers are sent
+    // before Gemini completes — the client checks `data.success` instead.
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable proxy buffering
+    res.setHeader('Cache-Control', 'no-cache');
+    res.flushHeaders();
+
+    keepAliveTimer = setInterval(() => {
+      if (!res.writableEnded) res.write(' ');
+    }, 15_000);
+
+    // Helper to end the keep-alive response with JSON
+    const endWithJson = (body: object) => {
+      if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+      if (!res.writableEnded) res.end(JSON.stringify(body));
+    };
+
+    try {
     // Generate image using Gemini 3 Pro Image with retry for 503 errors
     const result = await generateWithRetry(() =>
       model.generateContent([
@@ -453,44 +479,59 @@ CRITICAL REQUIREMENTS:
       }
     }
 
-    res.json(apiResponse);
-  } catch (error) {
-    logger.error('Error generating image', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
+    endWithJson(apiResponse);
 
-    if (allowMockGeneration) {
-      try {
-        const { styleId } = req.body;
-        const mockProjectId = `proj_mock_fallback_${Date.now()}`;
+    } catch (geminiError) {
+      // Handle Gemini-specific errors within the keep-alive block
+      logger.error('Error generating image (streaming)', {
+        error: geminiError instanceof Error ? geminiError.message : String(geminiError),
+        requestId: req.requestId,
+      });
 
-        // Consume credit even in error-fallback mock mode
-        let totalRemaining = 0;
+      if (allowMockGeneration) {
         try {
-          consumeCredit(userId, mockProjectId);
-          const balance = getUserCredits(userId);
-          totalRemaining = balance
-            ? balance.freeRemaining + balance.paidRemaining
-            : 0;
-        } catch (creditError) {
-          logger.warn('Error-fallback mock: credit consumption failed', {
-            userId: userId,
-            error: creditError instanceof Error ? creditError.message : String(creditError),
-          });
+          const mockProjectId = `proj_mock_fallback_${Date.now()}`;
+          let totalRemaining = 0;
+          try {
+            consumeCredit(userId, mockProjectId);
+            const balance = getUserCredits(userId);
+            totalRemaining = balance
+              ? balance.freeRemaining + balance.paidRemaining
+              : 0;
+          } catch (creditError) {
+            logger.warn('Error-fallback mock: credit consumption failed', {
+              userId: userId,
+              error: creditError instanceof Error ? creditError.message : String(creditError),
+            });
+          }
+          const mockResponse = await generateMockResponse(styleId || 'baroque');
+          mockResponse.creditsRemaining = totalRemaining;
+          endWithJson(mockResponse);
+          return;
+        } catch {
+          // Continue to standard error response
         }
-
-        const mockResponse = await generateMockResponse(styleId || 'baroque');
-        mockResponse.creditsRemaining = totalRemaining;
-        res.json(mockResponse);
-        return;
-      } catch {
-        // Continue to standard error response
       }
+
+      endWithJson({
+        success: false,
+        error: { code: 'GENERATION_UPSTREAM_FAILED', message: '画像の生成に失敗しました' },
+      });
     }
 
-    res.status(502).json({
-      success: false,
-      error: { code: 'GENERATION_UPSTREAM_FAILED', message: '画像の生成に失敗しました' }
-    });
+  } catch (error) {
+    // Pre-Gemini errors (validation passed but headers not yet flushed is impossible here,
+    // so this only fires for truly unexpected errors before the streaming block)
+    logger.error('Error generating image', { error: error instanceof Error ? error.message : String(error), requestId: req.requestId });
+
+    if (!res.headersSent) {
+      res.status(502).json({
+        success: false,
+        error: { code: 'GENERATION_UPSTREAM_FAILED', message: '画像の生成に失敗しました' }
+      });
+    }
   } finally {
+    if (keepAliveTimer) clearInterval(keepAliveTimer);
     // Always remove user from in-flight set (userId may be '' if validation failed early)
     if (userId) inFlightUsers.delete(userId);
   }
