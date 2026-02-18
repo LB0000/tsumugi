@@ -2,16 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
-import { useCartStore } from '../stores/cartStore';
 import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
 import { ShareButtons } from '../components/common/ShareButtons';
 import { TrustBadges } from '../components/common/TrustBadges';
-import { trackEvent, trackMetaAddToCart } from '../lib/analytics';
 import { updateMetaTags } from '../lib/seo';
 import { NameEngravingSection } from '../components/result/NameEngravingSection';
 import { useTextOverlay } from '../hooks/useTextOverlay';
 import { useDiscountTimer } from '../hooks/useDiscountTimer';
+import { useAddToCart } from '../hooks/useAddToCart';
 import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
@@ -21,8 +20,6 @@ const SESSION_KEY = 'tsumugi-result';
 export function ResultPage() {
   const navigate = useNavigate();
   const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName, textOverlaySettings, setTextOverlaySettings } = useAppStore();
-  const { addToCart } = useCartStore();
-  const [addedProductId, setAddedProductId] = useState<string | null>(null);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
   const [showFab, setShowFab] = useState(false);
@@ -37,6 +34,16 @@ export function ResultPage() {
     imageWidth: 1024,
     imageHeight: 1024,
     overlaySettings: textOverlaySettings,
+  });
+
+  // Cart management
+  const { addedProductId, addProductToCart } = useAddToCart({
+    styleId: selectedStyle?.id || '',
+    styleName: selectedStyle?.name || '',
+    overlayedImageUrl,
+    portraitName,
+    textOverlaySettings,
+    isWithin24Hours,
   });
 
   const handleScroll = useCallback(() => {
@@ -109,39 +116,6 @@ export function ResultPage() {
       </div>
     );
   }
-
-  // 共通のカート追加ロジック
-  const addProductToCart = useCallback((product: ProductOption) => {
-    if (addedProductId || !selectedStyle) return;
-
-    const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
-    const discount = isWithin24Hours ? product.price * DISCOUNT_RATE : 0;
-
-    trackEvent('add_to_cart', {
-      productId: product.id,
-      price: finalPrice,
-      discount,
-    });
-    trackMetaAddToCart({
-      content_ids: [product.id],
-      content_type: 'product',
-      value: finalPrice,
-      currency: 'JPY',
-    });
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      artStyleId: selectedStyle.id,
-      artStyleName: selectedStyle.name,
-      imageUrl: overlayedImageUrl,
-      quantity: 1,
-      price: finalPrice,
-      options: portraitName ? { portraitName, textOverlaySettings } : undefined,
-    });
-
-    setAddedProductId(product.id);
-    setTimeout(() => navigate('/cart'), 800);
-  }, [addedProductId, selectedStyle, isWithin24Hours, overlayedImageUrl, portraitName, textOverlaySettings, addToCart, navigate]);
 
   const handleAddToCart = (product: ProductOption) => {
     addProductToCart(product);
