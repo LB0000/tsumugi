@@ -91,7 +91,7 @@ export async function applyTextOverlay(
     const img = new Image();
     img.crossOrigin = 'anonymous';
 
-    img.onload = () => {
+    img.onload = async () => {
       try {
         canvas.width = img.width;
         canvas.height = img.height;
@@ -101,7 +101,7 @@ export async function applyTextOverlay(
         const styleFontConfig = getPortraitFont(styleId);
         const resolvedConfig = resolveConfig(styleFontConfig, options);
 
-        renderText(ctx, text, resolvedConfig, canvas.width, canvas.height, options.position ?? 'bottom-center');
+        await renderText(ctx, text, resolvedConfig, canvas.width, canvas.height, options.position ?? 'bottom-center');
 
         const newDataUrl = canvas.toDataURL('image/jpeg', 0.95);
         resolve(newDataUrl);
@@ -138,7 +138,7 @@ function resolveConfig(
 }
 
 /**
- * Canvasにテキストをレンダリング
+ * Canvasにテキストをレンダリング（requestIdleCallback で最適化）
  */
 function renderText(
   ctx: CanvasRenderingContext2D,
@@ -147,49 +147,62 @@ function renderText(
   canvasWidth: number,
   canvasHeight: number,
   position: TextPosition
-): void {
-  const baseFontSize = calculateFontSize(canvasWidth, canvasHeight, text.length);
+): Promise<void> {
+  return new Promise((resolve) => {
+    const render = () => {
+      const baseFontSize = calculateFontSize(canvasWidth, canvasHeight, text.length);
 
-  const fontWeight = fontConfig.fontWeight;
-  ctx.font = `${fontWeight} ${baseFontSize}px "${fontConfig.fontFamily}", sans-serif`;
-  ctx.textBaseline = 'middle';
+      const fontWeight = fontConfig.fontWeight;
+      ctx.font = `${fontWeight} ${baseFontSize}px "${fontConfig.fontFamily}", sans-serif`;
+      ctx.textBaseline = 'middle';
 
-  // 位置プリセットに基づいて座標・テキスト揃えを設定
-  const { x, y, textAlign } = calculatePosition(position, canvasWidth, canvasHeight, baseFontSize);
-  ctx.textAlign = textAlign;
+      // 位置プリセットに基づいて座標・テキスト揃えを設定
+      const { x, y, textAlign } = calculatePosition(position, canvasWidth, canvasHeight, baseFontSize);
+      ctx.textAlign = textAlign;
 
-  // グロー効果
-  if (fontConfig.glow) {
-    ctx.save();
-    ctx.shadowBlur = fontConfig.glow.blur;
-    ctx.shadowColor = fontConfig.glow.color;
-    ctx.fillStyle = fontConfig.glow.color;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  }
+      // グロー効果
+      if (fontConfig.glow) {
+        ctx.save();
+        ctx.shadowBlur = fontConfig.glow.blur;
+        ctx.shadowColor = fontConfig.glow.color;
+        ctx.fillStyle = fontConfig.glow.color;
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      }
 
-  // 影
-  if (fontConfig.shadow) {
-    ctx.save();
-    ctx.shadowBlur = fontConfig.shadow.blur;
-    ctx.shadowOffsetX = fontConfig.shadow.offsetX;
-    ctx.shadowOffsetY = fontConfig.shadow.offsetY;
-    ctx.shadowColor = fontConfig.shadow.color;
-    ctx.fillStyle = fontConfig.color;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  }
+      // 影
+      if (fontConfig.shadow) {
+        ctx.save();
+        ctx.shadowBlur = fontConfig.shadow.blur;
+        ctx.shadowOffsetX = fontConfig.shadow.offsetX;
+        ctx.shadowOffsetY = fontConfig.shadow.offsetY;
+        ctx.shadowColor = fontConfig.shadow.color;
+        ctx.fillStyle = fontConfig.color;
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      }
 
-  // 縁取り
-  if (fontConfig.stroke) {
-    ctx.strokeStyle = fontConfig.stroke.color;
-    ctx.lineWidth = fontConfig.stroke.width;
-    ctx.strokeText(text, x, y);
-  }
+      // 縁取り
+      if (fontConfig.stroke) {
+        ctx.strokeStyle = fontConfig.stroke.color;
+        ctx.lineWidth = fontConfig.stroke.width;
+        ctx.strokeText(text, x, y);
+      }
 
-  // メインテキスト
-  ctx.fillStyle = fontConfig.color;
-  ctx.fillText(text, x, y);
+      // メインテキスト
+      ctx.fillStyle = fontConfig.color;
+      ctx.fillText(text, x, y);
+
+      resolve();
+    };
+
+    // requestIdleCallback でアイドル時に実行（フォールバック: setTimeout）
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(render, { timeout: 100 });
+    } else {
+      setTimeout(render, 0);
+    }
+  });
 }
 
 /**

@@ -1,7 +1,51 @@
+import { useState, useEffect } from 'react';
+
 export function FloatingParticles() {
+  const [particleCount, setParticleCount] = useState(12);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    // モバイル検出とprefers-reduced-motion対応
+    const checkEnvironment = () => {
+      const isMobile = window.innerWidth < 640;
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setPrefersReducedMotion(mql.matches);
+      setParticleCount(isMobile ? 6 : 12);
+    };
+
+    checkEnvironment();
+
+    // メディアクエリ変更を監視
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+
+    // リサイズを監視（requestAnimationFrameでスロットリング）
+    let rafId: number;
+    const throttledResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(checkEnvironment);
+    };
+
+    mql.addEventListener('change', handleMotionChange);
+    window.addEventListener('resize', throttledResize);
+
+    return () => {
+      mql.removeEventListener('change', handleMotionChange);
+      window.removeEventListener('resize', throttledResize);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // アニメーション無効時は非表示
+  if (prefersReducedMotion) {
+    return null;
+  }
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(12)].map((_, i) => (
+      {[...Array(particleCount)].map((_, i) => (
         <div
           key={i}
           className="absolute w-1 h-1 bg-secondary/40 rounded-full hero-animate-float-particle"

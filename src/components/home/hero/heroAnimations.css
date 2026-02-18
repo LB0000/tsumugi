@@ -47,8 +47,7 @@
 
 .hero-animate-float-particle {
   animation: hero-float-particle 5s ease-in-out infinite;
-  transform: translateZ(0);
-  backface-visibility: hidden;
+  /* GPU レイヤーはアニメーション中のみ作成（keyframes 内の translateZ(0) で対応） */
 }
 
 .hero-animate-spin-slow {
