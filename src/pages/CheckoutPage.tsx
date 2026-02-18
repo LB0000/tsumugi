@@ -129,6 +129,7 @@ export function CheckoutPage() {
       value: total,
       currency: 'JPY',
     });
+    // チェックアウト開始イベントは初回マウント時のみ送信（値の変更による重複送信を防ぐ）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
