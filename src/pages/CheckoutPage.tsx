@@ -16,6 +16,7 @@ import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
 import { getWrappingPrice } from '../data/wrapping';
+import { convertSavedAddressToShippingForm } from '../utils/addressMapping';
 import { GiftOptionsSection } from './checkout/GiftOptionsSection';
 import { ShippingAddressSection } from './checkout/ShippingAddressSection';
 import { PaymentSection } from './checkout/PaymentSection';
@@ -98,16 +99,7 @@ export function CheckoutPage() {
     const defaultAddress = savedAddresses.find((addr) => addr.isDefault) ?? (savedAddresses.length === 1 ? savedAddresses[0] : null);
 
     if (defaultAddress) {
-      shippingForm.setForm({
-        lastName: defaultAddress.lastName,
-        firstName: defaultAddress.firstName,
-        email: defaultAddress.email,
-        phone: defaultAddress.phone,
-        postalCode: defaultAddress.postalCode,
-        prefecture: defaultAddress.prefecture,
-        city: defaultAddress.city,
-        addressLine: defaultAddress.addressLine,
-      });
+      shippingForm.setForm(convertSavedAddressToShippingForm(defaultAddress));
     }
   }, [savedAddresses, shippingForm.setForm]);
 
@@ -176,16 +168,7 @@ export function CheckoutPage() {
 
   const applySavedAddress = (address: SavedAddressItem) => {
     formTouchedRef.current = true;
-    shippingForm.setForm({
-      lastName: address.lastName,
-      firstName: address.firstName,
-      email: address.email,
-      phone: address.phone,
-      postalCode: address.postalCode,
-      prefecture: address.prefecture,
-      city: address.city,
-      addressLine: address.addressLine,
-    });
+    shippingForm.setForm(convertSavedAddressToShippingForm(address));
     shippingForm.clearTouchedAndErrors();
   };
 
