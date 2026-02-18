@@ -84,17 +84,30 @@ export function CheckoutPage() {
   const shippingForm = useShippingForm();
   const recipientForm = useShippingForm({ enabled: differentRecipient });
   const { activeSection } = useCheckoutSections();
-  const { savedAddresses, isLoading: isLoadingAddresses, error: savedAddressesError, defaultAddress } = useSavedAddresses({
+  const { savedAddresses, isLoading: isLoadingAddresses, error: savedAddressesError } = useSavedAddresses({
     authUser,
-    formTouched: formTouchedRef.current,
   });
 
-  // デフォルト住所を適用
+  // デフォルト住所を適用（formTouched が false の場合のみ）
   useEffect(() => {
-    if (defaultAddress && !formTouchedRef.current) {
-      shippingForm.setForm(defaultAddress);
+    if (savedAddresses.length === 0 || formTouchedRef.current) return;
+
+    // デフォルト住所を選択（isDefault フラグ優先、なければ最初の1件）
+    const defaultAddress = savedAddresses.find((addr) => addr.isDefault) ?? (savedAddresses.length === 1 ? savedAddresses[0] : null);
+
+    if (defaultAddress) {
+      shippingForm.setForm({
+        lastName: defaultAddress.lastName,
+        firstName: defaultAddress.firstName,
+        email: defaultAddress.email,
+        phone: defaultAddress.phone,
+        postalCode: defaultAddress.postalCode,
+        prefecture: defaultAddress.prefecture,
+        city: defaultAddress.city,
+        addressLine: defaultAddress.addressLine,
+      });
     }
-  }, [defaultAddress]); // shippingForm.setForm は安定しているので依存配列に不要
+  }, [savedAddresses, shippingForm.setForm]);
 
   // 保存済み住所のエラーを state に反映
   useEffect(() => {
