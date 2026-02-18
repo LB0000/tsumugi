@@ -180,8 +180,9 @@ export function ResultPage() {
     );
   }
 
-  const handleAddToCart = (product: ProductOption) => {
-    if (addedProductId) return; // Prevent double-click during success animation
+  // 共通のカート追加ロジック
+  const addProductToCart = useCallback((product: ProductOption) => {
+    if (addedProductId || !selectedStyle) return;
 
     const finalPrice = isWithin24Hours ? Math.floor(product.price * (1 - DISCOUNT_RATE)) : product.price;
     const discount = isWithin24Hours ? product.price * DISCOUNT_RATE : 0;
@@ -189,7 +190,7 @@ export function ResultPage() {
     trackEvent('add_to_cart', {
       productId: product.id,
       price: finalPrice,
-      discount: discount
+      discount,
     });
     trackMetaAddToCart({
       content_ids: [product.id],
@@ -210,37 +211,15 @@ export function ResultPage() {
 
     setAddedProductId(product.id);
     setTimeout(() => navigate('/cart'), 800);
+  }, [addedProductId, selectedStyle, isWithin24Hours, overlayedImageUrl, portraitName, textOverlaySettings, addToCart, navigate]);
+
+  const handleAddToCart = (product: ProductOption) => {
+    addProductToCart(product);
   };
 
   const handleAddPostcard = () => {
-    if (!postcard || addedProductId) return;
-
-    const postcardFinalPrice = isWithin24Hours ? Math.floor(postcard.price * (1 - DISCOUNT_RATE)) : postcard.price;
-
-    trackEvent('add_to_cart', {
-      productId: postcard.id,
-      price: postcardFinalPrice,
-      discount: isWithin24Hours ? postcard.price * DISCOUNT_RATE : 0,
-    });
-    trackMetaAddToCart({
-      content_ids: [postcard.id],
-      content_type: 'product',
-      value: postcardFinalPrice,
-      currency: 'JPY',
-    });
-    addToCart({
-      productId: postcard.id,
-      name: postcard.name,
-      artStyleId: selectedStyle.id,
-      artStyleName: selectedStyle.name,
-      imageUrl: overlayedImageUrl,
-      quantity: 1,
-      price: postcardFinalPrice,
-      options: portraitName ? { portraitName, textOverlaySettings } : undefined,
-    });
-
-    setAddedProductId(postcard.id);
-    setTimeout(() => navigate('/cart'), 800);
+    if (!postcard) return;
+    addProductToCart(postcard);
   };
 
   const handleRetryWithNewStyle = () => {
