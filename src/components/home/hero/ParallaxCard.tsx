@@ -16,7 +16,6 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
   const [imageErrors, setImageErrors] = useState({ before: false, after: false });
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   // モバイル検出（requestAnimationFrame でスロットリング）
   useEffect(() => {
@@ -45,17 +44,8 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
   // エントリーアニメーション
   useEffect(() => {
-    setIsAnimating(true);
-    let innerTimer: number | undefined;
-    const outerTimer = setTimeout(() => {
-      setIsVisible(true);
-      // アニメーション完了後に will-change をクリア
-      innerTimer = setTimeout(() => setIsAnimating(false), 1000);
-    }, index * 300);
-    return () => {
-      clearTimeout(outerTimer);
-      if (innerTimer !== undefined) clearTimeout(innerTimer);
-    };
+    const timer = setTimeout(() => setIsVisible(true), index * 300);
+    return () => clearTimeout(timer);
   }, [index]);
 
   // Before/After 切り替え（CSS transition で描画）
@@ -113,21 +103,16 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
     return `${rotate} ${translateY}`;
   };
 
-  // 浮遊アニメーションクラス（エントリー完了後に適用）
-  const floatClass = !isAnimating && isVisible
-    ? (index === 0 ? 'hero-animate-card-float' : 'hero-animate-card-float-delayed')
-    : '';
-
   return (
     <div
       className={`absolute ${sizeClasses} ${zIndex} transition-all duration-1000 ease-out ${
         isVisible ? 'opacity-100' : 'opacity-0'
-      } ${floatClass}`}
+      }`}
       style={{
         left: isMobile ? '50%' : sample.position.x,
         top: isMobile ? sample.mobilePosition.y : sample.position.y,
         transform: getTransform(),
-        willChange: isAnimating ? 'transform, opacity' : 'auto',
+        willChange: !isVisible ? 'transform, opacity' : 'auto',
       }}
     >
       {/* メイン画像コンテナ */}
