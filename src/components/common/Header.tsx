@@ -42,15 +42,12 @@ export function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-20 gap-4 sm:gap-6">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
-              <div className="flex flex-col">
-                <span className="font-serif text-2xl sm:text-3xl font-bold text-primary tracking-widest transition-colors group-hover:text-primary-hover">
-                  紡
-                </span>
-                <span className="text-[9px] sm:text-[10px] text-secondary tracking-[0.4em] uppercase">
-                  TSUMUGI
-                </span>
-              </div>
+            <Link to="/" className="flex items-center flex-shrink-0 group">
+              <img
+                src="/logo.png"
+                alt="TSUMUGI"
+                className="h-10 sm:h-14 w-auto transition-opacity group-hover:opacity-80"
+              />
             </Link>
 
             {/* User Actions */}
