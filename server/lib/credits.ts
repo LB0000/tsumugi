@@ -472,7 +472,7 @@ export function getUserTransactions(userId: string): CreditTransaction[] {
 }
 
 /**
- * Get all balances (for admin/debugging)
+ * Get all balances (admin-only: do NOT expose via unauthenticated endpoints)
  * Returns a shallow copy to prevent external mutation
  */
 export function getAllBalances(): CreditBalance[] {
@@ -480,7 +480,7 @@ export function getAllBalances(): CreditBalance[] {
 }
 
 /**
- * Get all transactions (for admin/debugging)
+ * Get all transactions (admin-only: do NOT expose via unauthenticated endpoints)
  * Returns a shallow copy to prevent external mutation
  */
 export function getAllTransactions(): CreditTransaction[] {

@@ -1,27 +1,20 @@
 /**
  * クレジット管理の型定義
+ * バックエンド GET /api/credits のレスポンスに合わせた型
  */
 
 export interface UserCredits {
-  // 無料枠
-  freeUsed: number;           // 使用済み無料回数（0-3）
-  freeRemaining: number;      // 残り無料回数（計算値: 3 - freeUsed）
-
-  // 有料クレジット
-  paidBalance: number;        // 残高（残りクレジット数）
-  paidTotalPurchased: number; // 累計購入数
-  paidTotalUsed: number;      // 累計使用数
-
-  // メタ情報
-  totalGenerated: number;     // 総生成回数
-  lastChargeAt?: Date;        // 最終チャージ日時
+  freeRemaining: number;      // 残り無料回数（0-3）
+  paidRemaining: number;      // 残り有料クレジット数
+  totalRemaining: number;     // 合計残り（free + paid）
+  totalUsed: number;          // 累計使用数
 }
 
 /**
  * 生成可否の判定
  */
-export const canGenerate = (credits: UserCredits): boolean => {
-  return credits.freeRemaining > 0 || credits.paidBalance > 0;
+export const canGenerateCredits = (credits: UserCredits): boolean => {
+  return credits.totalRemaining > 0;
 };
 
 /**
@@ -37,5 +30,5 @@ export const getGenerationCostType = (
  * 残高不足判定
  */
 export const needsCharge = (credits: UserCredits): boolean => {
-  return credits.freeRemaining === 0 && credits.paidBalance === 0;
+  return credits.totalRemaining === 0;
 };

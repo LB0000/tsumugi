@@ -13,7 +13,7 @@ import {
   getUserTransactions,
   getAllBalances,
 } from '../../lib/credits.js';
-import { FREE_CREDITS, CREDITS_PER_PACK } from '../../lib/creditTypes.js';
+import { FREE_CREDITS, CREDITS_PER_PACK, MAX_CREDITS_PER_PURCHASE } from '../../lib/creditTypes.js';
 
 // Mock persistence layer
 vi.mock('../../lib/creditsStore.js', () => ({
@@ -204,6 +204,43 @@ describe('Credit Management System', () => {
   });
 
   describe('addPurchasedCredits', () => {
+    it('should throw INVALID_CREDIT_AMOUNT for negative amount', () => {
+      const testUserId = createTestUserId();
+      initializeUserCredits(testUserId);
+
+      expect(() => addPurchasedCredits(testUserId, -10, testPaymentId)).toThrow('INVALID_CREDIT_AMOUNT');
+    });
+
+    it('should throw INVALID_CREDIT_AMOUNT for zero amount', () => {
+      const testUserId = createTestUserId();
+      initializeUserCredits(testUserId);
+
+      expect(() => addPurchasedCredits(testUserId, 0, testPaymentId)).toThrow('INVALID_CREDIT_AMOUNT');
+    });
+
+    it('should throw INVALID_CREDIT_AMOUNT for non-integer amount', () => {
+      const testUserId = createTestUserId();
+      initializeUserCredits(testUserId);
+
+      expect(() => addPurchasedCredits(testUserId, 10.5, testPaymentId)).toThrow('INVALID_CREDIT_AMOUNT');
+    });
+
+    it('should throw INVALID_CREDIT_AMOUNT when amount exceeds MAX_CREDITS_PER_PURCHASE', () => {
+      const testUserId = createTestUserId();
+      initializeUserCredits(testUserId);
+
+      expect(() => addPurchasedCredits(testUserId, MAX_CREDITS_PER_PURCHASE + 1, testPaymentId)).toThrow('INVALID_CREDIT_AMOUNT');
+    });
+
+    it('should accept amount equal to MAX_CREDITS_PER_PURCHASE', () => {
+      const testUserId = createTestUserId();
+      initializeUserCredits(testUserId);
+
+      const txn = addPurchasedCredits(testUserId, MAX_CREDITS_PER_PURCHASE, testPaymentId);
+      expect(txn.type).toBe('purchase');
+      expect(txn.amount).toBe(MAX_CREDITS_PER_PURCHASE);
+    });
+
     it('should add credits to paid balance', () => {
       const testUserId = createTestUserId();
       initializeUserCredits(testUserId);

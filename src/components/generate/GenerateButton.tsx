@@ -1,7 +1,7 @@
 import { Sparkles, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { UserCredits } from '@/types/credits';
-import { canGenerate, needsCharge } from '@/types/credits';
+import { canGenerateCredits, needsCharge } from '@/types/credits';
 
 interface GenerateButtonProps {
   credits: UserCredits;
@@ -16,7 +16,7 @@ export const GenerateButton = ({
   onNeedsCharge,
   isGenerating = false,
 }: GenerateButtonProps) => {
-  const canGen = canGenerate(credits);
+  const canGen = canGenerateCredits(credits);
   const needsChg = needsCharge(credits);
 
   const handleClick = () => {

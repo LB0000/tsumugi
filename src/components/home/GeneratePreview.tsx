@@ -4,6 +4,10 @@ import { Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { generateImage } from '../../api';
 import { trackEvent } from '../../lib/analytics';
+import { useCredits } from '../../hooks/useCredits';
+import { needsCharge } from '../../types/credits';
+import { ChargeModal } from '../charge/ChargeModal';
+import { FreeTrialCompleteModal } from '../charge/FreeTrialCompleteModal';
 import { generationStages } from './generate-preview/generationStages';
 import { GeneratingUI } from './generate-preview/GeneratingUI';
 import { ResultSection } from './generate-preview/ResultSection';
@@ -19,9 +23,12 @@ export function GeneratePreview() {
     resetUpload,
   } = useAppStore();
   const navigate = useNavigate();
+  const { credits, refresh: refreshCredits } = useCredits();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showChargeModal, setShowChargeModal] = useState(false);
+  const [showFreeTrialModal, setShowFreeTrialModal] = useState(false);
   const [generationStage, setGenerationStage] = useState(0);
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [currentInfoPanel, setCurrentInfoPanel] = useState(0);
@@ -124,6 +131,17 @@ export function GeneratePreview() {
   const handleGenerate = async () => {
     if (!uploadState.previewUrl || !selectedStyle || !uploadState.rawFile) return;
 
+    // Credit check: if user has credits info and is out of credits, show modal
+    if (credits && needsCharge(credits)) {
+      // Show free trial modal only when user just exhausted free credits (never purchased)
+      if (credits.totalUsed === 3 && credits.paidRemaining === 0) {
+        setShowFreeTrialModal(true);
+      } else {
+        setShowChargeModal(true);
+      }
+      return;
+    }
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -143,16 +161,36 @@ export function GeneratePreview() {
       setGeneratedImage(result.generatedImage);
       setGallerySaved(result.gallerySaved ?? null);
       trackEvent('image_generate');
+      // Refresh credits after successful generation (server consumed 1 credit)
+      void refreshCredits();
       navigate('/result');
     } catch (err) {
       if ((err instanceof Error || err instanceof DOMException) && err.name === 'AbortError') {
         setError('生成をキャンセルしました');
         return;
       }
-      setError(err instanceof Error ? err.message : '画像の生成に失敗しました');
+      const message = err instanceof Error ? err.message : '画像の生成に失敗しました';
+      // Handle server-side credit check failures
+      if (message.includes('INSUFFICIENT_CREDITS') || message.includes('NO_CREDIT_BALANCE')) {
+        void refreshCredits();
+        setShowChargeModal(true);
+        return;
+      }
+      setError(message);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleOpenCharge = () => {
+    setShowFreeTrialModal(false);
+    setShowChargeModal(true);
+  };
+
+  const handleChargeComplete = async () => {
+    // Placeholder: actual Square payment flow will be wired here
+    // For now, refresh credits after charge modal interaction
+    await refreshCredits();
   };
 
   const handleCancel = () => {
@@ -249,6 +287,18 @@ export function GeneratePreview() {
           onNavigateResult={() => navigate('/result')}
         />
       )}
+
+      {/* Credit Charge Modals */}
+      <ChargeModal
+        isOpen={showChargeModal}
+        onClose={() => setShowChargeModal(false)}
+        onCharge={handleChargeComplete}
+      />
+      <FreeTrialCompleteModal
+        isOpen={showFreeTrialModal}
+        onClose={() => setShowFreeTrialModal(false)}
+        onCharge={handleOpenCharge}
+      />
     </div>
   );
 }
