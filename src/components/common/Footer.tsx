@@ -13,7 +13,7 @@ export function Footer() {
           <div className="flex items-center justify-center gap-4 mb-6">
             <div className="w-12 h-px bg-secondary/50" />
             <div className="w-1.5 h-1.5 rotate-45 bg-secondary" />
-            <span className="text-secondary/80 text-xs tracking-[0.3em] font-medium">安心のサービス</span>
+            <span className="text-secondary/80 text-xs tracking-[0.3em] font-medium">お届けまで、すべて安心</span>
             <div className="w-1.5 h-1.5 rotate-45 bg-secondary" />
             <div className="w-12 h-px bg-secondary/50" />
           </div>
@@ -24,8 +24,8 @@ export function Footer() {
                 <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-xs sm:text-sm">迅速配送</p>
-                <p className="hidden sm:block text-xs text-background/70">全国どこでもお届け</p>
+                <p className="font-medium text-background text-xs sm:text-sm">最短3日でお届け</p>
+                <p className="hidden sm:block text-xs text-background/70">5,000円以上で送料無料</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
@@ -33,8 +33,8 @@ export function Footer() {
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-xs sm:text-sm">品質保証</p>
-                <p className="hidden sm:block text-xs text-background/70">商品不良時は7日以内に交換対応</p>
+                <p className="font-medium text-background text-xs sm:text-sm">満足保証</p>
+                <p className="hidden sm:block text-xs text-background/70">届いて7日間、交換OK</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:gap-4 sm:justify-center group">
@@ -42,8 +42,8 @@ export function Footer() {
                 <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
               <div>
-                <p className="font-medium text-background text-xs sm:text-sm">安全な決済</p>
-                <p className="hidden sm:block text-xs text-background/70">SSL暗号化通信で安心</p>
+                <p className="font-medium text-background text-xs sm:text-sm">安心のお支払い</p>
+                <p className="hidden sm:block text-xs text-background/70">大手カード各社対応</p>
               </div>
             </div>
           </div>
@@ -57,13 +57,13 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link to="/" className="inline-block mb-4 sm:mb-6">
               <img
-                src="/logo.png"
+                src="/footer-logo.png"
                 alt="TSUMUGI"
-                className="h-16 sm:h-24 w-auto brightness-0 invert opacity-20"
+                className="h-16 sm:h-24 w-auto"
               />
             </Link>
             <p className="text-xs sm:text-sm text-background/70 mb-4 sm:mb-6 leading-relaxed max-w-sm">
-              AIの技術と日本の美意識を融合し、大切な方の写真を格調高い肖像画に変換いたします。唯一無二の贈り物をお届けする、それが私たちの使命です。
+              写真を送るだけで、大切な人が肖像画になる。ペットも、家族も、お子さまも。あなたの想いを一枚に紡ぎます。
             </p>
 
             {/* 評価 */}
