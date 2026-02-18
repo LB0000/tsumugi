@@ -30,8 +30,8 @@ export interface UseShippingFormResult {
   touchAllFields: () => void;
   /** フィールドエラーを取得 */
   getFieldError: (field: ShippingField) => string | null;
-  /** フィールド用の CSS クラスを取得 */
-  getFieldInputClass: (field: ShippingField) => string;
+  /** フィールドにエラーがあるかを判定 */
+  hasFieldError: (field: ShippingField) => boolean;
   /** フォーム全体をバリデート */
   validateForm: () => string | null;
   /** タッチ状態とエラーをクリア */
@@ -113,13 +113,8 @@ export function useShippingForm(options: UseShippingFormOptions = {}): UseShippi
     return fieldErrors[field] ?? null;
   };
 
-  const getFieldInputClass = (field: ShippingField): string => {
-    const hasError = Boolean(getFieldError(field));
-    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
-      hasError
-        ? 'border-sale focus:ring-sale/30'
-        : 'border-border focus:ring-primary/50'
-    }`;
+  const hasFieldError = (field: ShippingField): boolean => {
+    return Boolean(getFieldError(field));
   };
 
   const validateForm = (): string | null => {
@@ -142,7 +137,7 @@ export function useShippingForm(options: UseShippingFormOptions = {}): UseShippi
     updateField,
     touchAllFields,
     getFieldError,
-    getFieldInputClass,
+    hasFieldError,
     validateForm,
     clearTouchedAndErrors,
     isPostalLookupLoading: postalLookup.isLoading,

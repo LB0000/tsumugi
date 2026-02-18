@@ -11,6 +11,7 @@ import { useCheckoutSections } from '../hooks/useCheckoutSections';
 import { useSavedAddresses } from '../hooks/useSavedAddresses';
 import { createOrder, processPayment } from '../api';
 import type { SavedAddressItem } from '../api';
+import type { ShippingField } from './checkout/validation';
 import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
@@ -199,6 +200,25 @@ export function CheckoutPage() {
     shippingForm.updateField(field, value);
   };
 
+  // CSS クラス生成ヘルパー（プレゼンテーション層の責務）
+  const getFieldInputClass = (field: ShippingField): string => {
+    const hasError = shippingForm.hasFieldError(field);
+    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
+      hasError
+        ? 'border-sale focus:ring-sale/30'
+        : 'border-border focus:ring-primary/50'
+    }`;
+  };
+
+  const getRecipientFieldInputClass = (field: ShippingField): string => {
+    const hasError = recipientForm.hasFieldError(field);
+    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
+      hasError
+        ? 'border-sale focus:ring-sale/30'
+        : 'border-border focus:ring-primary/50'
+    }`;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -376,7 +396,7 @@ export function CheckoutPage() {
                 setDifferentRecipient={setDifferentRecipient}
                 recipientForm={recipientForm.form}
                 updateRecipientForm={recipientForm.updateField}
-                getRecipientFieldInputClass={recipientForm.getFieldInputClass}
+                getRecipientFieldInputClass={getRecipientFieldInputClass}
                 getRecipientFieldError={recipientForm.getFieldError}
               />
               </div>
@@ -388,7 +408,7 @@ export function CheckoutPage() {
                 form={shippingForm.form}
                 onApplySavedAddress={applySavedAddress}
                 onUpdateForm={updateForm}
-                getFieldInputClass={shippingForm.getFieldInputClass}
+                getFieldInputClass={getFieldInputClass}
                 getFieldError={shippingForm.getFieldError}
                 isPostalLookupLoading={shippingForm.isPostalLookupLoading}
               />
