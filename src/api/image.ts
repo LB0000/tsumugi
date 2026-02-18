@@ -54,7 +54,7 @@ export async function generateImage(
     credentials: 'include',
     body: formData,
     signal,
-  }, 60000);
+  }, 180000);
 
   const data: unknown = await response.json();
 
