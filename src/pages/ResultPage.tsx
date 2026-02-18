@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
@@ -11,6 +11,7 @@ import { NameEngravingSection } from '../components/result/NameEngravingSection'
 import { useTextOverlay } from '../hooks/useTextOverlay';
 import { useDiscountTimer } from '../hooks/useDiscountTimer';
 import { useAddToCart } from '../hooks/useAddToCart';
+import { useResultPageGuard } from '../hooks/useResultPageGuard';
 import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
@@ -25,6 +26,9 @@ export function ResultPage() {
   const [showFab, setShowFab] = useState(false);
   const { isWithin24Hours, timeRemaining } = useDiscountTimer(PREVIEW_GENERATED_AT_KEY);
   const discountPercent = Math.round(DISCOUNT_RATE * 100);
+
+  // Redirect to home if required data is missing
+  useResultPageGuard();
 
   // Text overlay for name engraving (applied to cart items)
   const { overlayedImageUrl, isProcessing: isOverlayProcessing, processingStage, error: overlayError } = useTextOverlay({
@@ -54,30 +58,6 @@ export function ResultPage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
-
-  // Redirect to home if store has no data (e.g. direct navigation or page reload)
-  // Wait for Zustand persist rehydration before checking
-  const mountCheckRef = useRef(false);
-  useEffect(() => {
-    if (mountCheckRef.current) return;
-
-    const check = () => {
-      mountCheckRef.current = true;
-      const { generatedImage: img, selectedStyle: style } = useAppStore.getState();
-      if (!img || !style) {
-        navigate('/');
-      }
-    };
-
-    if (useAppStore.persist.hasHydrated()) {
-      check();
-    } else {
-      const unsubscribe = useAppStore.persist.onFinishHydration(() => {
-        check();
-        unsubscribe();
-      });
-    }
-  }, [navigate]);
 
   // Save only IDs to sessionStorage (no base64 image data)
   useEffect(() => {
