@@ -50,11 +50,18 @@ export function ResultPage() {
 
   // 24時間限定割引タイマー
   useEffect(() => {
-    let raw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+    let raw: string | null = null;
 
-    if (!raw) {
+    // localStorage はプライベートブラウジングモードで例外を投げる可能性がある
+    try {
+      raw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
+      if (!raw) {
+        raw = Date.now().toString();
+        localStorage.setItem(PREVIEW_GENERATED_AT_KEY, raw);
+      }
+    } catch {
+      // localStorage が使えない場合は現在時刻から開始
       raw = Date.now().toString();
-      localStorage.setItem(PREVIEW_GENERATED_AT_KEY, raw);
     }
 
     const generated = parseInt(raw, 10);
@@ -83,15 +90,23 @@ export function ResultPage() {
     };
 
     tick(); // 初回実行
-    intervalId = setInterval(tick, 3000); // 3秒ごとに更新（バッテリー節約）
+    intervalId = setInterval(tick, 1000); // 1秒ごとに更新（visibility対応でバッテリー節約済み）
 
     // タブが非表示の時はタイマーを停止
     const handleVisibilityChange = () => {
       if (document.hidden) {
         clearInterval(intervalId);
       } else {
-        tick(); // タブが再表示されたら即座に更新
-        intervalId = setInterval(tick, 3000);
+        // まだ割引期間内かチェック
+        const remaining = DISCOUNT_WINDOW_MS - (Date.now() - generated);
+        if (remaining > 0) {
+          tick(); // タブが再表示されたら即座に更新
+          intervalId = setInterval(tick, 1000);
+        } else {
+          // 既に期限切れの場合は新しいタイマーを作らない
+          setIsWithin24Hours(false);
+          setTimeRemaining('00:00:00');
+        }
       }
     };
 
