@@ -5,18 +5,17 @@ export function FloatingParticles() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
+    // メディアクエリを一度だけ作成（リサイズ時の再作成を防ぐ）
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+
     // モバイル検出とprefers-reduced-motion対応
     const checkEnvironment = () => {
       const isMobile = window.innerWidth < 640;
-      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
       setPrefersReducedMotion(mql.matches);
       setParticleCount(isMobile ? 6 : 12);
     };
 
     checkEnvironment();
-
-    // メディアクエリ変更を監視
-    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const handleMotionChange = (e: MediaQueryListEvent) => {
       setPrefersReducedMotion(e.matches);
     };
