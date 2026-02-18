@@ -18,6 +18,7 @@ import { internalRouter } from './routes/internal.js';
 import { reviewRouter } from './routes/reviews.js';
 import { cartRouter } from './routes/cart.js';
 import { creditsRouter } from './routes/credits.js';
+import { testLoginRouter } from './routes/testLogin.js';
 import { startCartAbandonmentChecker, cartAbandonmentHydrationReady } from './lib/cartAbandonment.js';
 import { startScheduledEmailChecker, scheduledEmailsHydrationReady } from './lib/scheduledEmails.js';
 import { checkoutHydrationReady } from './lib/checkoutState.js';
@@ -133,6 +134,7 @@ app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix
 app.use('/api/cart', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'cart' }), cartRouter);
 app.use('/api/credits', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'credits' }), creditsRouter);
 app.use('/api/internal', internalRouter);
+app.use('/api/test-login', testLoginRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

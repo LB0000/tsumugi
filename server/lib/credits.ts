@@ -17,6 +17,19 @@ import type {
 } from './creditTypes.js';
 import { FREE_CREDITS, MAX_CREDITS_PER_PURCHASE } from './creditTypes.js';
 
+// ==================== Test User Bypass ====================
+
+const testUserIds: ReadonlySet<string> = new Set(
+  (config.TEST_USER_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+);
+
+/**
+ * Check if a userId is a test user (unlimited credits, no consumption)
+ */
+export function isTestUser(userId: string): boolean {
+  return testUserIds.has(userId);
+}
+
 // ==================== In-Memory State ====================
 
 const balancesByUserId = new Map<string, CreditBalance>();
@@ -309,8 +322,10 @@ export function getUserCredits(userId: string): CreditBalance | null {
 
 /**
  * Check if user can generate (has free or paid credits)
+ * Test users always return true
  */
 export function canGenerate(userId: string): boolean {
+  if (isTestUser(userId)) return true;
   const balance = balancesByUserId.get(userId);
   if (!balance) return false;
   return balance.freeRemaining > 0 || balance.paidRemaining > 0;
@@ -319,9 +334,28 @@ export function canGenerate(userId: string): boolean {
 /**
  * Consume 1 credit: free first, then paid
  * Throws error if insufficient credits
+ * Test users skip actual consumption
  * Returns the transaction record
  */
 export function consumeCredit(userId: string, referenceId: string): CreditTransaction {
+  // Test users: no actual credit deduction
+  if (isTestUser(userId)) {
+    logger.info('Test user credit bypass', { userId, referenceId });
+    return {
+      id: createTransactionId(),
+      userId,
+      type: 'consume',
+      amount: 0,
+      freeAmount: 0,
+      paidAmount: 0,
+      balanceAfterFree: Infinity,
+      balanceAfterPaid: Infinity,
+      referenceId,
+      description: 'テストユーザー（クレジット消費なし）',
+      createdAt: new Date().toISOString(),
+    };
+  }
+
   const balance = balancesByUserId.get(userId);
   if (!balance) {
     throw new Error('NO_CREDIT_BALANCE');
