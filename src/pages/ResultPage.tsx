@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
@@ -12,6 +12,7 @@ import { useTextOverlay } from '../hooks/useTextOverlay';
 import { useDiscountTimer } from '../hooks/useDiscountTimer';
 import { useAddToCart } from '../hooks/useAddToCart';
 import { useResultPageGuard } from '../hooks/useResultPageGuard';
+import { useScrollFab } from '../hooks/useScrollFab';
 import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
@@ -23,12 +24,14 @@ export function ResultPage() {
   const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName, textOverlaySettings, setTextOverlaySettings } = useAppStore();
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.previewUrl;
-  const [showFab, setShowFab] = useState(false);
   const { isWithin24Hours, timeRemaining } = useDiscountTimer(PREVIEW_GENERATED_AT_KEY);
   const discountPercent = Math.round(DISCOUNT_RATE * 100);
 
   // Redirect to home if required data is missing
   useResultPageGuard();
+
+  // Show FAB after scrolling
+  const showFab = useScrollFab();
 
   // Text overlay for name engraving (applied to cart items)
   const { overlayedImageUrl, isProcessing: isOverlayProcessing, processingStage, error: overlayError } = useTextOverlay({
@@ -49,15 +52,6 @@ export function ResultPage() {
     textOverlaySettings,
     isWithin24Hours,
   });
-
-  const handleScroll = useCallback(() => {
-    setShowFab(window.scrollY > 200);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
 
   // Save only IDs to sessionStorage (no base64 image data)
   useEffect(() => {
