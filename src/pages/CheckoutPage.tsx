@@ -15,6 +15,7 @@ import type { ShippingField } from './checkout/validation';
 import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
+import { getWrappingPrice } from '../data/wrapping';
 import { GiftOptionsSection } from './checkout/GiftOptionsSection';
 import { ShippingAddressSection } from './checkout/ShippingAddressSection';
 import { PaymentSection } from './checkout/PaymentSection';
@@ -118,15 +119,8 @@ export function CheckoutPage() {
   }, [savedAddressesError]);
 
   const wrappingPrice = useMemo(() => {
-    if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
-    switch (giftOptions.wrappingId) {
-      case 'premium':
-        return 500;
-      case 'noshi':
-        return 300;
-      default:
-        return 0;
-    }
+    if (!giftOptions?.isGift) return 0;
+    return getWrappingPrice(giftOptions.wrappingId);
   }, [giftOptions]);
 
   const { subtotal, shipping, total } = useMemo(() => {
