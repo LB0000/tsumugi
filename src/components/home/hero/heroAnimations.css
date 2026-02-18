@@ -26,6 +26,17 @@
   100% { transform: scale(1); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
 }
 
+@keyframes hero-wipe-glow {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.hero-wipe-glow {
+  animation: hero-wipe-glow 1.4s ease-out forwards;
+  pointer-events: none;
+}
+
 @keyframes hero-fadeIn {
   from { opacity: 0; transform: translateY(10px) translateZ(0); }
   to { opacity: 1; transform: translateY(0) translateZ(0); }

@@ -133,29 +133,45 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
           />
         )}
 
-        {/* After Image (水平ワイプ) - overflow で clip-path 効果を再現 */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* After Image (左からワイプ) */}
+        <div
+          className="absolute inset-0 transition-[clip-path] duration-[1.4s] ease-in-out"
+          style={{
+            clipPath: showAfter ? 'inset(0 0 0 0)' : 'inset(0 100% 0 0)',
+          }}
+        >
           {hasAfterError ? (
-            <div
-              className="w-full h-full transition-transform duration-[1.2s] ease-in-out"
-              style={{
-                transform: showAfter ? 'translateX(0)' : 'translateX(100%)',
-              }}
-            >
+            <div className="w-full h-full">
               <ImagePlaceholder label="After" />
             </div>
           ) : (
             <img
               src={sample.afterImage}
               alt={`${sample.customerName} - ${sample.style}`}
-              className="w-full h-full object-cover transition-transform duration-[1.2s] ease-in-out"
-              style={{
-                transform: showAfter ? 'translateX(0)' : 'translateX(100%)',
-              }}
+              className="w-full h-full object-cover"
               onError={() => handleImageError('after')}
             />
           )}
+          {/* ワイプ境界の光ライン */}
+          <div
+            className="absolute inset-y-0 right-0 w-[2px] transition-opacity duration-700"
+            style={{
+              opacity: showAfter ? 0 : 1,
+              background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.8), transparent)',
+              boxShadow: '0 0 12px 4px rgba(255,255,255,0.4)',
+            }}
+          />
         </div>
+
+        {/* ワイプ時のグロー（カード全体にふわっと光） */}
+        <div
+          className={`absolute inset-0 rounded-xl pointer-events-none transition-opacity duration-700 ${
+            showAfter ? 'hero-wipe-glow' : 'opacity-0'
+          }`}
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%)',
+          }}
+        />
 
         {/* スタイルラベル */}
         <div className={`
