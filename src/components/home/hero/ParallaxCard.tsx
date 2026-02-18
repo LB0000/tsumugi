@@ -13,24 +13,34 @@ function ImagePlaceholder({ label }: { label: string }) {
 
 export function ParallaxCard({ sample, index }: { sample: TransformationSample; index: number }) {
   const [showAfter, setShowAfter] = useState(false);
-  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [imageErrors, setImageErrors] = useState({ before: false, after: false });
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // モバイル検出
+  // モバイル検出（requestAnimationFrame でスロットリング）
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+
+    let rafId: number;
+    const throttledResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(checkMobile);
+    };
+
+    window.addEventListener('resize', throttledResize);
+    return () => {
+      window.removeEventListener('resize', throttledResize);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
-  const hasBeforeError = imageErrors[`${sample.id}-before`];
-  const hasAfterError = imageErrors[`${sample.id}-after`];
+  const hasBeforeError = imageErrors.before;
+  const hasAfterError = imageErrors.after;
 
   const handleImageError = (type: 'before' | 'after') => {
-    setImageErrors(prev => ({ ...prev, [`${sample.id}-${type}`]: true }));
+    setImageErrors(prev => ({ ...prev, [type]: true }));
   };
 
   // エントリーアニメーション
@@ -50,20 +60,30 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
   // Before/After 切り替え（CSS transition で描画）
   useEffect(() => {
-    // prefers-reduced-motion 対応
-    const prefersReducedMotion = typeof window !== 'undefined'
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false;
+    // prefers-reduced-motion 対応（ランタイム変更も検知）
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    if (prefersReducedMotion) {
+    if (mql.matches) {
       setShowAfter(true); // 常に After を表示
       return;
     }
 
     // 全カードで同期した切り替え（indexに依存しない）
     let interval: number | null = null;
+    let startTimer: number;
 
-    const startTimer = setTimeout(() => {
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        // ユーザーが動きを減らす設定に変更した
+        clearTimeout(startTimer);
+        if (interval !== null) clearInterval(interval);
+        setShowAfter(true);
+      }
+    };
+
+    mql.addEventListener('change', handleMotionChange);
+
+    startTimer = setTimeout(() => {
       setShowAfter(true);
       interval = setInterval(() => {
         setShowAfter(prev => !prev);
@@ -71,8 +91,9 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
     }, 1500); // 初回表示を統一
 
     return () => {
+      mql.removeEventListener('change', handleMotionChange);
       clearTimeout(startTimer);
-      if (interval) clearInterval(interval);
+      if (interval !== null) clearInterval(interval);
     };
   }, []);
 
