@@ -13,6 +13,7 @@ import { useDiscountTimer } from '../hooks/useDiscountTimer';
 import { useAddToCart } from '../hooks/useAddToCart';
 import { useResultPageGuard } from '../hooks/useResultPageGuard';
 import { useScrollFab } from '../hooks/useScrollFab';
+import { useSessionSync } from '../hooks/useSessionSync';
 import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
@@ -54,13 +55,11 @@ export function ResultPage() {
   });
 
   // Save only IDs to sessionStorage (no base64 image data)
-  useEffect(() => {
-    if (generatedImage && selectedStyle) {
-      try {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify({ styleId: selectedStyle.id }));
-      } catch { /* ignore storage errors */ }
-    }
-  }, [generatedImage, selectedStyle]);
+  useSessionSync({
+    key: SESSION_KEY,
+    data: selectedStyle ? { styleId: selectedStyle.id } : null,
+    enabled: !!(generatedImage && selectedStyle),
+  });
 
   // Update OGP meta tags with generated image
   useEffect(() => {
