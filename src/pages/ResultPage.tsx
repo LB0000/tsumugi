@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ArrowRight, Palette, AlertTriangle, Loader2, Clock, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '../stores/appStore';
@@ -6,7 +5,6 @@ import { products, crossSellProducts } from '../data/products';
 import { StyledButton } from '../components/common/StyledButton';
 import { ShareButtons } from '../components/common/ShareButtons';
 import { TrustBadges } from '../components/common/TrustBadges';
-import { updateMetaTags } from '../lib/seo';
 import { NameEngravingSection } from '../components/result/NameEngravingSection';
 import { useTextOverlay } from '../hooks/useTextOverlay';
 import { useDiscountTimer } from '../hooks/useDiscountTimer';
@@ -14,6 +12,7 @@ import { useAddToCart } from '../hooks/useAddToCart';
 import { useResultPageGuard } from '../hooks/useResultPageGuard';
 import { useScrollFab } from '../hooks/useScrollFab';
 import { useSessionSync } from '../hooks/useSessionSync';
+import { useResultMetaTags } from '../hooks/useResultMetaTags';
 import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 
 type ProductOption = (typeof products)[number];
@@ -62,15 +61,10 @@ export function ResultPage() {
   });
 
   // Update OGP meta tags with generated image
-  useEffect(() => {
-    if (!generatedImage || !selectedStyle) return;
-    return updateMetaTags({
-      title: `${selectedStyle.name}スタイルの肖像画 | TSUMUGI`,
-      description: `AIが生成した${selectedStyle.name}スタイルの肖像画。TSUMUGIで世界に一つだけのアートを。`,
-      ogUrl: 'https://tsumugi.jp/result',
-      ogImage: generatedImage,
-    });
-  }, [generatedImage, selectedStyle]);
+  useResultMetaTags({
+    generatedImage,
+    styleName: selectedStyle?.name || '',
+  });
 
   if (!generatedImage || !selectedStyle) {
     return (
