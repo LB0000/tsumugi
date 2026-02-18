@@ -104,7 +104,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
   // Transform を構築する関数
   const getTransform = () => {
-    const translateY = isVisible ? 'translateY(0)' : 'translateY(8px)';
+    const translateY = isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)';
     const rotate = `rotate(${sample.rotation}deg)`;
 
     if (isMobile) {
@@ -113,11 +113,16 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
     return `${rotate} ${translateY}`;
   };
 
+  // 浮遊アニメーションクラス（エントリー完了後に適用）
+  const floatClass = !isAnimating && isVisible
+    ? (index === 0 ? 'hero-animate-card-float' : 'hero-animate-card-float-delayed')
+    : '';
+
   return (
     <div
-      className={`absolute ${sizeClasses} ${zIndex} transition-opacity duration-1000 ease-out ${
+      className={`absolute ${sizeClasses} ${zIndex} transition-all duration-1000 ease-out ${
         isVisible ? 'opacity-100' : 'opacity-0'
-      }`}
+      } ${floatClass}`}
       style={{
         left: isMobile ? '50%' : sample.position.x,
         top: isMobile ? sample.mobilePosition.y : sample.position.y,
@@ -126,7 +131,9 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
       }}
     >
       {/* メイン画像コンテナ */}
-      <div className="relative w-full h-full rounded-xl overflow-hidden">
+      <div className={`relative w-full h-full rounded-xl overflow-hidden shadow-lg transition-shadow duration-700 ${
+        showAfter ? 'shadow-2xl' : 'shadow-lg'
+      }`}>
         {/* Before Image */}
         {hasBeforeError ? (
           <div className="absolute inset-0">
