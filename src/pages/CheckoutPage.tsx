@@ -6,21 +6,14 @@ import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { useSquarePayments } from '../hooks/useSquarePayments';
-import { createOrder, processPayment, getAddresses } from '../api';
+import { useShippingForm } from '../hooks/useShippingForm';
+import { useCheckoutSections } from '../hooks/useCheckoutSections';
+import { useSavedAddresses } from '../hooks/useSavedAddresses';
+import { createOrder, processPayment } from '../api';
 import type { SavedAddressItem } from '../api';
-import type { ShippingAddress } from '../types';
 import { trackEvent, trackMetaInitiateCheckout } from '../lib/analytics';
 import { PREVIEW_GENERATED_AT_KEY } from '../data/constants';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE } from '../data/shipping';
-import { usePostalCodeLookup } from '../hooks/usePostalCodeLookup';
-import {
-  validateShippingField,
-  validateShippingForm,
-  getFirstShippingError,
-  SHIPPING_FIELD_ORDER,
-  type ShippingField,
-  type ShippingFieldErrors,
-} from './checkout/validation';
 import { GiftOptionsSection } from './checkout/GiftOptionsSection';
 import { ShippingAddressSection } from './checkout/ShippingAddressSection';
 import { PaymentSection } from './checkout/PaymentSection';
@@ -83,98 +76,32 @@ export function CheckoutPage() {
   const formTouchedRef = useRef(false);
   const cardInitRef = useRef(false);
   const orderCompleteRef = useRef(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddressItem[]>([]);
 
   const { giftOptions, setGiftOptions, clearGiftOptions } = useAppStore();
   const [differentRecipient, setDifferentRecipient] = useState(false);
-  const [recipientForm, setRecipientForm] = useState<ShippingAddress>({
-    lastName: '',
-    firstName: '',
-    email: '',
-    phone: '',
-    postalCode: '',
-    prefecture: '',
-    city: '',
-    addressLine: '',
+
+  // カスタムフックで状態管理を簡素化
+  const shippingForm = useShippingForm();
+  const recipientForm = useShippingForm({ enabled: differentRecipient });
+  const { activeSection } = useCheckoutSections();
+  const { savedAddresses, isLoading: isLoadingAddresses, error: savedAddressesError, defaultAddress } = useSavedAddresses({
+    authUser,
+    formTouched: formTouchedRef.current,
   });
 
-  const [form, setForm] = useState<ShippingAddress>({
-    lastName: '',
-    firstName: '',
-    email: '',
-    phone: '',
-    postalCode: '',
-    prefecture: '',
-    city: '',
-    addressLine: '',
-  });
-  const [fieldErrors, setFieldErrors] = useState<ShippingFieldErrors>({});
-  const [touchedFields, setTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
-  const [recipientFieldErrors, setRecipientFieldErrors] = useState<ShippingFieldErrors>({});
-  const [recipientTouchedFields, setRecipientTouchedFields] = useState<Partial<Record<ShippingField, boolean>>>({});
-  const [activeSection, setActiveSection] = useState<'gift' | 'shipping' | 'payment'>('gift');
-
-  // IntersectionObserver for stepper section tracking
+  // デフォルト住所を適用
   useEffect(() => {
-    const sectionIds = ['gift', 'shipping', 'payment'] as const;
-    const observers: IntersectionObserver[] = [];
-
-    for (const id of sectionIds) {
-      const element = document.getElementById(id);
-      if (!element) continue;
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setActiveSection(id);
-          }
-        },
-        { rootMargin: '-20% 0px -60% 0px' },
-      );
-      observer.observe(element);
-      observers.push(observer);
+    if (defaultAddress && !formTouchedRef.current) {
+      shippingForm.setForm(defaultAddress);
     }
+  }, [defaultAddress]); // shippingForm.setForm は安定しているので依存配列に不要
 
-    return () => {
-      for (const observer of observers) {
-        observer.disconnect();
-      }
-    };
-  }, []);
-
-  // Postal code auto-lookup for shipping address
-  const postalLookup = usePostalCodeLookup(form.postalCode);
-  const postalAppliedRef = useRef('');
-
+  // 保存済み住所のエラーを state に反映
   useEffect(() => {
-    const digits = form.postalCode.replace(/-/g, '');
-    if (postalLookup.prefecture && postalAppliedRef.current !== digits) {
-      postalAppliedRef.current = digits;
-      setForm((prev) => ({
-        ...prev,
-        prefecture: postalLookup.prefecture,
-        city: postalLookup.city,
-        addressLine: prev.addressLine || postalLookup.town,
-      }));
+    if (savedAddressesError) {
+      dispatch({ type: 'SET_ERROR', payload: savedAddressesError });
     }
-  }, [postalLookup.prefecture, postalLookup.city, postalLookup.town, form.postalCode]);
-
-  // Postal code auto-lookup for recipient address
-  const recipientPostalLookup = usePostalCodeLookup(recipientForm.postalCode);
-  const recipientPostalAppliedRef = useRef('');
-
-  useEffect(() => {
-    if (!differentRecipient) return;
-    const digits = recipientForm.postalCode.replace(/-/g, '');
-    if (recipientPostalLookup.prefecture && recipientPostalAppliedRef.current !== digits) {
-      recipientPostalAppliedRef.current = digits;
-      setRecipientForm((prev) => ({
-        ...prev,
-        prefecture: recipientPostalLookup.prefecture,
-        city: recipientPostalLookup.city,
-        addressLine: prev.addressLine || recipientPostalLookup.town,
-      }));
-    }
-  }, [recipientPostalLookup.prefecture, recipientPostalLookup.city, recipientPostalLookup.town, recipientForm.postalCode, differentRecipient]);
+  }, [savedAddressesError]);
 
   const wrappingPrice = useMemo(() => {
     if (!giftOptions?.isGift || !giftOptions.wrappingId) return 0;
@@ -230,43 +157,18 @@ export function CheckoutPage() {
     checkoutAttemptIdRef.current = null;
   }, [cartItems]);
 
+  // 保存済み住所の読み込み状態を state に反映
   useEffect(() => {
-    if (differentRecipient) return;
-    setRecipientTouchedFields({});
-    setRecipientFieldErrors({});
-  }, [differentRecipient]);
-
-  useEffect(() => {
-    if (!authUser) return;
-    dispatch({ type: 'LOADING_ADDRESSES' });
-    void getAddresses()
-      .then((addresses) => {
-        setSavedAddresses(addresses);
-        const defaultAddress = addresses.find((address) => address.isDefault) ?? (addresses.length === 1 ? addresses[0] : null);
-        if (defaultAddress && !formTouchedRef.current) {
-          setForm({
-            lastName: defaultAddress.lastName,
-            firstName: defaultAddress.firstName,
-            email: defaultAddress.email,
-            phone: defaultAddress.phone,
-            postalCode: defaultAddress.postalCode,
-            prefecture: defaultAddress.prefecture,
-            city: defaultAddress.city,
-            addressLine: defaultAddress.addressLine,
-          });
-        }
-      })
-      .catch(() => {
-        dispatch({ type: 'SET_ERROR', payload: '保存済み配送先の読み込みに失敗しました' });
-      })
-      .finally(() => {
-        dispatch({ type: 'ADDRESSES_LOADED' });
-      });
-  }, [authUser]);
+    if (isLoadingAddresses) {
+      dispatch({ type: 'LOADING_ADDRESSES' });
+    } else {
+      dispatch({ type: 'ADDRESSES_LOADED' });
+    }
+  }, [isLoadingAddresses]);
 
   const applySavedAddress = (address: SavedAddressItem) => {
     formTouchedRef.current = true;
-    setForm({
+    shippingForm.setForm({
       lastName: address.lastName,
       firstName: address.firstName,
       email: address.email,
@@ -276,88 +178,26 @@ export function CheckoutPage() {
       city: address.city,
       addressLine: address.addressLine,
     });
-    setTouchedFields({});
-    setFieldErrors({});
+    shippingForm.clearTouchedAndErrors();
   };
 
-  const updateForm = (field: ShippingField, value: string) => {
+  const updateForm: typeof shippingForm.updateField = (field, value) => {
     formTouchedRef.current = true;
-    setTouchedFields((prev) => ({ ...prev, [field]: true }));
-    setForm((prev) => ({ ...prev, [field]: value }));
-    const message = validateShippingField(field, value);
-    setFieldErrors((prevErrors) => ({ ...prevErrors, [field]: message ?? undefined }));
-  };
-
-  const updateRecipientForm = (field: ShippingField, value: string) => {
-    setRecipientTouchedFields((prev) => ({ ...prev, [field]: true }));
-    setRecipientForm((prev) => ({ ...prev, [field]: value }));
-    const message = validateShippingField(field, value);
-    setRecipientFieldErrors((prevErrors) => ({ ...prevErrors, [field]: message ?? undefined }));
-  };
-
-  const touchAllFields = () => {
-    const touched: Partial<Record<ShippingField, boolean>> = {};
-    for (const field of SHIPPING_FIELD_ORDER) {
-      touched[field] = true;
-    }
-    setTouchedFields(touched);
-  };
-
-  const touchAllRecipientFields = () => {
-    const touched: Partial<Record<ShippingField, boolean>> = {};
-    for (const field of SHIPPING_FIELD_ORDER) {
-      touched[field] = true;
-    }
-    setRecipientTouchedFields(touched);
-  };
-
-  const getFieldError = (field: ShippingField): string | null => {
-    if (!touchedFields[field]) return null;
-    return fieldErrors[field] ?? null;
-  };
-
-  const getFieldInputClass = (field: ShippingField): string => {
-    const hasError = Boolean(getFieldError(field));
-    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
-      hasError
-        ? 'border-sale focus:ring-sale/30'
-        : 'border-border focus:ring-primary/50'
-    }`;
-  };
-
-  const getRecipientFieldError = (field: ShippingField): string | null => {
-    if (!recipientTouchedFields[field]) return null;
-    return recipientFieldErrors[field] ?? null;
-  };
-
-  const getRecipientFieldInputClass = (field: ShippingField): string => {
-    const hasError = Boolean(getRecipientFieldError(field));
-    return `w-full px-3 py-2 rounded-lg border bg-background text-foreground focus:outline-none focus:ring-2 ${
-      hasError
-        ? 'border-sale focus:ring-sale/30'
-        : 'border-border focus:ring-primary/50'
-    }`;
+    shippingForm.updateField(field, value);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     dispatch({ type: 'SET_ERROR', payload: null });
 
-    const errors = validateShippingForm(form);
-    setFieldErrors(errors);
-    touchAllFields();
-
-    const validationError = getFirstShippingError(errors);
+    const validationError = shippingForm.validateForm();
     if (validationError) {
       dispatch({ type: 'SET_ERROR', payload: `配送先情報: ${validationError}` });
       return;
     }
 
     if (differentRecipient) {
-      const recipientErrors = validateShippingForm(recipientForm);
-      setRecipientFieldErrors(recipientErrors);
-      touchAllRecipientFields();
-      const recipientValidationError = getFirstShippingError(recipientErrors);
+      const recipientValidationError = recipientForm.validateForm();
       if (recipientValidationError) {
         dispatch({ type: 'SET_ERROR', payload: `ギフト送り先情報: ${recipientValidationError}` });
         return;
@@ -387,7 +227,7 @@ export function CheckoutPage() {
           imageData: item.imageUrl,  // Base64 image data (with text overlay if portraitName exists)
           options: item.options,  // Include options (e.g., portraitName)
         })),
-        shippingAddress: form,
+        shippingAddress: shippingForm.form,
         clientRequestId,
         ...(validGeneratedAt && { generatedAt: validGeneratedAt }),
         ...(giftOptions?.isGift && {
@@ -396,7 +236,7 @@ export function CheckoutPage() {
             wrappingId: giftOptions.wrappingId ?? undefined,
             noshiType: giftOptions.noshiType ?? undefined,
             messageCard: giftOptions.messageCard || undefined,
-            ...(differentRecipient && { recipientAddress: recipientForm }),
+            ...(differentRecipient && { recipientAddress: recipientForm.form }),
           },
         }),
       });
@@ -404,7 +244,7 @@ export function CheckoutPage() {
       const paymentResponse = await processPayment({
         sourceId,
         orderId: orderResponse.orderId,
-        buyerEmail: form.email,
+        buyerEmail: shippingForm.form.email,
         clientRequestId,
       });
 
@@ -418,7 +258,7 @@ export function CheckoutPage() {
           paymentId: paymentResponse.paymentId,
           totalAmount: orderResponse.totalAmount,
           receiptUrl: paymentResponse.receiptUrl,
-          shippingAddress: form,
+          shippingAddress: shippingForm.form,
         },
       });
     } catch (error) {
@@ -521,10 +361,10 @@ export function CheckoutPage() {
                 clearGiftOptions={clearGiftOptions}
                 differentRecipient={differentRecipient}
                 setDifferentRecipient={setDifferentRecipient}
-                recipientForm={recipientForm}
-                updateRecipientForm={updateRecipientForm}
-                getRecipientFieldInputClass={getRecipientFieldInputClass}
-                getRecipientFieldError={getRecipientFieldError}
+                recipientForm={recipientForm.form}
+                updateRecipientForm={recipientForm.updateField}
+                getRecipientFieldInputClass={recipientForm.getFieldInputClass}
+                getRecipientFieldError={recipientForm.getFieldError}
               />
               </div>
 
@@ -532,12 +372,12 @@ export function CheckoutPage() {
               <ShippingAddressSection
                 isLoadingAddresses={state.isLoadingAddresses}
                 savedAddresses={savedAddresses}
-                form={form}
+                form={shippingForm.form}
                 onApplySavedAddress={applySavedAddress}
                 onUpdateForm={updateForm}
-                getFieldInputClass={getFieldInputClass}
-                getFieldError={getFieldError}
-                isPostalLookupLoading={postalLookup.isLoading}
+                getFieldInputClass={shippingForm.getFieldInputClass}
+                getFieldError={shippingForm.getFieldError}
+                isPostalLookupLoading={shippingForm.isPostalLookupLoading}
               />
               </div>
 
