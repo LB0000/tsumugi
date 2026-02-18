@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
@@ -9,9 +10,47 @@ import { logger } from '../lib/logger.js';
 import { recordStyleUsage } from '../lib/styleAnalytics.js';
 import { styleNameMap, getStylePrompt, getStyleFocusPrompt, categoryPrompts, validStyleIds } from '../lib/stylePrompts.js';
 import { generateMockResponse, type GenerateImageResponse } from '../lib/mockGeneration.js';
+import {
+  getUserCredits,
+  canGenerate,
+  consumeCredit,
+  initializeUserCredits,
+} from '../lib/credits.js';
 
 export const generateRouter = Router();
 generateRouter.use(csrfProtection());
+
+// CRITICAL-2 FIX: Race Condition Protection Design Documentation
+//
+// Problem: Time-of-Check-Time-of-Use (TOCTOU) Race Condition
+// Without protection, concurrent requests from the same user could both pass the credit check
+// and consume credits twice, even if the user only had 1 credit remaining.
+//
+// Attack Scenario:
+// 1. User has 1 credit remaining
+// 2. User sends 2 concurrent /generate requests (Request A and Request B)
+// 3. Request A checks credits → 1 remaining → OK
+// 4. Request B checks credits → 1 remaining → OK (race window)
+// 5. Request A generates image → consumes 1 credit → 0 remaining
+// 6. Request B generates image → tries to consume credit → FAILS (but image already generated)
+//
+// Solution: In-Flight User Locking
+// Track active generation requests per user using a Set<userId>.
+// If a user already has a generation in progress, reject new requests with 429.
+//
+// Design Properties:
+// - Simple: No database locks, no distributed coordination needed
+// - Fast: O(1) lookup and cleanup
+// - Safe: Prevents double-spending even under high concurrency
+// - User-friendly: Clear error message for concurrent requests
+//
+// Trade-offs:
+// - Single-server only (Railway restart clears locks, but that's acceptable)
+// - No queuing (user must retry manually, but this is simpler)
+// - Coarse-grained (locks entire user, not per-project, but generation is fast)
+//
+// Cleanup: finally block ensures lock is released even on errors
+const inFlightUsers = new Set<string>();
 
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -106,7 +145,7 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     if (!req.file || !styleId || !category) {
       res.status(400).json({
         success: false,
-        error: { code: 'INVALID_REQUEST', message: 'Missing required fields' }
+        error: { code: 'INVALID_REQUEST', message: '必須項目が不足しています' }
       });
       return;
     }
@@ -128,18 +167,74 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
       return;
     }
 
+    // Require authentication
+    const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
+    const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
+    if (!sessionUser) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: '認証が必要です' }
+      });
+      return;
+    }
+
+    // Prevent concurrent requests from same user (TOCTOU protection)
+    // Use local variable for safe cleanup in finally block
+    const lockedUserId = sessionUser.id;
+    if (inFlightUsers.has(lockedUserId)) {
+      res.status(429).json({
+        success: false,
+        error: { code: 'GENERATION_IN_PROGRESS', message: '画像生成中です。完了後に再度お試しください' }
+      });
+      return;
+    }
+    inFlightUsers.add(lockedUserId);
+
+    // Check if user has credits
+    let userBalance = getUserCredits(sessionUser.id);
+    if (!userBalance) {
+      // Initialize credits for new users
+      userBalance = initializeUserCredits(sessionUser.id);
+    }
+
+    if (!canGenerate(sessionUser.id)) {
+      res.status(402).json({
+        success: false,
+        error: { code: 'INSUFFICIENT_CREDITS', message: 'クレジットが不足しています' }
+      });
+      return;
+    }
+
     // Check if API key is configured
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
       if (allowMockGeneration) {
         logger.info('No Gemini API key configured, using mock generation', { requestId: req.requestId });
+
+        // Consume credit even in mock mode for realistic testing
+        const mockProjectId = `proj_mock_${Date.now()}`;
+        let totalRemaining = 0;
+        try {
+          consumeCredit(sessionUser.id, mockProjectId);
+          const updatedBalance = getUserCredits(sessionUser.id);
+          totalRemaining = updatedBalance
+            ? updatedBalance.freeRemaining + updatedBalance.paidRemaining
+            : 0;
+        } catch (creditError) {
+          logger.warn('Mock generation: credit consumption failed', {
+            userId: sessionUser.id,
+            error: creditError instanceof Error ? creditError.message : String(creditError),
+          });
+        }
+
         const response = await generateMockResponse(styleId);
+        response.creditsRemaining = totalRemaining;
         res.json(response);
         return;
       }
 
       res.status(500).json({
         success: false,
-        error: { code: 'SERVICE_NOT_CONFIGURED', message: 'Image generation service is not configured' }
+        error: { code: 'SERVICE_NOT_CONFIGURED', message: '画像生成サービスが設定されていません' }
       });
       return;
     }
@@ -287,6 +382,27 @@ CRITICAL REQUIREMENTS:
     // Generate project ID
     const projectId = `proj_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').slice(0, 9)}`;
 
+    // Consume 1 credit for successful generation
+    let totalRemaining = 0;
+    try {
+      consumeCredit(sessionUser.id, projectId);
+      const updatedBalance = getUserCredits(sessionUser.id);
+      totalRemaining = updatedBalance
+        ? updatedBalance.freeRemaining + updatedBalance.paidRemaining
+        : 0;
+    } catch (creditError) {
+      // CRITICAL: Credit consumption failed after successful generation
+      // Still deliver the image to user - they should not lose their result
+      // This requires manual reconciliation
+      logger.error('CRITICAL: Credit consumption failed after successful generation', {
+        userId: sessionUser.id,
+        projectId,
+        error: creditError instanceof Error ? creditError.message : String(creditError),
+        requestId: req.requestId,
+      });
+      // Return 0 remaining to indicate the issue - user should contact support
+    }
+
     const apiResponse: GenerateImageResponse = {
       success: true,
       projectId,
@@ -294,12 +410,10 @@ CRITICAL REQUIREMENTS:
       thumbnailImage: generatedImage,
       watermarked: false,
       creditsUsed: 1,
-      creditsRemaining: 4
+      creditsRemaining: totalRemaining
     };
 
-    // Auto-save to gallery for logged-in users
-    const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
-    const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
+    // Auto-save to gallery (sessionUser already authenticated above)
     if (sessionUser) {
       try {
         await addGalleryItem({
@@ -323,7 +437,25 @@ CRITICAL REQUIREMENTS:
     if (allowMockGeneration) {
       try {
         const { styleId } = req.body;
+        const mockProjectId = `proj_mock_fallback_${Date.now()}`;
+
+        // Consume credit even in error-fallback mock mode
+        let totalRemaining = 0;
+        try {
+          consumeCredit(sessionUser.id, mockProjectId);
+          const balance = getUserCredits(sessionUser.id);
+          totalRemaining = balance
+            ? balance.freeRemaining + balance.paidRemaining
+            : 0;
+        } catch (creditError) {
+          logger.warn('Error-fallback mock: credit consumption failed', {
+            userId: sessionUser.id,
+            error: creditError instanceof Error ? creditError.message : String(creditError),
+          });
+        }
+
         const mockResponse = await generateMockResponse(styleId || 'baroque');
+        mockResponse.creditsRemaining = totalRemaining;
         res.json(mockResponse);
         return;
       } catch {
@@ -333,8 +465,11 @@ CRITICAL REQUIREMENTS:
 
     res.status(502).json({
       success: false,
-      error: { code: 'GENERATION_UPSTREAM_FAILED', message: 'Failed to generate image' }
+      error: { code: 'GENERATION_UPSTREAM_FAILED', message: '画像の生成に失敗しました' }
     });
+  } finally {
+    // Always remove user from in-flight set
+    inFlightUsers.delete(lockedUserId);
   }
 });
 

@@ -38,6 +38,8 @@ const envSchema = z.object({
   SUPABASE_SCHEDULED_EMAILS_TABLE: z.string().min(1).default('scheduled_emails'),
   SUPABASE_CREDITS_TABLE: z.string().min(1).default('credit_balances'),
   SUPABASE_CREDIT_TRANSACTIONS_TABLE: z.string().min(1).default('credit_transactions'),
+  SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE: z.string().min(1).default('processed_webhook_events'),
+  SUPABASE_PENDING_PAYMENTS_TABLE: z.string().min(1).default('pending_payments'),
   LYLY_API_URL: z.string().url().optional(),
   LYLY_AUTH_TOKEN: z.string().min(10).optional(),  // [H5] Minimum length validation
 }).superRefine((data, ctx) => {

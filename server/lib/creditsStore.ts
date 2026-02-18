@@ -12,7 +12,13 @@ import {
   upsertRows,
   deleteOrphanedRows,
 } from './supabaseClient.js';
-import type { CreditBalance, CreditTransaction, PersistedCreditsState } from './creditTypes.js';
+import type {
+  CreditBalance,
+  CreditTransaction,
+  PersistedCreditsState,
+  ProcessedWebhookEvent,
+  PendingPayment,
+} from './creditTypes.js';
 
 // ==================== Supabase Row Type Mappings ====================
 
@@ -36,6 +42,20 @@ interface SupabaseCreditTransactionRow {
   balance_after_paid: number;
   reference_id: string | null;
   description: string;
+  created_at: string;
+}
+
+// CRITICAL-1 FIX: Webhook state row types
+interface SupabaseProcessedWebhookEventRow {
+  event_id: string;
+  processed_at: string;
+  created_at: string;
+}
+
+interface SupabasePendingPaymentRow {
+  payment_id: string;
+  user_id: string;
+  credits: number;
   created_at: string;
 }
 
@@ -95,13 +115,54 @@ function transactionToTransactionRow(txn: CreditTransaction): SupabaseCreditTran
   };
 }
 
+// CRITICAL-1 FIX: Webhook state converters
+function webhookEventRowToWebhookEvent(row: SupabaseProcessedWebhookEventRow): ProcessedWebhookEvent {
+  return {
+    eventId: row.event_id,
+    processedAt: row.processed_at,
+  };
+}
+
+function webhookEventToWebhookEventRow(event: ProcessedWebhookEvent): SupabaseProcessedWebhookEventRow {
+  return {
+    event_id: event.eventId,
+    processed_at: event.processedAt,
+    created_at: event.processedAt, // Use processedAt as createdAt
+  };
+}
+
+function pendingPaymentRowToPendingPayment(
+  row: SupabasePendingPaymentRow
+): { paymentId: string; payment: PendingPayment } {
+  return {
+    paymentId: row.payment_id,
+    payment: {
+      userId: row.user_id,
+      credits: row.credits,
+      createdAt: row.created_at,
+    },
+  };
+}
+
+function pendingPaymentToPendingPaymentRow(
+  paymentId: string,
+  payment: PendingPayment
+): SupabasePendingPaymentRow {
+  return {
+    payment_id: paymentId,
+    user_id: payment.userId,
+    credits: payment.credits,
+    created_at: payment.createdAt,
+  };
+}
+
 // ==================== Supabase Operations ====================
 
 async function loadCreditsFromSupabase(): Promise<PersistedCreditsState | null> {
   if (!hasSupabaseConfig()) return null;
 
   try {
-    const [balanceRows, transactionRows] = await Promise.all([
+    const [balanceRows, transactionRows, webhookEventRows, pendingPaymentRows] = await Promise.all([
       selectRows<SupabaseCreditBalanceRow>(
         config.SUPABASE_CREDITS_TABLE,
         'user_id,free_remaining,paid_remaining,total_used,created_at,updated_at'
@@ -110,20 +171,35 @@ async function loadCreditsFromSupabase(): Promise<PersistedCreditsState | null> 
         config.SUPABASE_CREDIT_TRANSACTIONS_TABLE,
         'id,user_id,type,amount,free_amount,paid_amount,balance_after_free,balance_after_paid,reference_id,description,created_at'
       ),
+      // CRITICAL-1 FIX: Load webhook state
+      selectRows<SupabaseProcessedWebhookEventRow>(
+        config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE,
+        'event_id,processed_at,created_at'
+      ),
+      selectRows<SupabasePendingPaymentRow>(
+        config.SUPABASE_PENDING_PAYMENTS_TABLE,
+        'payment_id,user_id,credits,created_at'
+      ),
     ]);
 
     const balances = balanceRows.map(balanceRowToBalance);
     const transactions = transactionRows.map(transactionRowToTransaction);
+    const processedWebhookEvents = webhookEventRows.map(webhookEventRowToWebhookEvent);
+    const pendingPayments = pendingPaymentRows.map(pendingPaymentRowToPendingPayment);
 
     logger.info('Loaded credits from Supabase', {
       balances: balances.length,
       transactions: transactions.length,
+      webhookEvents: processedWebhookEvents.length,
+      pendingPayments: pendingPayments.length,
     });
 
     return {
       version: 1,
       balances,
       transactions,
+      processedWebhookEvents,
+      pendingPayments,
     };
   } catch (error) {
     logger.error('Failed to load credits from Supabase', {
@@ -139,8 +215,15 @@ async function persistCreditsToSupabase(state: PersistedCreditsState): Promise<v
   try {
     const balanceRows = state.balances.map(balanceToBalanceRow);
     const transactionRows = state.transactions.map(transactionToTransactionRow);
+    // CRITICAL-1 FIX: Convert webhook state to rows
+    const webhookEventRows = state.processedWebhookEvents.map(webhookEventToWebhookEventRow);
+    const pendingPaymentRows = state.pendingPayments.map(({ paymentId, payment }) =>
+      pendingPaymentToPendingPaymentRow(paymentId, payment)
+    );
 
     const keepUserIds = state.balances.map(b => b.userId);
+    const keepEventIds = state.processedWebhookEvents.map(e => e.eventId);
+    const keepPaymentIds = state.pendingPayments.map(p => p.paymentId);
 
     // Upsert balances and delete orphans (balances can be updated)
     await Promise.all([
@@ -154,9 +237,28 @@ async function persistCreditsToSupabase(state: PersistedCreditsState): Promise<v
       await upsertRows(config.SUPABASE_CREDIT_TRANSACTIONS_TABLE, transactionRows, 'id');
     }
 
+    // CRITICAL-1 FIX: Persist webhook state
+    // Webhook events: upsert current events, delete old ones (TTL cleanup handled in-memory)
+    await Promise.all([
+      webhookEventRows.length > 0
+        ? upsertRows(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, webhookEventRows, 'event_id')
+        : Promise.resolve(),
+      deleteOrphanedRows(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, 'event_id', keepEventIds),
+    ]);
+
+    // Pending payments: upsert current payments, delete completed ones
+    await Promise.all([
+      pendingPaymentRows.length > 0
+        ? upsertRows(config.SUPABASE_PENDING_PAYMENTS_TABLE, pendingPaymentRows, 'payment_id')
+        : Promise.resolve(),
+      deleteOrphanedRows(config.SUPABASE_PENDING_PAYMENTS_TABLE, 'payment_id', keepPaymentIds),
+    ]);
+
     logger.info('Persisted credits to Supabase', {
       balances: balanceRows.length,
       transactions: transactionRows.length,
+      webhookEvents: webhookEventRows.length,
+      pendingPayments: pendingPaymentRows.length,
     });
   } catch (error) {
     logger.error('Failed to persist credits to Supabase', {
@@ -173,13 +275,24 @@ async function loadCreditsFromFile(filePath: string): Promise<PersistedCreditsSt
     const data = await fs.readFile(filePath, 'utf-8');
     const parsed = JSON.parse(data) as PersistedCreditsState;
 
+    // CRITICAL-1 FIX: Backward compatibility for old files without webhook state
+    const state: PersistedCreditsState = {
+      version: parsed.version,
+      balances: parsed.balances,
+      transactions: parsed.transactions,
+      processedWebhookEvents: parsed.processedWebhookEvents ?? [],
+      pendingPayments: parsed.pendingPayments ?? [],
+    };
+
     logger.info('Loaded credits from local file', {
       filePath,
-      balances: parsed.balances.length,
-      transactions: parsed.transactions.length,
+      balances: state.balances.length,
+      transactions: state.transactions.length,
+      webhookEvents: state.processedWebhookEvents.length,
+      pendingPayments: state.pendingPayments.length,
     });
 
-    return parsed;
+    return state;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return null; // File doesn't exist yet
@@ -199,6 +312,8 @@ async function persistCreditsToFile(filePath: string, state: PersistedCreditsSta
       filePath,
       balances: state.balances.length,
       transactions: state.transactions.length,
+      webhookEvents: state.processedWebhookEvents.length,
+      pendingPayments: state.pendingPayments.length,
     });
   } catch (error) {
     logger.error('Failed to persist credits to file', {
@@ -233,22 +348,28 @@ export async function loadCreditsStateSnapshot(filePath: string): Promise<Persis
     version: 1,
     balances: [],
     transactions: [],
+    processedWebhookEvents: [],
+    pendingPayments: [],
   };
 }
 
 /**
  * Persist credit state snapshot: Supabase-primary, file-fallback
+ * Accepts separate snapshots for Supabase (delta) and file (full)
  */
 export async function persistCreditsStateSnapshot(
   filePath: string,
-  state: PersistedCreditsState
+  supabaseState: PersistedCreditsState,
+  fileState?: PersistedCreditsState
 ): Promise<void> {
+  const stateForFile = fileState ?? supabaseState;
+
   // Try Supabase first
   if (hasSupabaseConfig()) {
     try {
-      await persistCreditsToSupabase(state);
-      // Also persist to file as backup
-      await persistCreditsToFile(filePath, state);
+      await persistCreditsToSupabase(supabaseState);
+      // Persist full state to file as backup
+      await persistCreditsToFile(filePath, stateForFile);
       return;
     } catch (error) {
       logger.warn('Supabase persist failed, falling back to file only', {
@@ -257,6 +378,6 @@ export async function persistCreditsStateSnapshot(
     }
   }
 
-  // Fallback to file only
-  await persistCreditsToFile(filePath, state);
+  // Fallback to file only (always use full state)
+  await persistCreditsToFile(filePath, stateForFile);
 }

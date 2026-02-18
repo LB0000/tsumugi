@@ -9,6 +9,7 @@ export const FREE_CREDITS = 3;
 export const CREDITS_PER_PACK = 10;
 export const PACK_PRICE_YEN = 980;
 export const PRICE_PER_GENERATION = 98; // 980 / 10
+export const MAX_CREDITS_PER_PURCHASE = 1000; // Maximum credits allowed in a single purchase
 
 // ==================== Domain Types ====================
 
@@ -46,6 +47,23 @@ export interface CreditTransaction {
 // ==================== Persistence Types ====================
 
 /**
+ * Pending payment tracking for webhook processing
+ */
+export interface PendingPayment {
+  userId: string;
+  credits: number;
+  createdAt: string;
+}
+
+/**
+ * Persisted webhook event record for idempotency
+ */
+export interface ProcessedWebhookEvent {
+  eventId: string;
+  processedAt: string;
+}
+
+/**
  * Complete snapshot of credit system state
  * Used for persistence (Supabase + local file fallback)
  */
@@ -53,4 +71,6 @@ export interface PersistedCreditsState {
   version: number;
   balances: CreditBalance[];
   transactions: CreditTransaction[];
+  processedWebhookEvents: ProcessedWebhookEvent[];
+  pendingPayments: { paymentId: string; payment: PendingPayment }[];
 }
