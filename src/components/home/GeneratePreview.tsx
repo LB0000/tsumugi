@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
-import { generateImage } from '../../api';
+import { generateImage, ApiError } from '../../api';
 import { trackEvent } from '../../lib/analytics';
 import { useCredits } from '../../hooks/useCredits';
 import { needsCharge } from '../../types/credits';
@@ -170,11 +170,17 @@ export function GeneratePreview() {
         return;
       }
       const message = err instanceof Error ? err.message : '画像の生成に失敗しました';
-      // Handle server-side credit check failures
-      if (message.includes('INSUFFICIENT_CREDITS') || message.includes('NO_CREDIT_BALANCE')) {
-        void refreshCredits();
-        setShowChargeModal(true);
-        return;
+      // Handle credit-related errors by error code
+      if (err instanceof ApiError) {
+        if (err.code === 'FREE_TRIAL_EXHAUSTED') {
+          navigate('/login', { state: { from: '/' } });
+          return;
+        }
+        if (err.code === 'INSUFFICIENT_CREDITS' || err.code === 'NO_CREDIT_BALANCE') {
+          void refreshCredits();
+          setShowChargeModal(true);
+          return;
+        }
       }
       setError(message);
     } finally {

@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
-import { extractSessionTokenFromHeaders, type HeaderMap } from '../lib/requestAuth.js';
+import { extractSessionTokenFromHeaders, parseCookies, type HeaderMap } from '../lib/requestAuth.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { logger } from '../lib/logger.js';
 import { recordStyleUsage } from '../lib/styleAnalytics.js';
@@ -126,7 +126,31 @@ const model = genAI.getGenerativeModel(
 
 const allowMockGeneration = process.env.ALLOW_MOCK_GENERATION === 'true' && process.env.NODE_ENV !== 'production';
 
+// Anonymous user support: cookie-based ID for free trial tracking
+const ANON_COOKIE_NAME = 'fable_anon';
+const isProduction = process.env.NODE_ENV === 'production';
+
+const ANON_ID_PATTERN = /^anon_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getOrCreateAnonId(req: Request, res: Response): string {
+  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
+  const cookies = parseCookies(cookieHeader);
+  const existing = cookies.get(ANON_COOKIE_NAME);
+  if (existing && ANON_ID_PATTERN.test(existing)) return existing;
+
+  const anonId = `anon_${crypto.randomUUID()}`;
+  res.cookie(ANON_COOKIE_NAME, anonId, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction && process.env.COOKIE_SAME_SITE === 'none' ? 'none' as const : 'lax' as const,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/',
+  });
+  return anonId;
+}
+
 generateRouter.post('/', upload.single('image'), async (req: Request, res: Response) => {
+  let userId = '';
   try {
     const styleId = typeof req.body.styleId === 'string' ? req.body.styleId : '';
     const category = typeof req.body.category === 'string' ? req.body.category : '';
@@ -167,41 +191,40 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
       return;
     }
 
-    // Require authentication
+    // Resolve user: authenticated or anonymous (cookie-based)
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
-    if (!sessionUser) {
-      res.status(401).json({
-        success: false,
-        error: { code: 'UNAUTHORIZED', message: '認証が必要です' }
-      });
-      return;
-    }
+    userId = sessionUser ? sessionUser.id : getOrCreateAnonId(req, res);
 
     // Prevent concurrent requests from same user (TOCTOU protection)
-    // Use local variable for safe cleanup in finally block
-    const lockedUserId = sessionUser.id;
-    if (inFlightUsers.has(lockedUserId)) {
+    if (inFlightUsers.has(userId)) {
       res.status(429).json({
         success: false,
         error: { code: 'GENERATION_IN_PROGRESS', message: '画像生成中です。完了後に再度お試しください' }
       });
       return;
     }
-    inFlightUsers.add(lockedUserId);
+    inFlightUsers.add(userId);
 
     // Check if user has credits
-    let userBalance = getUserCredits(sessionUser.id);
+    let userBalance = getUserCredits(userId);
     if (!userBalance) {
       // Initialize credits for new users
-      userBalance = initializeUserCredits(sessionUser.id);
+      userBalance = initializeUserCredits(userId);
     }
 
-    if (!canGenerate(sessionUser.id)) {
-      res.status(402).json({
-        success: false,
-        error: { code: 'INSUFFICIENT_CREDITS', message: 'クレジットが不足しています' }
-      });
+    if (!canGenerate(userId)) {
+      if (!sessionUser) {
+        res.status(402).json({
+          success: false,
+          error: { code: 'FREE_TRIAL_EXHAUSTED', message: '無料お試し（3回）が終了しました。ログインして続けましょう' }
+        });
+      } else {
+        res.status(402).json({
+          success: false,
+          error: { code: 'INSUFFICIENT_CREDITS', message: 'クレジットが不足しています' }
+        });
+      }
       return;
     }
 
@@ -214,14 +237,14 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
         const mockProjectId = `proj_mock_${Date.now()}`;
         let totalRemaining = 0;
         try {
-          consumeCredit(sessionUser.id, mockProjectId);
-          const updatedBalance = getUserCredits(sessionUser.id);
+          consumeCredit(userId, mockProjectId);
+          const updatedBalance = getUserCredits(userId);
           totalRemaining = updatedBalance
             ? updatedBalance.freeRemaining + updatedBalance.paidRemaining
             : 0;
         } catch (creditError) {
           logger.warn('Mock generation: credit consumption failed', {
-            userId: sessionUser.id,
+            userId: userId,
             error: creditError instanceof Error ? creditError.message : String(creditError),
           });
         }
@@ -385,8 +408,8 @@ CRITICAL REQUIREMENTS:
     // Consume 1 credit for successful generation
     let totalRemaining = 0;
     try {
-      consumeCredit(sessionUser.id, projectId);
-      const updatedBalance = getUserCredits(sessionUser.id);
+      consumeCredit(userId, projectId);
+      const updatedBalance = getUserCredits(userId);
       totalRemaining = updatedBalance
         ? updatedBalance.freeRemaining + updatedBalance.paidRemaining
         : 0;
@@ -395,7 +418,7 @@ CRITICAL REQUIREMENTS:
       // Still deliver the image to user - they should not lose their result
       // This requires manual reconciliation
       logger.error('CRITICAL: Credit consumption failed after successful generation', {
-        userId: sessionUser.id,
+        userId: userId,
         projectId,
         error: creditError instanceof Error ? creditError.message : String(creditError),
         requestId: req.requestId,
@@ -413,7 +436,7 @@ CRITICAL REQUIREMENTS:
       creditsRemaining: totalRemaining
     };
 
-    // Auto-save to gallery (sessionUser already authenticated above)
+    // Auto-save to gallery (authenticated users only)
     if (sessionUser) {
       try {
         await addGalleryItem({
@@ -442,14 +465,14 @@ CRITICAL REQUIREMENTS:
         // Consume credit even in error-fallback mock mode
         let totalRemaining = 0;
         try {
-          consumeCredit(sessionUser.id, mockProjectId);
-          const balance = getUserCredits(sessionUser.id);
+          consumeCredit(userId, mockProjectId);
+          const balance = getUserCredits(userId);
           totalRemaining = balance
             ? balance.freeRemaining + balance.paidRemaining
             : 0;
         } catch (creditError) {
           logger.warn('Error-fallback mock: credit consumption failed', {
-            userId: sessionUser.id,
+            userId: userId,
             error: creditError instanceof Error ? creditError.message : String(creditError),
           });
         }
@@ -468,8 +491,8 @@ CRITICAL REQUIREMENTS:
       error: { code: 'GENERATION_UPSTREAM_FAILED', message: '画像の生成に失敗しました' }
     });
   } finally {
-    // Always remove user from in-flight set
-    inFlightUsers.delete(lockedUserId);
+    // Always remove user from in-flight set (userId may be '' if validation failed early)
+    if (userId) inFlightUsers.delete(userId);
   }
 });
 

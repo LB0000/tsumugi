@@ -2,6 +2,15 @@ import type { GenerateImageResponse, ArtStyle, PricingPlan, PrintSize } from '..
 import { API_BASE, getFreshCsrfToken, fetchWithTimeout } from './common';
 import { isErrorResponse, isGenerateImageResponse, isStylesResponse, isPricingResponse } from './typeGuards';
 
+export class ApiError extends Error {
+  code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+  }
+}
+
 export interface StylesResponse {
   success: true;
   styles: ArtStyle[];
@@ -50,10 +59,11 @@ export async function generateImage(
   const data: unknown = await response.json();
 
   if (!response.ok || isErrorResponse(data)) {
+    const errorCode = isErrorResponse(data) ? data.error.code : 'UNKNOWN_ERROR';
     const errorMessage = isErrorResponse(data)
       ? data.error.message
       : '画像の生成に失敗しました。しばらくしてから再度お試しください。';
-    throw new Error(errorMessage);
+    throw new ApiError(errorCode, errorMessage);
   }
 
   if (!isGenerateImageResponse(data)) {
