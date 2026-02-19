@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { Sparkles, Crown, Leaf, Grid3X3, Wand2, ArrowRight, X } from 'lucide-react';
+import { Sparkles, Crown, Leaf, Grid3X3, Wand2, ArrowRight, X, Palette } from 'lucide-react';
 import { galleryItems, type GalleryItem } from '../../data/galleryItems';
 import { artStyles } from '../../data/artStyles';
 import { useAppStore } from '../../stores/appStore';
@@ -18,6 +18,7 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const { setSelectedStyle, openStyleModal } = useAppStore();
 
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return;
@@ -110,12 +111,29 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
 
         {/* 情報バー */}
         <div className="absolute bottom-0 inset-x-0 p-5 bg-gradient-to-t from-black/70 to-transparent">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary/80 text-white text-xs font-semibold backdrop-blur-sm">
               <Sparkles className="w-3 h-3" />
               {item.styleName}
             </span>
-            <span className="text-white text-sm font-medium">{item.label}</span>
+            <button
+              onClick={() => {
+                const style = artStyles.find(s => s.name === item.styleName);
+                if (style) {
+                  setSelectedStyle(style);
+                  openStyleModal();
+                }
+                onClose();
+                setTimeout(() => {
+                  document.getElementById('style-section')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/90 text-foreground text-xs font-semibold hover:bg-white transition-colors backdrop-blur-sm shadow-lg cursor-pointer"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              このスタイルを試す
+              <ArrowRight className="w-3 h-3" />
+            </button>
           </div>
         </div>
 
@@ -140,14 +158,6 @@ function GalleryCard({ item, index, onOpenLightbox }: {
   onOpenLightbox: (item: GalleryItem) => void;
 }) {
   const [showAfter, setShowAfter] = useState(false);
-  const { setSelectedStyle } = useAppStore();
-
-  const handleStyleSelect = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const style = artStyles.find(s => s.name === item.styleName);
-    if (style) setSelectedStyle(style);
-    document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <div
@@ -202,19 +212,6 @@ function GalleryCard({ item, index, onOpenLightbox }: {
         </div>
       </div>
 
-      {/* 情報 + CTA エリア（画像の外） */}
-      <div className="p-2.5 sm:p-3 bg-card">
-        <p className="text-foreground text-xs sm:text-sm font-medium leading-tight mb-2 line-clamp-1">
-          {item.label}
-        </p>
-        <button
-          onClick={handleStyleSelect}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-lg bg-primary/10 text-primary text-[11px] sm:text-xs font-semibold hover:bg-primary/20 transition-all duration-300 cursor-pointer"
-        >
-          このスタイルで作る
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      </div>
     </div>
   );
 }
