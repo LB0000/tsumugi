@@ -74,9 +74,10 @@ const upload = multer({
   },
 });
 
-// Retry configuration for handling 503 errors
+// Retry configuration for handling transient API errors
 const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 2000;
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 503]);
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -90,20 +91,71 @@ async function generateWithRetry<T>(
     try {
       return await operation();
     } catch (error: unknown) {
-      const isRetryable = error instanceof Error &&
-        'status' in error &&
-        (error as { status: number }).status === 503;
+      const status = error instanceof Error && 'status' in error
+        ? (error as { status: number }).status
+        : 0;
+      const isRetryable = RETRYABLE_STATUS_CODES.has(status);
 
       if (!isRetryable || attempt === retries) {
         throw error;
       }
 
       const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-      logger.info(`Attempt ${attempt} failed with 503, retrying in ${delay}ms...`);
+      logger.info(`Attempt ${attempt} failed with ${status}, retrying in ${delay}ms...`);
       await sleep(delay);
     }
   }
   throw new Error('Max retries exceeded');
+}
+
+// Extract image from Gemini response parts. Returns { image, text } or null values.
+interface GeminiExtractResult { image: string; text: string }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Gemini SDK types are complex; runtime checks handle safety
+function extractImageFromResponse(response: any, requestId: string | undefined): GeminiExtractResult {
+  let image = '';
+  let text = '';
+
+  const parts = response.candidates?.[0]?.content?.parts as Array<Record<string, any>> | undefined;
+  if (parts && parts.length > 0) {
+    logger.info('Found parts in response', { count: parts.length, requestId });
+
+    for (const part of parts) {
+      if ('inlineData' in part && part.inlineData) {
+        const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
+        logger.info('Found image in response', { mimeType: part.inlineData.mimeType, size: cleanBase64.length, requestId });
+
+        if (cleanBase64.length === 0) {
+          logger.warn('Empty image data received from Gemini', { requestId });
+          continue;
+        }
+        if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
+          logger.warn('Invalid base64 characters detected', { requestId });
+          continue;
+        }
+        image = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
+        break; // Use first valid image
+      }
+      if ('text' in part && part.text) {
+        text = part.text;
+        logger.info('Found text response', { preview: text.substring(0, 100), requestId });
+      }
+    }
+  } else {
+    // Log full diagnostic info for empty responses
+    const candidate = response.candidates?.[0];
+    const feedback = response.promptFeedback;
+    logger.warn('No candidates or parts in response', {
+      requestId,
+      hasCandidates: !!response.candidates,
+      candidateCount: response.candidates?.length ?? 0,
+      finishReason: candidate?.finishReason ?? 'N/A',
+      safetyRatings: candidate?.safetyRatings ?? 'N/A',
+      promptFeedback: feedback ?? 'N/A',
+      contentKeys: candidate?.content ? Object.keys(candidate.content) : [],
+    });
+  }
+
+  return { image, text };
 }
 
 // Initialize Gemini API
@@ -330,106 +382,67 @@ CRITICAL REQUIREMENTS:
     };
 
     try {
-    // Generate image using Gemini 3 Pro Image with retry for 503 errors
-    const result = await generateWithRetry(() =>
-      model.generateContent([
-        {
-          inlineData: {
-            mimeType: parsedImage.mimeType,
-            data: parsedImage.data
-          }
-        },
-        { text: fullPrompt }
-      ])
-    );
+    // --- Image generation with empty-response resilience ---
+    // Gemini may return HTTP 200 with empty content when the model is transiently
+    // unavailable. We retry with escalating prompt simplification and backoff.
+    // Total API calls bounded: stage 1 gets full HTTP retries, stages 2-3 get
+    // single attempt only. Maximum: 3 + 1 + 1 = 5 API calls.
+    let clientDisconnected = false;
+    res.on('close', () => { clientDisconnected = true; });
 
-    const response = await result.response;
+    const imageContent = {
+      inlineData: { mimeType: parsedImage.mimeType, data: parsedImage.data },
+    };
+    const retryStages = [
+      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: MAX_RETRIES },
+      // Stage 2: simplified prompt (often bypasses transient safety filters), single HTTP attempt
+      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 5000, label: 'simplified' as const, httpRetries: 1 },
+      // Stage 3: minimal prompt as last resort, single HTTP attempt
+      { prompt: 'Transform this photo into a classical painting. Keep the subject recognizable.', delay: 15000, label: 'minimal' as const, httpRetries: 1 },
+    ];
 
-    // Extract generated image from response
     let generatedImage = '';
     let textResponse = '';
 
-    logger.info('Gemini response received, checking for image', { requestId: req.requestId });
+    for (let attempt = 0; attempt < retryStages.length; attempt++) {
+      const stage = retryStages[attempt];
 
-    if (response.candidates && response.candidates[0]?.content?.parts) {
-      logger.info('Found parts in response', { count: response.candidates[0].content.parts.length, requestId: req.requestId });
-
-      for (const part of response.candidates[0].content.parts) {
-        if ('inlineData' in part && part.inlineData) {
-          // Clean base64 data: remove any whitespace/newlines that might corrupt the data URL
-          const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
-          logger.info('Found image in response', { mimeType: part.inlineData.mimeType, size: cleanBase64.length, requestId: req.requestId });
-
-          // Validate base64 data
-          if (cleanBase64.length === 0) {
-            logger.error('Empty image data received from Gemini', { requestId: req.requestId });
-            continue;
-          }
-
-          // Ensure valid base64 characters
-          if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
-            logger.error('Invalid base64 characters detected', { requestId: req.requestId });
-            continue;
-          }
-
-          generatedImage = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
-        }
-        if ('text' in part && part.text) {
-          textResponse = part.text;
-          logger.info('Found text response', { preview: textResponse.substring(0, 100), requestId: req.requestId });
-        }
+      if (clientDisconnected) {
+        logger.info('Client disconnected, aborting generation', { requestId: req.requestId });
+        break;
       }
-    } else {
-      logger.info('No candidates or parts in response', { requestId: req.requestId });
-      // Log safety feedback for debugging
-      const feedback = response.promptFeedback;
-      if (feedback) {
-        logger.info('Prompt feedback', { feedback, requestId: req.requestId });
-      }
-      const candidate = response.candidates?.[0];
-      if (candidate) {
-        logger.info('Candidate details', { finishReason: candidate.finishReason, safetyRatings: candidate.safetyRatings, requestId: req.requestId });
-      }
-    }
 
-    if (!generatedImage) {
-      // Retry once with simplified prompt when Gemini returns no image (often a transient safety filter issue)
-      logger.info('No image in first attempt, retrying with simplified prompt', { requestId: req.requestId });
-      const retryPrompt = `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`;
-      const retryResult = await generateWithRetry(() =>
-        model.generateContent([
-          {
-            inlineData: {
-              mimeType: parsedImage.mimeType,
-              data: parsedImage.data
-            }
-          },
-          { text: retryPrompt }
-        ])
+      if (stage.delay > 0) {
+        logger.info(`Waiting ${stage.delay}ms before retry attempt ${attempt + 1}`, { requestId: req.requestId });
+        await sleep(stage.delay);
+      }
+
+      logger.info(`Generating image (attempt ${attempt + 1}/${retryStages.length}, prompt: ${stage.label})`, {
+        requestId: req.requestId,
+      });
+
+      const result = await generateWithRetry(
+        () => model.generateContent([imageContent, { text: stage.prompt }]),
+        stage.httpRetries,
       );
 
-      const retryResponse = await retryResult.response;
-      if (retryResponse.candidates?.[0]?.content?.parts) {
-        for (const part of retryResponse.candidates[0].content.parts) {
-          if ('inlineData' in part && part.inlineData) {
-            const cleanBase64 = (part.inlineData.data || '').replace(/[\s\n\r]/g, '');
-            if (cleanBase64.length > 0 && /^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
-              generatedImage = `data:${part.inlineData.mimeType};base64,${cleanBase64}`;
-              logger.info('Retry successful, image generated', { requestId: req.requestId });
-            }
-          }
-          if ('text' in part && part.text) {
-            textResponse = part.text;
-          }
+      const response = await result.response;
+      const extracted = extractImageFromResponse(response, req.requestId);
+      textResponse = extracted.text || textResponse;
+
+      if (extracted.image) {
+        generatedImage = extracted.image;
+        if (attempt > 0) {
+          logger.info(`Retry attempt ${attempt + 1} succeeded (prompt: ${stage.label})`, { requestId: req.requestId });
         }
-      } else {
-        const retryFeedback = retryResponse.promptFeedback;
-        if (retryFeedback) logger.info('Retry prompt feedback', { feedback: retryFeedback, requestId: req.requestId });
+        break;
       }
+
+      logger.warn(`Attempt ${attempt + 1} returned no image`, { requestId: req.requestId, prompt: stage.label });
     }
 
     if (!generatedImage) {
-      throw new Error(`Gemini returned no image output. Text response: ${textResponse.slice(0, 300)}`);
+      throw new Error(`Gemini returned no image after ${retryStages.length} attempts. Text: ${textResponse.slice(0, 300)}`);
     }
 
     logger.info('Image generation successful', { requestId: req.requestId });
