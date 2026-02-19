@@ -1,12 +1,55 @@
-import { useMemo, memo } from 'react';
-import { Star, ArrowRight } from 'lucide-react';
+import { useMemo, useState, useEffect, memo } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
-import { SOCIAL_PROOF_RATING, SOCIAL_PROOF_REVIEW_COUNT } from '../../data/socialProof';
+import {
+  SOCIAL_PROOF_GENERATION_COUNT,
+  SOCIAL_PROOF_RATING_NUM,
+  SOCIAL_PROOF_SATISFACTION_RATE,
+} from '../../data/socialProof';
 import { categorySamples } from './hero/heroSamples';
 import { ParallaxCard } from './hero/ParallaxCard';
 import { BackgroundDecorations } from './hero/BackgroundDecorations';
 import './hero/heroAnimations.css';
+
+const heroMetrics = [
+  { value: SOCIAL_PROOF_GENERATION_COUNT, suffix: '+', label: '作品を生成', decimals: 0 },
+  { value: SOCIAL_PROOF_RATING_NUM, suffix: '/5.0', label: '平均評価', decimals: 1 },
+  { value: SOCIAL_PROOF_SATISFACTION_RATE, suffix: '%', label: '満足度', decimals: 0 },
+];
+
+function HeroAnimatedNumber({ target, suffix, decimals }: { target: number; suffix: string; decimals: number }) {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    setCurrent(0);
+    let rafId: number;
+    const delay = setTimeout(() => {
+      const duration = 2000;
+      const startTime = performance.now();
+      function animate(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        setCurrent(target * eased);
+        if (progress < 1) rafId = requestAnimationFrame(animate);
+      }
+      rafId = requestAnimationFrame(animate);
+    }, 1200); // Start after hero fade-in completes
+    return () => {
+      clearTimeout(delay);
+      cancelAnimationFrame(rafId);
+    };
+  }, [target]);
+
+  const formatted = decimals > 0 ? current.toFixed(decimals) : Math.round(current).toLocaleString();
+  return (
+    <>
+      <span className="text-gradient-gold">{formatted}</span>
+      <span className="text-gradient-gold text-[0.55em] font-semibold opacity-60">{suffix}</span>
+    </>
+  );
+}
 
 function HeroBeforeAfterBase() {
   const { selectedCategory } = useAppStore();
@@ -88,16 +131,26 @@ function HeroBeforeAfterBase() {
               </span>
             </div>
 
-            {/* 信頼指標 */}
-            <div className="hero-animate-fadeIn-delay-5 pt-1">
-              <div className="flex items-center justify-center lg:justify-start gap-4 text-sm">
-                <div className="flex items-center gap-1.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 text-secondary fill-secondary" />
-                  ))}
-                  <span className="ml-1.5 text-foreground font-bold">{SOCIAL_PROOF_RATING}</span>
-                  <span className="text-muted">({SOCIAL_PROOF_REVIEW_COUNT})</span>
-                </div>
+            {/* 実績メトリクス */}
+            <div className="hero-animate-fadeIn-delay-5 pt-2">
+              <div className="inline-flex items-stretch justify-center lg:justify-start rounded-2xl border border-secondary/15 bg-gradient-to-br from-card/80 via-card/60 to-secondary/[0.03] backdrop-blur-sm shadow-sm">
+                {heroMetrics.map((metric, i) => (
+                  <div key={metric.label} className="flex items-stretch">
+                    <div className="text-center px-4 sm:px-6 py-3 sm:py-4" role="group" aria-label={`${metric.label}: ${metric.value}${metric.suffix}`}>
+                      <div className="font-serif text-xl sm:text-2xl font-bold tracking-tight leading-none mb-1" aria-hidden="true">
+                        <HeroAnimatedNumber target={metric.value} suffix={metric.suffix} decimals={metric.decimals} />
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-muted tracking-[0.1em]" aria-hidden="true">
+                        {metric.label}
+                      </div>
+                    </div>
+                    {i < heroMetrics.length - 1 && (
+                      <div className="flex items-center" aria-hidden="true">
+                        <div className="w-px h-8 bg-gradient-to-b from-transparent via-secondary/25 to-transparent" />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
