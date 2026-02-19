@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { config } from '../config.js';
 import { getUserBySessionToken } from '../lib/auth.js';
 import { addGalleryItem } from '../lib/galleryState.js';
 import { extractSessionTokenFromHeaders, parseCookies, type HeaderMap } from '../lib/requestAuth.js';
@@ -159,9 +160,9 @@ function extractImageFromResponse(response: any, requestId: string | undefined):
 }
 
 // Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY || '');
 
-if (process.env.NODE_ENV === 'production' && (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here')) {
+if (config.NODE_ENV === 'production' && (!config.GEMINI_API_KEY || config.GEMINI_API_KEY === 'your_api_key_here')) {
   logger.warn('GEMINI_API_KEY is not configured in production');
 }
 
@@ -178,7 +179,7 @@ const model = genAI.getGenerativeModel(
   { timeout: 90_000 },
 );
 
-const allowMockGeneration = process.env.ALLOW_MOCK_GENERATION === 'true' && process.env.NODE_ENV !== 'production';
+const allowMockGeneration = config.ALLOW_MOCK_GENERATION === 'true' && config.NODE_ENV !== 'production';
 
 // Anonymous user support: cookie-based ID for free trial tracking
 const ANON_COOKIE_NAME = 'fable_anon';
@@ -196,7 +197,7 @@ function getOrCreateAnonId(req: Request, res: Response): string {
   res.cookie(ANON_COOKIE_NAME, anonId, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction && process.env.COOKIE_SAME_SITE === 'none' ? 'none' as const : 'lax' as const,
+    sameSite: isProduction && config.COOKIE_SAME_SITE === 'none' ? 'none' as const : 'lax' as const,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     path: '/',
   });
@@ -289,7 +290,7 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     }
 
     // Check if API key is configured
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
+    if (!config.GEMINI_API_KEY || config.GEMINI_API_KEY === 'your_api_key_here') {
       if (allowMockGeneration) {
         logger.info('No Gemini API key configured, using mock generation', { requestId: req.requestId });
 
@@ -421,24 +422,31 @@ CRITICAL REQUIREMENTS:
         requestId: req.requestId,
       });
 
-      const result = await generateWithRetry(
-        () => model.generateContent([imageContent, { text: stage.prompt }]),
-        stage.httpRetries,
-      );
+      try {
+        const result = await generateWithRetry(
+          () => model.generateContent([imageContent, { text: stage.prompt }]),
+          stage.httpRetries,
+        );
 
-      const response = await result.response;
-      const extracted = extractImageFromResponse(response, req.requestId);
-      textResponse = extracted.text || textResponse;
+        const response = await result.response;
+        const extracted = extractImageFromResponse(response, req.requestId);
+        textResponse = extracted.text || textResponse;
 
-      if (extracted.image) {
-        generatedImage = extracted.image;
-        if (attempt > 0) {
-          logger.info(`Retry attempt ${attempt + 1} succeeded (prompt: ${stage.label})`, { requestId: req.requestId });
+        if (extracted.image) {
+          generatedImage = extracted.image;
+          if (attempt > 0) {
+            logger.info(`Retry attempt ${attempt + 1} succeeded (prompt: ${stage.label})`, { requestId: req.requestId });
+          }
+          break;
         }
-        break;
-      }
 
-      logger.warn(`Attempt ${attempt + 1} returned no image`, { requestId: req.requestId, prompt: stage.label });
+        logger.warn(`Attempt ${attempt + 1} returned no image`, { requestId: req.requestId, prompt: stage.label });
+      } catch (stageError) {
+        logger.warn(`Stage ${stage.label} failed, ${attempt < retryStages.length - 1 ? 'trying next stage' : 'no more stages'}`, {
+          requestId: req.requestId,
+          error: stageError instanceof Error ? stageError.message : String(stageError),
+        });
+      }
     }
 
     if (!generatedImage) {
