@@ -152,17 +152,15 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
 }
 
 // ── ギャラリーカード ──
-function GalleryCard({ item, index, onOpenLightbox }: {
+function GalleryCard({ item, onOpenLightbox }: {
   item: GalleryItem;
-  index: number;
   onOpenLightbox: (item: GalleryItem) => void;
 }) {
   const [showAfter, setShowAfter] = useState(false);
 
   return (
     <div
-      className="rounded-2xl overflow-hidden group cursor-pointer border-2 border-border/50 hover:border-secondary/40 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/10 hover:-translate-y-1"
-      style={{ animation: `galleryFadeIn 0.4s ease-out ${index * 60}ms both` }}
+      className="rounded-2xl overflow-hidden group cursor-pointer border-2 border-border/50 hover:border-secondary/40 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/10"
       onMouseEnter={() => setShowAfter(true)}
       onMouseLeave={() => setShowAfter(false)}
     >
@@ -280,11 +278,10 @@ export const SampleGallery = memo(function SampleGallery() {
 
       {/* ギャラリーグリッド */}
       <div key={animKey} className={`grid grid-cols-2 md:grid-cols-3 gap-5 max-w-4xl mx-auto transition-opacity duration-150 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        {displayed.map((item, index) => (
+        {displayed.map((item) => (
           <GalleryCard
             key={item.id}
             item={item}
-            index={index}
             onOpenLightbox={setLightboxItem}
           />
         ))}
@@ -307,13 +304,6 @@ export const SampleGallery = memo(function SampleGallery() {
         <Lightbox item={lightboxItem} onClose={() => setLightboxItem(null)} />
       )}
 
-      {/* アニメーション */}
-      <style>{`
-        @keyframes galleryFadeIn {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 });
