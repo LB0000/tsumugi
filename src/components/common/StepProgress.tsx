@@ -1,12 +1,14 @@
-import { Check, Upload, Palette, Sparkles } from 'lucide-react';
+import { Check, Upload, Palette, Sparkles, LayoutGrid } from 'lucide-react';
 
 interface StepProgressProps {
+  hasCategory: boolean;
   hasUpload: boolean;
   hasStyle: boolean;
   hasGenerated: boolean;
 }
 
 const steps = [
+  { label: 'カテゴリを選ぶ', icon: LayoutGrid, sectionId: 'category-section' },
   { label: '写真をアップロード', icon: Upload, sectionId: 'upload-section' },
   { label: 'スタイルを選択', icon: Palette, sectionId: 'style-section' },
   { label: '肖像画を生成', icon: Sparkles, sectionId: 'generate-section' },
@@ -17,23 +19,28 @@ const confettiParams = Array.from({ length: 16 }, (_, index) => ({
   r: `${(index * 157) % 720}deg`,
 }));
 
-export function StepProgress({ hasUpload, hasStyle, hasGenerated }: StepProgressProps) {
-  const completedCount = [hasUpload, hasStyle, hasGenerated].filter(Boolean).length;
-  const showCelebration = completedCount === 3;
+export function StepProgress({ hasCategory, hasUpload, hasStyle, hasGenerated }: StepProgressProps) {
+  const completedCount = [hasCategory, hasUpload, hasStyle, hasGenerated].filter(Boolean).length;
+  const showCelebration = completedCount === 4;
 
   const getStepStatus = (index: number): 'completed' | 'current' | 'pending' => {
     if (index === 0) {
-      if (hasUpload) return 'completed';
-      return 'current'; // 付与された進捗: 最初から「進行中」
+      if (hasCategory) return 'completed';
+      return 'current';
     }
     if (index === 1) {
-      if (hasStyle) return 'completed';
-      if (hasUpload) return 'current';
+      if (hasUpload) return 'completed';
+      if (hasCategory) return 'current';
       return 'pending';
     }
     if (index === 2) {
+      if (hasStyle) return 'completed';
+      if (hasCategory && hasUpload) return 'current';
+      return 'pending';
+    }
+    if (index === 3) {
       if (hasGenerated) return 'completed';
-      if (hasUpload && hasStyle) return 'current';
+      if (hasCategory && hasUpload && hasStyle) return 'current';
       return 'pending';
     }
     return 'pending';
@@ -51,7 +58,7 @@ export function StepProgress({ hasUpload, hasStyle, hasGenerated }: StepProgress
       {/* 進捗カウンター */}
       <p className="text-center text-sm text-muted mb-4">
         <span className="font-semibold text-primary">{completedCount}</span>
-        <span className="text-muted/70"> / 3 完了</span>
+        <span className="text-muted/70"> / 4 完了</span>
       </p>
 
       <div className="flex items-center justify-between relative">
@@ -60,7 +67,7 @@ export function StepProgress({ hasUpload, hasStyle, hasGenerated }: StepProgress
         {/* コネクティングライン（進捗） */}
         <div
           className="absolute top-5 left-[10%] h-0.5 bg-gradient-to-r from-primary to-secondary transition-all duration-700 ease-out"
-          style={{ width: `${Math.min(completedCount / 2, 1) * 80}%` }}
+          style={{ width: `${Math.min(completedCount / 3, 1) * 80}%` }}
         />
 
         {/* セレブレーションパーティクル */}

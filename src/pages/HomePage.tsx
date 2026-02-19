@@ -69,16 +69,33 @@ export function HomePage() {
       {/* 信頼メトリクス — Hero直後にシームレスに接続 */}
       <TrustedBy />
 
-      {/* カテゴリセレクター */}
-      <CategorySelector />
+      {/* Step 01: カテゴリ選択 */}
+      <section id="category-section" className="py-8 sm:py-12 scroll-mt-20">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
+              <span className="w-8 h-px bg-secondary" />
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">01</span>
+              <span className="w-8 h-px bg-secondary" />
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
+              カテゴリを選ぶ
+            </h2>
+          </div>
+          <CategorySelector />
+        </div>
+      </section>
 
-      {/* Upload Section */}
+      {/* 区切り線 */}
+      <div className="divider-japanese max-w-3xl mx-auto" />
+
+      {/* Step 02: Upload Section */}
       <section id="upload-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
               <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">01</span>
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">02</span>
               <span className="w-8 h-px bg-secondary" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
@@ -95,13 +112,13 @@ export function HomePage() {
       {/* 区切り線 */}
       <div className="divider-japanese max-w-3xl mx-auto" />
 
-      {/* Style Selection Section */}
+      {/* Step 03: Style Selection Section */}
       <section id="style-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
               <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">02</span>
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">03</span>
               <span className="w-8 h-px bg-secondary" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
@@ -118,13 +135,13 @@ export function HomePage() {
       {/* 区切り線 */}
       <div className="divider-japanese max-w-3xl mx-auto" />
 
-      {/* Generate Section */}
+      {/* Step 04: Generate Section */}
       <section id="generate-section" className="py-16 sm:py-20 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-3 mb-4" aria-hidden="true">
               <span className="w-8 h-px bg-secondary" />
-              <span className="text-xs text-secondary tracking-[0.3em] font-medium">03</span>
+              <span className="text-xs text-secondary tracking-[0.3em] font-medium">04</span>
               <span className="w-8 h-px bg-secondary" />
             </div>
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-foreground">
