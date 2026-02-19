@@ -79,7 +79,7 @@ export function FloatingCTA() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleClick}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/25"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-full bg-primary text-white shadow-md shadow-primary/15"
             >
               <Sparkles className="w-4 h-4" />
               無料でプレビューを見る
@@ -101,7 +101,7 @@ export function FloatingCTA() {
           <div className="relative flex items-center gap-2 p-1.5 bg-card/95 backdrop-blur-md border border-border rounded-full shadow-xl">
             <button
               onClick={handleClick}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-full bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] transition-all"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-full bg-primary text-white shadow-sm shadow-primary/10 hover:shadow-md hover:shadow-primary/20 hover:brightness-105 active:scale-[0.98] transition-all duration-500 ease-out"
             >
               <Sparkles className="w-4 h-4" />
               無料でプレビューを見る

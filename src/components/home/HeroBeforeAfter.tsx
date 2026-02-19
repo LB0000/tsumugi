@@ -118,13 +118,10 @@ function HeroBeforeAfterBase() {
             <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-4">
               <button
                 onClick={scrollToUpload}
-                className="group relative px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
+                className="group px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-semibold rounded-full bg-secondary text-white shadow-lg shadow-secondary/20 hover:shadow-xl hover:shadow-secondary/30 hover:brightness-105 active:scale-[0.98] transition-all duration-500 ease-out flex items-center gap-3 cursor-pointer"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                <span className="relative flex items-center gap-3">
-                  無料でプレビューを見る
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                </span>
+                無料でプレビューを見る
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-500 ease-out" />
               </button>
             </div>
 
