@@ -15,6 +15,8 @@ import {
   canGenerate,
   consumeCredit,
   initializeUserCredits,
+  isTestUser,
+  registerTestUserIfNeeded,
 } from '../lib/credits.js';
 
 export const generateRouter = Router();
@@ -136,7 +138,7 @@ function getOrCreateAnonId(req: Request, res: Response): string {
   const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined;
   const cookies = parseCookies(cookieHeader);
   const existing = cookies.get(ANON_COOKIE_NAME);
-  if (existing && ANON_ID_PATTERN.test(existing)) return existing;
+  if (existing && (ANON_ID_PATTERN.test(existing) || isTestUser(existing))) return existing;
 
   const anonId = `anon_${crypto.randomUUID()}`;
   res.cookie(ANON_COOKIE_NAME, anonId, {
@@ -196,6 +198,11 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     const sessionToken = extractSessionTokenFromHeaders(req.headers as HeaderMap);
     const sessionUser = sessionToken ? getUserBySessionToken(sessionToken) : null;
     userId = sessionUser ? sessionUser.id : getOrCreateAnonId(req, res);
+
+    // Register authenticated test user by email (adds to testUserIds dynamically)
+    if (sessionUser) {
+      registerTestUserIfNeeded(sessionUser.id, sessionUser.email);
+    }
 
     // Prevent concurrent requests from same user (TOCTOU protection)
     if (inFlightUsers.has(userId)) {

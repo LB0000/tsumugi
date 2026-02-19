@@ -18,8 +18,10 @@ import {
   trackPendingPayment,
   getPendingPayment,
   clearPendingPayment,
+  isTestUser,
+  registerTestUserIfNeeded,
 } from '../lib/credits.js';
-import { FREE_CREDITS, CREDITS_PER_PACK, PACK_PRICE_YEN, PRICE_PER_GENERATION } from '../lib/creditTypes.js';
+import { FREE_CREDITS, CREDITS_PER_PACK, PACK_PRICE_YEN, PRICE_PER_GENERATION, TEST_USER_DISPLAY_CREDITS } from '../lib/creditTypes.js';
 import { csrfProtection } from '../middleware/csrfProtection.js';
 import { squareClient, locationId } from '../lib/square.js';
 import { logger } from '../lib/logger.js';
@@ -39,6 +41,22 @@ creditsRouter.use(csrfProtection({ skipPaths: ['/webhook'] }));
  */
 creditsRouter.get('/', requireAuth, (req: Request, res: Response) => {
   const user = getAuthUser(res);
+  registerTestUserIfNeeded(user.id, user.email);
+
+  // Test users: return unlimited credits so frontend never shows charge modal
+  if (isTestUser(user.id)) {
+    res.json({
+      success: true,
+      credits: {
+        freeRemaining: TEST_USER_DISPLAY_CREDITS,
+        paidRemaining: 0,
+        totalRemaining: TEST_USER_DISPLAY_CREDITS,
+        totalUsed: 0,
+      },
+    });
+    return;
+  }
+
   let balance = getUserCredits(user.id);
 
   // Lazy initialization: if user has no credit record, create one

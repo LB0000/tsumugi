@@ -42,8 +42,9 @@ const envSchema = z.object({
   SUPABASE_PENDING_PAYMENTS_TABLE: z.string().min(1).default('pending_payments'),
   LYLY_API_URL: z.string().url().optional(),
   LYLY_AUTH_TOKEN: z.string().min(10).optional(),  // [H5] Minimum length validation
-  TEST_USER_IDS: z.string().optional(),  // カンマ区切りのテストユーザーID（クレジット無制限）
-  TEST_LOGIN_KEY: z.string().optional(), // テストログイン用パスワード
+  TEST_USER_IDS: z.string().optional(),    // カンマ区切りのテストユーザーID（クレジット無制限）
+  TEST_USER_EMAILS: z.string().optional(), // カンマ区切りのテストユーザーメールアドレス
+  TEST_LOGIN_KEY: z.string().optional(),   // テストログイン用パスワード
 }).superRefine((data, ctx) => {
   const hasUrl = Boolean(data.SUPABASE_URL);
   const hasKey = Boolean(data.SUPABASE_SERVICE_ROLE_KEY);

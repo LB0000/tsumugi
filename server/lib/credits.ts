@@ -15,12 +15,20 @@ import type {
   PendingPayment,
   ProcessedWebhookEvent,
 } from './creditTypes.js';
-import { FREE_CREDITS, MAX_CREDITS_PER_PURCHASE } from './creditTypes.js';
+import { FREE_CREDITS, MAX_CREDITS_PER_PURCHASE, TEST_USER_DISPLAY_CREDITS } from './creditTypes.js';
 
 // ==================== Test User Bypass ====================
 
-const testUserIds: ReadonlySet<string> = new Set(
+// NOTE: testUserIds is intentionally a mutable Set (exception to immutability rule).
+// registerTestUserIfNeeded() dynamically adds userId entries when an authenticated
+// user's email matches TEST_USER_EMAILS. This state is ephemeral (lost on restart)
+// and re-populated lazily when test users hit authenticated endpoints.
+const testUserIds = new Set<string>(
   (config.TEST_USER_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+);
+
+const testUserEmails: ReadonlySet<string> = new Set(
+  (config.TEST_USER_EMAILS ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
 );
 
 /**
@@ -28,6 +36,18 @@ const testUserIds: ReadonlySet<string> = new Set(
  */
 export function isTestUser(userId: string): boolean {
   return testUserIds.has(userId);
+}
+
+/**
+ * Register an authenticated user as a test user if their email matches TEST_USER_EMAILS.
+ * Dynamically adds their userId to testUserIds so isTestUser() works everywhere.
+ */
+export function registerTestUserIfNeeded(userId: string, email: string): void {
+  if (testUserIds.has(userId)) return;
+  if (testUserEmails.has(email.toLowerCase())) {
+    testUserIds.add(userId);
+    logger.info('Test user registered by email', { userId, email });
+  }
 }
 
 // ==================== In-Memory State ====================
@@ -348,8 +368,8 @@ export function consumeCredit(userId: string, referenceId: string): CreditTransa
       amount: 0,
       freeAmount: 0,
       paidAmount: 0,
-      balanceAfterFree: Infinity,
-      balanceAfterPaid: Infinity,
+      balanceAfterFree: TEST_USER_DISPLAY_CREDITS,
+      balanceAfterPaid: 0,
       referenceId,
       description: 'テストユーザー（クレジット消費なし）',
       createdAt: new Date().toISOString(),

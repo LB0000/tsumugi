@@ -10,6 +10,7 @@ export const CREDITS_PER_PACK = 10;
 export const PACK_PRICE_YEN = 980;
 export const PRICE_PER_GENERATION = 98; // 980 / 10
 export const MAX_CREDITS_PER_PURCHASE = 1000; // Maximum credits allowed in a single purchase
+export const TEST_USER_DISPLAY_CREDITS = 999; // Display value for test users' unlimited credits
 
 // ==================== Domain Types ====================
 
