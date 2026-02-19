@@ -167,13 +167,25 @@ if (config.NODE_ENV === 'production' && (!config.GEMINI_API_KEY || config.GEMINI
 }
 
 // Gemini 3 Pro Image - 画像生成対応の最新モデル
-// responseModalities: ['image', 'text'] で画像出力を有効化
+// responseModalities: ['TEXT', 'IMAGE'] で画像出力を有効化（公式仕様準拠）
 const model = genAI.getGenerativeModel(
   {
     model: 'gemini-3-pro-image-preview',
     generationConfig: {
       // @ts-expect-error - responseModalities is valid but not in types yet
-      responseModalities: ['image', 'text'],
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
+  },
+  { timeout: 90_000 },
+);
+
+// フォールバックモデル: プライマリが503の場合にステージ3で使用
+const fallbackModel = genAI.getGenerativeModel(
+  {
+    model: 'gemini-2.5-flash-image',
+    generationConfig: {
+      // @ts-expect-error - responseModalities is valid but not in types yet
+      responseModalities: ['TEXT', 'IMAGE'],
     },
   },
   { timeout: 90_000 },
@@ -330,6 +342,7 @@ generateRouter.post('/', upload.single('image'), async (req: Request, res: Respo
     const rawCustomPrompt = typeof options?.customPrompt === 'string' ? options.customPrompt : '';
     const customPrompt = rawCustomPrompt
       .normalize('NFC')
+      // eslint-disable-next-line no-control-regex -- intentional removal of control characters from user input
       .replace(/[\x00-\x1f\x7f]/g, '')
       .trim()
       .slice(0, 500);
@@ -395,11 +408,11 @@ CRITICAL REQUIREMENTS:
       inlineData: { mimeType: parsedImage.mimeType, data: parsedImage.data },
     };
     const retryStages = [
-      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: MAX_RETRIES },
+      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: MAX_RETRIES, useFallback: false },
       // Stage 2: simplified prompt (often bypasses transient safety filters), single HTTP attempt
-      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 5000, label: 'simplified' as const, httpRetries: 1 },
-      // Stage 3: minimal prompt as last resort, single HTTP attempt
-      { prompt: 'Transform this photo into a classical painting. Keep the subject recognizable.', delay: 15000, label: 'minimal' as const, httpRetries: 1 },
+      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 5000, label: 'simplified' as const, httpRetries: 1, useFallback: false },
+      // Stage 3: minimal prompt as last resort with fallback model, single HTTP attempt
+      { prompt: 'Transform this photo into a classical painting. Keep the subject recognizable.', delay: 15000, label: 'minimal' as const, httpRetries: 1, useFallback: true },
     ];
 
     let generatedImage = '';
@@ -423,8 +436,12 @@ CRITICAL REQUIREMENTS:
       });
 
       try {
+        const activeModel = stage.useFallback ? fallbackModel : model;
+        if (stage.useFallback) {
+          logger.info('Using fallback model (gemini-2.5-flash-image)', { requestId: req.requestId });
+        }
         const result = await generateWithRetry(
-          () => model.generateContent([imageContent, { text: stage.prompt }]),
+          () => activeModel.generateContent([imageContent, { text: stage.prompt }]),
           stage.httpRetries,
         );
 
