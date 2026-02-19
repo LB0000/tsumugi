@@ -148,13 +148,6 @@ export const StyleCard = memo(function StyleCard({
           )}
         </h3>
 
-        {/* 説明（compactモードでは非表示） */}
-        {!compact && (
-          <p className="text-sm text-muted line-clamp-2 mb-3 leading-relaxed min-h-[2.5rem]">
-            {style.description}
-          </p>
-        )}
-
         {/* カラーパレット */}
         <ColorPaletteStrip colors={style.colorPalette} compact={compact} />
       </div>
@@ -167,7 +160,6 @@ export const StyleCard = memo(function StyleCard({
             <img src={thumbnailUrl} alt="" className="w-full aspect-[4/5] object-cover" />
             <div className="p-3">
               <p className="font-serif font-semibold text-sm">{style.name}</p>
-              <p className="text-xs text-muted mt-1 line-clamp-2">{style.description}</p>
             </div>
           </div>
         </div>

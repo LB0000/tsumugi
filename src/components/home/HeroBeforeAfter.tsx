@@ -71,19 +71,8 @@ function HeroBeforeAfterBase() {
               {currentCategory?.heroDescription}
             </p>
 
-            {/* 無料プレビュー・登録不要バッジ */}
-            <div className="flex items-center justify-center lg:justify-start gap-3 hero-animate-fadeIn-delay-4">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-accent-sage/15 text-accent-sage text-xs sm:text-sm font-medium rounded-full">
-                <span className="w-1.5 h-1.5 bg-accent-sage rounded-full" />
-                無料プレビュー
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-secondary/10 text-secondary text-xs sm:text-sm font-medium rounded-full">
-                登録不要
-              </span>
-            </div>
-
             {/* CTA ボタン */}
-            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-5">
+            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-4">
               <button
                 onClick={scrollToUpload}
                 className="group relative px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-bold rounded-full bg-gradient-to-r from-secondary to-secondary/90 text-white shadow-2xl shadow-secondary/30 hover:shadow-secondary/50 hover:scale-[1.05] transition-all duration-300 flex items-center gap-3 cursor-pointer overflow-hidden animate-subtlePulse"
@@ -95,12 +84,12 @@ function HeroBeforeAfterBase() {
                 </span>
               </button>
               <span className="text-sm text-muted">
-                無料プレビュー可能 · クレジットカード不要 · 30秒で完成
+                クレジットカード不要 · 30秒で完成
               </span>
             </div>
 
             {/* 信頼指標 */}
-            <div className="hero-animate-fadeIn-delay-6 pt-1">
+            <div className="hero-animate-fadeIn-delay-5 pt-1">
               <div className="flex items-center justify-center lg:justify-start gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   {[...Array(5)].map((_, i) => (

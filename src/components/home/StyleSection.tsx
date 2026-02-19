@@ -128,10 +128,6 @@ const StyleCardMini = memo(function StyleCardMini({ style, isSelected, onClick, 
         <h3 className="font-serif font-semibold text-foreground text-sm mb-1 line-clamp-1 group-hover:text-primary transition-colors duration-300">
           {style.name}
         </h3>
-        <p className="text-xs text-muted line-clamp-2 mb-2 leading-relaxed min-h-[2rem]">
-          {style.description}
-        </p>
-
         {/* カラーパレット */}
         <ColorPaletteStrip colors={style.colorPalette} />
       </div>
