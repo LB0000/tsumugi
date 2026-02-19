@@ -4,7 +4,7 @@ import { useAppStore } from '../stores/appStore';
 import { categories } from '../data/categories';
 import { categoryMetadata } from '../data/categoryMetadata';
 import { updateMetaTags } from '../lib/seo';
-import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TrustedBy, TestimonialTicker, CategorySelector } from '../components/home';
+import { ImageUploader, StyleModal, SampleGallery, GeneratePreview, StyleSection, HeroBeforeAfter, TestimonialTicker, CategorySelector } from '../components/home';
 
 const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
@@ -65,9 +65,6 @@ export function HomePage() {
     >
       {/* Hero Section with Before/After */}
       <HeroBeforeAfter />
-
-      {/* 信頼メトリクス — Hero直後にシームレスに接続 */}
-      <TrustedBy />
 
       {/* Step 01: カテゴリ選択 */}
       <section id="category-section" className="py-8 sm:py-12 scroll-mt-20">

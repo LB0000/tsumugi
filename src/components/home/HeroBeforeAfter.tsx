@@ -64,7 +64,7 @@ function HeroBeforeAfterBase() {
   }, [displayCategory]);
 
   const scrollToUpload = () => {
-    document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('category-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -126,9 +126,6 @@ function HeroBeforeAfterBase() {
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                 </span>
               </button>
-              <span className="text-sm text-muted">
-                クレジットカード不要 · 30秒で完成
-              </span>
             </div>
 
             {/* 実績メトリクス */}
