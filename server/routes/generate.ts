@@ -373,7 +373,7 @@ CRITICAL REQUIREMENTS:
 
     keepAliveTimer = setInterval(() => {
       if (!res.writableEnded) res.write(' ');
-    }, 15_000);
+    }, 5_000);
 
     // Helper to end the keep-alive response with JSON
     const endWithJson = (body: object) => {
