@@ -113,19 +113,8 @@ function HeroBeforeAfterBase() {
               {currentCategory?.heroDescription}
             </p>
 
-            {/* CTA ボタン */}
-            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-4">
-              <button
-                onClick={scrollToUpload}
-                className="group px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-semibold rounded-full bg-secondary text-white shadow-lg shadow-secondary/20 hover:shadow-xl hover:shadow-secondary/30 hover:brightness-105 active:scale-[0.98] transition-all duration-500 ease-out flex items-center gap-3 cursor-pointer"
-              >
-                無料でプレビューを見る
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-500 ease-out" />
-              </button>
-            </div>
-
             {/* 実績メトリクス */}
-            <div className="hero-animate-fadeIn-delay-5 pt-2">
+            <div className="hero-animate-fadeIn-delay-4">
               <div className="inline-flex items-stretch justify-center lg:justify-start rounded-2xl border border-secondary/15 bg-gradient-to-br from-card/80 via-card/60 to-secondary/[0.03] backdrop-blur-sm shadow-sm">
                 {heroMetrics.map((metric, i) => (
                   <div key={metric.label} className="flex items-stretch">
@@ -145,6 +134,17 @@ function HeroBeforeAfterBase() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* CTA ボタン */}
+            <div id="hero-cta" className="flex flex-col items-center lg:items-start gap-3 hero-animate-fadeIn-delay-5">
+              <button
+                onClick={scrollToUpload}
+                className="group px-8 py-4 sm:px-10 sm:py-5 text-base sm:text-lg font-semibold rounded-full bg-secondary text-white shadow-lg shadow-secondary/20 hover:shadow-xl hover:shadow-secondary/30 hover:brightness-105 active:scale-[0.98] transition-all duration-500 ease-out flex items-center gap-3 cursor-pointer"
+              >
+                無料でプレビューを見る
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-500 ease-out" />
+              </button>
             </div>
           </div>
         </div>
