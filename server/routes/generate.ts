@@ -75,38 +75,8 @@ const upload = multer({
   },
 });
 
-// Retry configuration for handling transient API errors
-const MAX_RETRIES = 3;
-const INITIAL_DELAY_MS = 1000;
-const RETRYABLE_STATUS_CODES = new Set([429, 500, 503]);
-
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function generateWithRetry<T>(
-  operation: () => Promise<T>,
-  retries = MAX_RETRIES
-): Promise<T> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await operation();
-    } catch (error: unknown) {
-      const status = error instanceof Error && 'status' in error
-        ? (error as { status: number }).status
-        : 0;
-      const isRetryable = RETRYABLE_STATUS_CODES.has(status);
-
-      if (!isRetryable || attempt === retries) {
-        throw error;
-      }
-
-      const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-      logger.info(`Attempt ${attempt} failed with ${status}, retrying in ${delay}ms...`);
-      await sleep(delay);
-    }
-  }
-  throw new Error('Max retries exceeded');
 }
 
 // Extract image from Gemini response parts. Returns { image, text } or null values.
@@ -196,7 +166,7 @@ const allowMockGeneration = config.ALLOW_MOCK_GENERATION === 'true' && config.NO
 
 // Anonymous user support: cookie-based ID for free trial tracking
 const ANON_COOKIE_NAME = 'fable_anon';
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = config.NODE_ENV === 'production';
 
 const ANON_ID_PATTERN = /^anon_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -409,15 +379,16 @@ CRITICAL REQUIREMENTS:
     };
     const retryStages = [
       // Stage 1: プライマリモデルで1回試行（503なら即座に次へ）
-      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: 1, useFallback: false },
+      { prompt: fullPrompt, delay: 0, label: 'full' as const, useFallback: false },
       // Stage 2: フォールバックモデルでフルプロンプト試行（待機なし）
-      { prompt: fullPrompt, delay: 0, label: 'full-fallback' as const, httpRetries: 1, useFallback: true },
+      { prompt: fullPrompt, delay: 0, label: 'full-fallback' as const, useFallback: true },
       // Stage 3: フォールバックモデルで簡易プロンプト（最終手段）
-      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 2000, label: 'simplified-fallback' as const, httpRetries: 1, useFallback: true },
+      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 2000, label: 'simplified-fallback' as const, useFallback: true },
     ];
 
     let generatedImage = '';
     let textResponse = '';
+    let successStage = '';
 
     for (let attempt = 0; attempt < retryStages.length; attempt++) {
       const stage = retryStages[attempt];
@@ -430,6 +401,10 @@ CRITICAL REQUIREMENTS:
       if (stage.delay > 0) {
         logger.info(`Waiting ${stage.delay}ms before retry attempt ${attempt + 1}`, { requestId: req.requestId });
         await sleep(stage.delay);
+        if (clientDisconnected) {
+          logger.info('Client disconnected during delay, aborting', { requestId: req.requestId });
+          break;
+        }
       }
 
       logger.info(`Generating image (attempt ${attempt + 1}/${retryStages.length}, prompt: ${stage.label})`, {
@@ -441,10 +416,7 @@ CRITICAL REQUIREMENTS:
         if (stage.useFallback) {
           logger.info('Using fallback model (gemini-2.5-flash-image)', { requestId: req.requestId });
         }
-        const result = await generateWithRetry(
-          () => activeModel.generateContent([imageContent, { text: stage.prompt }]),
-          stage.httpRetries,
-        );
+        const result = await activeModel.generateContent([imageContent, { text: stage.prompt }]);
 
         const response = await result.response;
         const extracted = extractImageFromResponse(response, req.requestId);
@@ -452,6 +424,7 @@ CRITICAL REQUIREMENTS:
 
         if (extracted.image) {
           generatedImage = extracted.image;
+          successStage = stage.label;
           if (attempt > 0) {
             logger.info(`Retry attempt ${attempt + 1} succeeded (prompt: ${stage.label})`, { requestId: req.requestId });
           }
@@ -468,10 +441,18 @@ CRITICAL REQUIREMENTS:
     }
 
     if (!generatedImage) {
+      if (clientDisconnected) {
+        logger.info('Generation aborted: client disconnected', { requestId: req.requestId });
+        return;
+      }
       throw new Error(`Gemini returned no image after ${retryStages.length} attempts. Text: ${textResponse.slice(0, 300)}`);
     }
 
-    logger.info('Image generation successful', { requestId: req.requestId });
+    logger.info('Image generation successful', {
+      requestId: req.requestId,
+      model: successStage.includes('fallback') ? 'gemini-2.5-flash-image' : 'gemini-3-pro-image-preview',
+      stage: successStage,
+    });
     try { recordStyleUsage(styleId, styleNameMap[styleId] || styleId, category); } catch { /* analytics best-effort */ }
 
     // Generate project ID
