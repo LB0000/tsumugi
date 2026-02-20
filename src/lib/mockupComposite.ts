@@ -1,8 +1,9 @@
 /**
  * モックアップ合成ユーティリティ
  *
- * Canvas API を使い、生成された肖像画をモックアップテンプレート（透過 PNG）に
+ * Canvas API を使い、生成された肖像画をモックアップテンプレートに
  * はめ込んだ合成画像を生成する。
+ * モックアップ画像を背景に描画し、指定リージョンにクリップして肖像画を重ねる。
  */
 
 /** 肖像画を配置する領域（モックアップ画像サイズに対する割合 0–1） */
@@ -90,15 +91,21 @@ export async function compositeOnMockup(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas context not available');
 
-  // 1) 肖像画を指定リージョンに描画
+  // 1) モックアップを背景として描画
+  ctx.drawImage(mockupImg, 0, 0);
+
+  // 2) リージョンにクリップして肖像画を重ねる
+  //    モックアップのフレーム部分はクリップ外のため維持される
   const rx = Math.round(config.region.x * canvas.width);
   const ry = Math.round(config.region.y * canvas.height);
   const rw = Math.round(config.region.width * canvas.width);
   const rh = Math.round(config.region.height * canvas.height);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rx, ry, rw, rh);
+  ctx.clip();
   ctx.drawImage(portraitImg, rx, ry, rw, rh);
-
-  // 2) モックアップテンプレートを上に重ねる（透過部分から肖像画が見える）
-  ctx.drawImage(mockupImg, 0, 0);
+  ctx.restore();
 
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
