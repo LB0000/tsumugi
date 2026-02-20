@@ -116,6 +116,7 @@ function extractImageFromResponse(response: any, requestId: string | undefined):
   let image = '';
   let text = '';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Gemini SDK response has dynamic structure
   const parts = response.candidates?.[0]?.content?.parts as Array<Record<string, any>> | undefined;
   if (parts && parts.length > 0) {
     logger.info('Found parts in response', { count: parts.length, requestId });
@@ -167,13 +168,13 @@ if (config.NODE_ENV === 'production' && (!config.GEMINI_API_KEY || config.GEMINI
 }
 
 // Gemini 3 Pro Image - 画像生成対応の最新モデル
-// responseModalities: ['TEXT', 'IMAGE'] で画像出力を有効化（公式仕様準拠）
+// responseModalities: ['image', 'text'] で画像出力を有効化
 const model = genAI.getGenerativeModel(
   {
     model: 'gemini-3-pro-image-preview',
     generationConfig: {
       // @ts-expect-error - responseModalities is valid but not in types yet
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['image', 'text'],
     },
   },
   { timeout: 90_000 },
@@ -185,7 +186,7 @@ const fallbackModel = genAI.getGenerativeModel(
     model: 'gemini-2.5-flash-image',
     generationConfig: {
       // @ts-expect-error - responseModalities is valid but not in types yet
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['image', 'text'],
     },
   },
   { timeout: 90_000 },
