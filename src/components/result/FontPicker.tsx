@@ -10,7 +10,7 @@ interface FontPickerProps {
 }
 
 // null (推奨) + selectableFonts を1つの配列として扱う
-type FontOption = { id: string | null; displayName: string; fontFamily: string; fontWeight?: number };
+type FontOption = { id: string | null; displayName: string; fontFamily: string; fontWeight?: string | number };
 
 export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProps) {
   const styleFontConfig = getPortraitFont(styleId);
