@@ -192,7 +192,8 @@ export const useAppStore = create<AppState>()(persist((set) => ({
     },
   },
   partialize: (state) => ({
-    generatedImage: state.generatedImage,
+    // generatedImage は sessionStorage に保存しない（1.5-2MB の base64 data URL のため）
+    // カート追加済みの画像は cartItem.imageUrl に保存される
     selectedStyle: state.selectedStyle,
     gallerySaved: state.gallerySaved,
     portraitName: state.portraitName,

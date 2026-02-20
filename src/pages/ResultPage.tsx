@@ -6,6 +6,7 @@ import { StyledButton } from '../components/common/StyledButton';
 import { ShareButtons } from '../components/common/ShareButtons';
 import { TrustBadges } from '../components/common/TrustBadges';
 import { NameEngravingSection } from '../components/result/NameEngravingSection';
+import { ProductMockup } from '../components/result/ProductMockup';
 import { useTextOverlay } from '../hooks/useTextOverlay';
 import { useDiscountTimer } from '../hooks/useDiscountTimer';
 import { useAddToCart } from '../hooks/useAddToCart';
@@ -208,6 +209,8 @@ export function ResultPage() {
               onSettingsChange={setTextOverlaySettings}
               isProcessing={isOverlayProcessing}
               processingStage={processingStage}
+              precomputedImageUrl={overlayedImageUrl}
+              overlayError={overlayError}
             />
             {/* Overlay processing feedback */}
             {isOverlayProcessing && portraitName && (
@@ -278,6 +281,14 @@ export function ResultPage() {
               key={product.id}
               className={`bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300 animate-cardEnter stagger-${index + 1}`}
             >
+              {/* モックアッププレビュー（物理商品のみ） */}
+              {product.type === 'physical' && (
+                <ProductMockup
+                  generatedImageUrl={overlayedImageUrl || generatedImage}
+                  productId={product.id}
+                  className="mb-4"
+                />
+              )}
               <div className="mb-5 sm:mb-6">
                 <h3 className="font-serif text-lg sm:text-xl font-semibold text-foreground mb-2">
                   {product.name}

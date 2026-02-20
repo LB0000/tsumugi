@@ -1,11 +1,13 @@
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, Truck, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { StyledButton, Breadcrumb, TrustBadges } from '../components/common';
+import { CartItemImage } from '../components/result/CartItemImage';
 
 import { useCartStore } from '../stores/cartStore';
 import { SHIPPING_FREE_THRESHOLD, SHIPPING_FLAT_FEE, MAX_ITEM_QUANTITY } from '../data/shipping';
 import { products, type Product } from '../data/products';
-import { DISCOUNT_RATE, DISCOUNT_WINDOW_MS, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
+import { DISCOUNT_RATE, PREVIEW_GENERATED_AT_KEY } from '../data/constants';
+import { useDiscountTimer } from '../hooks/useDiscountTimer';
 
 const featuredProducts = [
   products.find((p) => p.id === 'acrylic-stand'),
@@ -27,15 +29,7 @@ export function CartPage() {
   const progress = Math.min(subtotal / SHIPPING_FREE_THRESHOLD, 1);
 
   // 24時間限定割引の判定（アップセル価格表示用）
-  const generatedAtRaw = localStorage.getItem(PREVIEW_GENERATED_AT_KEY);
-  let isWithin24Hours = false;
-  if (generatedAtRaw) {
-    const generatedAt = parseInt(generatedAtRaw, 10);
-    if (!Number.isNaN(generatedAt) && generatedAt > 0) {
-      const elapsed = Date.now() - generatedAt;
-      isWithin24Hours = elapsed >= 0 && elapsed <= DISCOUNT_WINDOW_MS;
-    }
-  }
+  const { isWithin24Hours } = useDiscountTimer(PREVIEW_GENERATED_AT_KEY);
 
   const getDisplayPrice = (catalogPrice: number) => {
     return isWithin24Hours ? Math.floor(catalogPrice * (1 - DISCOUNT_RATE)) : catalogPrice;
@@ -166,11 +160,10 @@ export function CartPage() {
                   key={item.id}
                   className="flex gap-4 p-4 bg-card rounded-xl border border-border"
                 >
-                  <img
-                    src={item.imageUrl}
+                  <CartItemImage
+                    imageUrl={item.imageUrl}
+                    productId={item.productId}
                     alt={item.artStyleName}
-                    className="w-24 h-24 object-cover rounded-lg bg-card"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground mb-1">{item.name}</h3>
@@ -187,7 +180,7 @@ export function CartPage() {
                           onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
                           aria-label="数量を減らす"
-                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors"
+                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
