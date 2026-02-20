@@ -21,13 +21,16 @@ interface PositionPickerProps {
 
 export function PositionPicker({ selectedPosition, onSelect }: PositionPickerProps) {
   return (
-    <div className="grid grid-cols-3 gap-3 max-w-[320px] mx-auto">
+    <div className="grid grid-cols-3 gap-3 max-w-[320px] mx-auto" role="radiogroup" aria-label="テキスト位置">
       {POSITIONS.map((pos) => {
         const isSelected = selectedPosition === pos.id;
         return (
           <button
             key={pos.id}
             type="button"
+            role="radio"
+            aria-checked={isSelected}
+            aria-label={pos.label}
             onClick={() => onSelect(pos.id)}
             className="flex flex-col items-center gap-1.5 cursor-pointer group"
           >

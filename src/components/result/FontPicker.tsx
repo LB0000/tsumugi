@@ -12,10 +12,13 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
   const styleFontConfig = getPortraitFont(styleId);
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center">
+    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center" role="radiogroup" aria-label="フォント選択">
       {/* スタイル推奨オプション */}
       <button
         type="button"
+        role="radio"
+        aria-checked={selectedFontId === null}
+        aria-label="推奨"
         onClick={() => onSelect(null)}
         className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
       >
@@ -29,7 +32,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
           `}
         >
           {selectedFontId === null ? (
-            <Check className="w-5 h-5" />
+            <Check className="w-5 h-5" aria-hidden="true" />
           ) : (
             <span
               className="text-sm leading-none"
@@ -49,6 +52,9 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
           <button
             key={font.id}
             type="button"
+            role="radio"
+            aria-checked={isSelected}
+            aria-label={font.displayName}
             onClick={() => onSelect(font.id)}
             className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
           >
@@ -62,7 +68,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
               `}
             >
               {isSelected ? (
-                <Check className="w-5 h-5" />
+                <Check className="w-5 h-5" aria-hidden="true" />
               ) : (
                 <span
                   className="text-sm leading-none"

@@ -12,12 +12,15 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
   const styleFontConfig = getPortraitFont(styleId);
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center">
+    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center" role="radiogroup" aria-label="カラー選択">
       {/* スタイル推奨オプション */}
       <button
         type="button"
+        role="radio"
+        aria-checked={selectedDecorationId === null}
+        aria-label="推奨"
         onClick={() => onSelect(null)}
-        className="flex flex-col items-center gap-1.5 cursor-pointer group"
+        className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
       >
         <div
           className={`
@@ -31,7 +34,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
             backgroundColor: styleFontConfig.color,
           }}
         >
-          {selectedDecorationId === null && <Check className="w-4 h-4 text-white drop-shadow-md" />}
+          {selectedDecorationId === null && <Check className="w-4 h-4 text-white drop-shadow-md" aria-hidden="true" />}
         </div>
         <span className="text-[10px] text-zinc-500">推奨</span>
       </button>
@@ -41,8 +44,11 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
         <button
           key={preset.id}
           type="button"
+          role="radio"
+          aria-checked={selectedDecorationId === preset.id}
+          aria-label={preset.displayName}
           onClick={() => onSelect(preset.id)}
-          className="flex flex-col items-center gap-1.5 cursor-pointer group"
+          className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
         >
           <div
             className={`
@@ -55,7 +61,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
             style={{ backgroundColor: preset.color }}
           >
             {selectedDecorationId === preset.id && (
-              <Check className="w-4 h-4 drop-shadow-md" style={{
+              <Check className="w-4 h-4 drop-shadow-md" aria-hidden="true" style={{
                 color: preset.color === '#FFFFFF' || preset.color === '#FFD700' ? '#333' : '#fff',
               }} />
             )}
