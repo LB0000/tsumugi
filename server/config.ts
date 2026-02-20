@@ -15,7 +15,12 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   FROM_EMAIL: z.string().optional(),
-  SESSION_SECRET: z.string().optional(),
+  SESSION_SECRET: isProduction ? z.string().min(16) : z.string().optional(),
+  COOKIE_SAME_SITE: z.enum(['none', 'lax', 'strict']).default('lax'),
+  ALLOW_MOCK_GENERATION: z.enum(['true', 'false']).default('false'),
+  TRUST_PROXY: z.string().optional(),
+  META_CONVERSIONS_API_TOKEN: z.string().optional(),
+  META_PIXEL_ID: z.string().optional(),
   INTERNAL_API_KEY: z.string().optional(),
   TSUMUGI_ADMIN_API_URL: z.string().url().optional(),
   SUPABASE_URL: z.string().url().optional().refine(

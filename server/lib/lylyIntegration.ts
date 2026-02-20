@@ -72,7 +72,7 @@ function isSafeUrl(url: string): boolean {
         return false;
       }
 
-      const [a, b, c] = octets;
+      const [a, b] = octets;
 
       // Block loopback (127.0.0.0/8)
       if (a === 127) {

@@ -126,6 +126,14 @@ export function startCartAbandonmentChecker(): void {
   logger.info('Cart abandonment checker started');
 }
 
+export function stopCartAbandonmentChecker(): void {
+  if (checkerInterval) {
+    clearInterval(checkerInterval);
+    checkerInterval = null;
+    logger.info('Cart abandonment checker stopped');
+  }
+}
+
 const CART_HYDRATION_TIMEOUT_MS = 15_000;
 
 export const cartAbandonmentHydrationReady: Promise<void> = hasSupabaseConfig()

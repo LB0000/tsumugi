@@ -3,14 +3,15 @@
  * Follows checkoutStateStore.ts pattern: Supabase-primary with local file fallback
  */
 
-import { promises as fs } from 'fs';
 import { config } from '../config.js';
 import { logger } from './logger.js';
+import { writeJsonAtomic, readJsonFile } from './persistence.js';
 import {
   hasSupabaseConfig,
   selectRows,
   upsertRows,
   deleteOrphanedRows,
+  deleteRowsOlderThan,
 } from './supabaseClient.js';
 import type {
   CreditBalance,
@@ -209,49 +210,50 @@ async function loadCreditsFromSupabase(): Promise<PersistedCreditsState | null> 
   }
 }
 
+async function deleteOrphansQuietly(table: string, keyColumn: string, keepKeys: string[]): Promise<void> {
+  try {
+    await deleteOrphanedRows(table, keyColumn, keepKeys);
+  } catch (error) {
+    // Orphan deletion is best-effort: upsert already ensured correct data exists.
+    // Stale rows will be cleaned up on the next successful persist cycle.
+    logger.warn('Orphan deletion failed (non-fatal)', {
+      table,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 async function persistCreditsToSupabase(state: PersistedCreditsState): Promise<void> {
   if (!hasSupabaseConfig()) return;
 
   try {
     const balanceRows = state.balances.map(balanceToBalanceRow);
     const transactionRows = state.transactions.map(transactionToTransactionRow);
-    // CRITICAL-1 FIX: Convert webhook state to rows
     const webhookEventRows = state.processedWebhookEvents.map(webhookEventToWebhookEventRow);
     const pendingPaymentRows = state.pendingPayments.map(({ paymentId, payment }) =>
       pendingPaymentToPendingPaymentRow(paymentId, payment)
     );
 
-    const keepUserIds = state.balances.map(b => b.userId);
-    const keepEventIds = state.processedWebhookEvents.map(e => e.eventId);
-    const keepPaymentIds = state.pendingPayments.map(p => p.paymentId);
-
-    // Upsert balances and delete orphans (balances can be updated)
+    // Step 1: Upsert all current data (critical — ensures correct rows exist)
     await Promise.all([
       upsertRows(config.SUPABASE_CREDITS_TABLE, balanceRows, 'user_id'),
-      deleteOrphanedRows(config.SUPABASE_CREDITS_TABLE, 'user_id', keepUserIds),
-    ]);
-
-    // Transactions are append-only: only upsert new ones
-    // Do NOT delete orphans for transactions (they are immutable audit log)
-    if (transactionRows.length > 0) {
-      await upsertRows(config.SUPABASE_CREDIT_TRANSACTIONS_TABLE, transactionRows, 'id');
-    }
-
-    // CRITICAL-1 FIX: Persist webhook state
-    // Webhook events: upsert current events, delete old ones (TTL cleanup handled in-memory)
-    await Promise.all([
+      transactionRows.length > 0
+        ? upsertRows(config.SUPABASE_CREDIT_TRANSACTIONS_TABLE, transactionRows, 'id')
+        : Promise.resolve(),
       webhookEventRows.length > 0
         ? upsertRows(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, webhookEventRows, 'event_id')
         : Promise.resolve(),
-      deleteOrphanedRows(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, 'event_id', keepEventIds),
-    ]);
-
-    // Pending payments: upsert current payments, delete completed ones
-    await Promise.all([
       pendingPaymentRows.length > 0
         ? upsertRows(config.SUPABASE_PENDING_PAYMENTS_TABLE, pendingPaymentRows, 'payment_id')
         : Promise.resolve(),
-      deleteOrphanedRows(config.SUPABASE_PENDING_PAYMENTS_TABLE, 'payment_id', keepPaymentIds),
+    ]);
+
+    // Step 2: Delete orphaned rows (best-effort — failure leaves stale rows but no data loss)
+    // Transactions are append-only audit log: never delete orphans
+    await Promise.all([
+      deleteOrphansQuietly(config.SUPABASE_CREDITS_TABLE, 'user_id', state.balances.map(b => b.userId)),
+      deleteOrphansQuietly(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, 'event_id', state.processedWebhookEvents.map(e => e.eventId)),
+      deleteOrphansQuietly(config.SUPABASE_PENDING_PAYMENTS_TABLE, 'payment_id', state.pendingPayments.map(p => p.paymentId)),
     ]);
 
     logger.info('Persisted credits to Supabase', {
@@ -270,44 +272,38 @@ async function persistCreditsToSupabase(state: PersistedCreditsState): Promise<v
 
 // ==================== Local File Operations ====================
 
-async function loadCreditsFromFile(filePath: string): Promise<PersistedCreditsState | null> {
-  try {
-    const data = await fs.readFile(filePath, 'utf-8');
-    const parsed = JSON.parse(data) as PersistedCreditsState;
+function loadCreditsFromFile(filePath: string): PersistedCreditsState | null {
+  const EMPTY: PersistedCreditsState = { version: 1, balances: [], transactions: [], processedWebhookEvents: [], pendingPayments: [] };
+  const parsed = readJsonFile<PersistedCreditsState>(filePath, EMPTY);
 
-    // CRITICAL-1 FIX: Backward compatibility for old files without webhook state
-    const state: PersistedCreditsState = {
-      version: parsed.version,
-      balances: parsed.balances,
-      transactions: parsed.transactions,
-      processedWebhookEvents: parsed.processedWebhookEvents ?? [],
-      pendingPayments: parsed.pendingPayments ?? [],
-    };
-
-    logger.info('Loaded credits from local file', {
-      filePath,
-      balances: state.balances.length,
-      transactions: state.transactions.length,
-      webhookEvents: state.processedWebhookEvents.length,
-      pendingPayments: state.pendingPayments.length,
-    });
-
-    return state;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null; // File doesn't exist yet
-    }
-    logger.error('Failed to load credits from file', {
-      filePath,
-      error: error instanceof Error ? error.message : String(error),
-    });
+  // Empty file / fresh start
+  if (parsed.balances.length === 0 && parsed.transactions.length === 0) {
     return null;
   }
+
+  // CRITICAL-1 FIX: Backward compatibility for old files without webhook state
+  const state: PersistedCreditsState = {
+    version: parsed.version,
+    balances: parsed.balances,
+    transactions: parsed.transactions,
+    processedWebhookEvents: parsed.processedWebhookEvents ?? [],
+    pendingPayments: parsed.pendingPayments ?? [],
+  };
+
+  logger.info('Loaded credits from local file', {
+    filePath,
+    balances: state.balances.length,
+    transactions: state.transactions.length,
+    webhookEvents: state.processedWebhookEvents.length,
+    pendingPayments: state.pendingPayments.length,
+  });
+
+  return state;
 }
 
 async function persistCreditsToFile(filePath: string, state: PersistedCreditsState): Promise<void> {
   try {
-    await fs.writeFile(filePath, JSON.stringify(state, null, 2), 'utf-8');
+    await writeJsonAtomic(filePath, state);
     logger.info('Persisted credits to local file', {
       filePath,
       balances: state.balances.length,
@@ -337,7 +333,7 @@ export async function loadCreditsStateSnapshot(filePath: string): Promise<Persis
   }
 
   // Fallback to local file
-  const fileState = await loadCreditsFromFile(filePath);
+  const fileState = loadCreditsFromFile(filePath);
   if (fileState) {
     return fileState;
   }
@@ -380,4 +376,35 @@ export async function persistCreditsStateSnapshot(
 
   // Fallback to file only (always use full state)
   await persistCreditsToFile(filePath, stateForFile);
+}
+
+/**
+ * Delete expired rows directly from Supabase tables.
+ * Called during startup cleanup to purge stale data that may have accumulated
+ * if the server crashed before in-memory cleanup could persist.
+ */
+export async function cleanupExpiredRowsInSupabase(
+  webhookEventTtlMs: number,
+  pendingPaymentTtlMs: number
+): Promise<void> {
+  if (!hasSupabaseConfig()) return;
+
+  const now = Date.now();
+  const webhookCutoff = new Date(now - webhookEventTtlMs).toISOString();
+  const paymentCutoff = new Date(now - pendingPaymentTtlMs).toISOString();
+
+  try {
+    await Promise.all([
+      deleteRowsOlderThan(config.SUPABASE_PROCESSED_WEBHOOK_EVENTS_TABLE, 'processed_at', webhookCutoff),
+      deleteRowsOlderThan(config.SUPABASE_PENDING_PAYMENTS_TABLE, 'created_at', paymentCutoff),
+    ]);
+    logger.info('Supabase TTL cleanup completed', {
+      webhookCutoff,
+      paymentCutoff,
+    });
+  } catch (error) {
+    logger.warn('Supabase TTL cleanup failed (non-fatal)', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }

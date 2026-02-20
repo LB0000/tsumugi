@@ -104,6 +104,12 @@ export async function applyTextOverlay(
         renderText(ctx, text, resolvedConfig, canvas.width, canvas.height, options.position ?? 'bottom-center');
 
         const newDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+        // GPU バックバッファと Image デコードバッファを解放
+        canvas.width = 0;
+        canvas.height = 0;
+        img.src = '';
+
         resolve(newDataUrl);
       } catch (error) {
         reject(error);

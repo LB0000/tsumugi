@@ -76,6 +76,7 @@ export function useShippingForm(options: UseShippingFormOptions = {}): UseShippi
     const digits = form.postalCode.replace(/-/g, '');
     if (postalLookup.prefecture && postalAppliedRef.current !== digits) {
       postalAppliedRef.current = digits;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing external postal lookup result into form state
       setForm((prev) => ({
         ...prev,
         prefecture: postalLookup.prefecture,
@@ -88,7 +89,7 @@ export function useShippingForm(options: UseShippingFormOptions = {}): UseShippi
   // enabled が false になったらクリア
   useEffect(() => {
     if (!enabled) {
-      setTouchedFields({});
+      setTouchedFields({}); // eslint-disable-line react-hooks/set-state-in-effect -- reset on disable
       setFieldErrors({});
     }
   }, [enabled]);

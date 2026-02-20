@@ -42,8 +42,8 @@ CREATE INDEX IF NOT EXISTS idx_credit_transactions_reference_id
 ALTER TABLE credit_balances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 
--- Allow service role full access
+-- Allow service role full access (TO service_role restricts to service role only)
 CREATE POLICY "Service role full access" ON credit_balances
-  FOR ALL USING (true) WITH CHECK (true);
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY "Service role full access" ON credit_transactions
-  FOR ALL USING (true) WITH CHECK (true);
+  FOR ALL TO service_role USING (true) WITH CHECK (true);

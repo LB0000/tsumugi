@@ -341,16 +341,16 @@ export async function resetPassword(params: { token: string; newPassword: string
 
   const passwordSalt = randomBytes(16).toString('hex');
   const passwordHash = await hashPassword(params.newPassword, passwordSalt);
-  user.passwordSalt = passwordSalt;
-  user.passwordHash = passwordHash;
-  user.updatedAt = new Date().toISOString();
+  const updatedUser = { ...user, passwordSalt, passwordHash, updatedAt: new Date().toISOString() };
+  usersById.set(updatedUser.id, updatedUser);
+  usersByEmail.set(updatedUser.email, updatedUser);
 
   resetTokensByToken.delete(params.token);
-  invalidateSessionsForUser(user.id);
+  invalidateSessionsForUser(updatedUser.id);
 
-  const token = createSession(user.id);
+  const token = createSession(updatedUser.id);
   persistAuthState();
-  return { user: toPublicUser(user), token };
+  return { user: toPublicUser(updatedUser), token };
 }
 
 // --- Public API: Google auth ---
@@ -395,10 +395,11 @@ export async function updateUserProfile(userId: string, params: { name: string }
   const user = usersById.get(userId);
   if (!user) throw new Error('USER_NOT_FOUND');
 
-  user.name = params.name.trim();
-  user.updatedAt = new Date().toISOString();
+  const updatedUser = { ...user, name: params.name.trim(), updatedAt: new Date().toISOString() };
+  usersById.set(updatedUser.id, updatedUser);
+  usersByEmail.set(updatedUser.email, updatedUser);
   persistAuthState();
-  return toPublicUser(user);
+  return toPublicUser(updatedUser);
 }
 
 export async function changeUserPassword(
@@ -417,12 +418,12 @@ export async function changeUserPassword(
 
   const passwordSalt = randomBytes(16).toString('hex');
   const passwordHash = await hashPassword(params.newPassword, passwordSalt);
-  user.passwordSalt = passwordSalt;
-  user.passwordHash = passwordHash;
-  user.updatedAt = new Date().toISOString();
+  const updatedUser = { ...user, passwordSalt, passwordHash, updatedAt: new Date().toISOString() };
+  usersById.set(updatedUser.id, updatedUser);
+  usersByEmail.set(updatedUser.email, updatedUser);
 
-  invalidateSessionsForUser(user.id);
-  const token = createSession(user.id);
+  invalidateSessionsForUser(updatedUser.id);
+  const token = createSession(updatedUser.id);
   persistAuthState();
   return { token };
 }
@@ -459,11 +460,12 @@ export function verifyEmail(token: string): AuthPublicUser | null {
     return null;
   }
 
-  user.emailVerified = true;
-  user.updatedAt = new Date().toISOString();
+  const updatedUser = { ...user, emailVerified: true, updatedAt: new Date().toISOString() };
+  usersById.set(updatedUser.id, updatedUser);
+  usersByEmail.set(updatedUser.email, updatedUser);
   verificationTokensByToken.delete(token);
   persistAuthState();
-  return toPublicUser(user);
+  return toPublicUser(updatedUser);
 }
 
 export function getUserEmailForVerification(userId: string): string | null {

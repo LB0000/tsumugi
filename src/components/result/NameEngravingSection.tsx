@@ -19,6 +19,10 @@ export interface NameEngravingSectionProps {
   isProcessing?: boolean;
   /** 処理ステージ（Labor Illusion用） */
   processingStage?: string | null;
+  /** 親で計算済みのオーバーレイ画像URL（Canvas二重実行防止） */
+  precomputedImageUrl?: string;
+  /** 親で発生したエラー */
+  overlayError?: string | null;
 }
 
 type CustomizeTab = 'font' | 'decoration' | 'position';
@@ -38,6 +42,8 @@ export function NameEngravingSection({
   onSettingsChange,
   isProcessing = false,
   processingStage = null,
+  precomputedImageUrl,
+  overlayError,
 }: NameEngravingSectionProps) {
   const [showCustomize, setShowCustomize] = useState(false);
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
@@ -171,6 +177,9 @@ export function NameEngravingSection({
               styleId={styleId}
               portraitName={portraitName}
               overlaySettings={overlaySettings}
+              precomputedImageUrl={precomputedImageUrl}
+              precomputedIsProcessing={isProcessing}
+              precomputedError={overlayError}
               alt="名前入り肖像画プレビュー"
               className="max-w-md mx-auto rounded-lg shadow-2xl"
             />

@@ -120,10 +120,6 @@ function buildLegacySelectUrl(): string {
   return buildTableUrl(config.SUPABASE_AUTH_STATE_TABLE, params);
 }
 
-function buildLegacyUpsertUrl(): string {
-  return buildTableUrl(config.SUPABASE_AUTH_STATE_TABLE, new URLSearchParams({ on_conflict: 'key' }));
-}
-
 function getDefaultSnapshotFallback(): PersistedSnapshot {
   return {
     version: 1,
@@ -178,25 +174,6 @@ async function loadLegacySnapshotFromSupabase<T>(): Promise<T | null> {
   }
 
   return (row as { data: T }).data ?? null;
-}
-
-async function persistLegacySnapshotToSupabase<T>(snapshot: T): Promise<void> {
-  const response = await fetch(buildLegacyUpsertUrl(), {
-    method: 'POST',
-    headers: {
-      ...buildSupabaseHeaders(true),
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify([{
-      key: config.SUPABASE_AUTH_STATE_KEY,
-      data: snapshot,
-      updated_at: new Date().toISOString(),
-    }]),
-  });
-
-  if (!response.ok) {
-    throw new Error(await parseSupabaseError(response));
-  }
 }
 
 async function loadNormalizedSnapshotFromSupabase(): Promise<PersistedSnapshot> {
@@ -389,18 +366,11 @@ export async function persistAuthStateSnapshot<T>(filePath: string, snapshot: T)
 
   try {
     await persistNormalizedSnapshotToSupabase(normalizedSnapshot);
+    // Also write local file as backup
+    await writeJsonAtomic(filePath, snapshot);
     return;
   } catch (error) {
-    logger.error('Failed to persist normalized auth store to Supabase.', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  try {
-    await persistLegacySnapshotToSupabase(snapshot);
-    return;
-  } catch (error) {
-    logger.error('Failed to persist legacy auth store snapshot to Supabase.', {
+    logger.error('Failed to persist normalized auth store to Supabase, falling back to file', {
       error: error instanceof Error ? error.message : String(error),
     });
   }

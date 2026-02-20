@@ -11,6 +11,12 @@ export interface PortraitPreviewProps {
   portraitName: string;
   /** カスタマイズ設定 */
   overlaySettings?: TextOverlaySettings;
+  /** 親で計算済みのオーバーレイ画像URL（指定時は内部のuseTextOverlayをスキップ） */
+  precomputedImageUrl?: string;
+  /** 親で計算中かどうか（precomputedImageUrl使用時） */
+  precomputedIsProcessing?: boolean;
+  /** 親で発生したエラー（precomputedImageUrl使用時） */
+  precomputedError?: string | null;
   /** 画像のalt属性 */
   alt?: string;
   /** 追加のCSSクラス */
@@ -22,17 +28,26 @@ export function PortraitPreview({
   styleId,
   portraitName,
   overlaySettings,
+  precomputedImageUrl,
+  precomputedIsProcessing,
+  precomputedError,
   alt = '肖像画プレビュー',
   className = '',
 }: PortraitPreviewProps) {
-  const { overlayedImageUrl, isProcessing, error } = useTextOverlay({
+  // precomputedImageUrl が渡された場合は内部計算をスキップ（Canvas二重実行防止）
+  const internal = useTextOverlay({
     baseImageUrl,
     styleId,
     portraitName,
     imageWidth: 1024,
     imageHeight: 1024,
     overlaySettings,
+    skip: precomputedImageUrl !== undefined,
   });
+
+  const overlayedImageUrl = precomputedImageUrl ?? internal.overlayedImageUrl;
+  const isProcessing = precomputedIsProcessing ?? internal.isProcessing;
+  const error = precomputedError ?? internal.error;
 
   return (
     <div className={`relative ${className}`}>

@@ -7,7 +7,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { config } from '../config.js';
 import { logger } from './logger.js';
-import { loadCreditsStateSnapshot, persistCreditsStateSnapshot } from './creditsStore.js';
+import { loadCreditsStateSnapshot, persistCreditsStateSnapshot, cleanupExpiredRowsInSupabase } from './creditsStore.js';
 import type {
   CreditBalance,
   CreditTransaction,
@@ -250,9 +250,13 @@ function cleanupExpiredWebhookState(): void {
   }
 }
 
-// Start cleanup interval after hydration
+// Run cleanup immediately after hydration, then start periodic interval
 let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 creditsHydrationReady.then(() => {
+  // Purge stale data loaded during hydration immediately (in-memory + Supabase)
+  cleanupExpiredWebhookState();
+  cleanupExpiredRowsInSupabase(WEBHOOK_EVENT_TTL_MS, PENDING_PAYMENT_TTL_MS);
+
   cleanupIntervalId = setInterval(cleanupExpiredWebhookState, CLEANUP_INTERVAL_MS);
   logger.info('Webhook state cleanup interval started', {
     webhookEventTtlHours: WEBHOOK_EVENT_TTL_MS / (60 * 60 * 1000),

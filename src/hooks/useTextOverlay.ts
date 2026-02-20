@@ -19,6 +19,8 @@ export interface UseTextOverlayOptions {
   imageHeight?: number;
   /** カスタマイズ設定（省略時はスタイル推奨） */
   overlaySettings?: TextOverlaySettings;
+  /** trueの場合、内部処理をスキップ（親で計算済みの場合に使用） */
+  skip?: boolean;
 }
 
 export interface UseTextOverlayResult {
@@ -79,7 +81,7 @@ function resolveOverlaySettings(settings?: TextOverlaySettings) {
  * - Generation counterでrace conditionを防止
  */
 export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayResult {
-  const { baseImageUrl, styleId, portraitName, imageWidth = 1024, imageHeight = 1024, overlaySettings } = options;
+  const { baseImageUrl, styleId, portraitName, imageWidth = 1024, imageHeight = 1024, overlaySettings, skip = false } = options;
 
   const [overlayedImageUrl, setOverlayedImageUrl] = useState<string>(baseImageUrl);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -167,6 +169,9 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
 
   // Auto-apply effect: debounce text input only, apply settings changes immediately
   useEffect(() => {
+    // Skip processing when parent provides precomputed result
+    if (skip) return;
+
     // Clear existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -199,7 +204,7 @@ export function useTextOverlay(options: UseTextOverlayOptions): UseTextOverlayRe
   }, [
     baseImageUrl, styleId, portraitName, imageWidth, imageHeight,
     overlaySettings?.fontId, overlaySettings?.decorationId, overlaySettings?.position,
-    applyOverlay,
+    applyOverlay, skip,
   ]);
 
   return {

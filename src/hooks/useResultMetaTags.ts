@@ -36,7 +36,7 @@ export function useResultMetaTags(options: UseResultMetaTagsOptions): void {
     return updateMetaTags({
       title: `${styleName}スタイルの肖像画 | TSUMUGI`,
       description: `AIが生成した${styleName}スタイルの肖像画。TSUMUGIで世界に一つだけのアートを。`,
-      ogUrl: 'https://tsumugi.jp/result',
+      ogUrl: 'https://tsumugi-art.com/result',
       ogImage: generatedImage,
     });
   }, [generatedImage, styleName]);

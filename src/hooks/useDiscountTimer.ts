@@ -22,8 +22,19 @@ export interface UseDiscountTimerResult {
  * @param storageKey - localStorage のキー
  */
 export function useDiscountTimer(storageKey: string): UseDiscountTimerResult {
-  const [isWithin24Hours, setIsWithin24Hours] = useState(true);
-  const [timeRemaining, setTimeRemaining] = useState('24:00:00');
+  const [isWithin24Hours, setIsWithin24Hours] = useState(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return false;
+      const generated = parseInt(raw, 10);
+      if (Number.isNaN(generated) || generated <= 0) return false;
+      const elapsed = Date.now() - generated;
+      return elapsed >= 0 && elapsed <= DISCOUNT_WINDOW_MS;
+    } catch {
+      return false;
+    }
+  });
+  const [timeRemaining, setTimeRemaining] = useState('00:00:00');
 
   useEffect(() => {
     let raw: string | null = null;
@@ -43,7 +54,7 @@ export function useDiscountTimer(storageKey: string): UseDiscountTimerResult {
     const generated = parseInt(raw, 10);
 
     if (Number.isNaN(generated) || generated <= 0) {
-      setIsWithin24Hours(false);
+      // useState initializer already handles this case — no setState needed
       return;
     }
 

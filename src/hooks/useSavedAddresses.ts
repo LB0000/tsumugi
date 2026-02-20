@@ -37,6 +37,7 @@ export function useSavedAddresses(options: UseSavedAddressesOptions): UseSavedAd
     if (!authUser || hasLoadedRef.current) return;
 
     hasLoadedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount pattern: loading state must be set synchronously before async call
     setIsLoading(true);
     setError(null);
 

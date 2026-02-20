@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { config } from '../config.js';
 import { logger } from './logger.js';
 
 const GRAPH_API_VERSION = 'v21.0';
@@ -35,8 +36,8 @@ interface PurchaseEventParams {
 }
 
 export async function sendPurchaseEvent(params: PurchaseEventParams): Promise<boolean> {
-  const accessToken = process.env.META_CONVERSIONS_API_TOKEN;
-  const pixelId = process.env.META_PIXEL_ID;
+  const accessToken = config.META_CONVERSIONS_API_TOKEN;
+  const pixelId = config.META_PIXEL_ID;
 
   if (!accessToken || !pixelId) {
     logger.info('Meta CAPI not configured, skipping Purchase event');

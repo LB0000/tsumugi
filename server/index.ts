@@ -19,12 +19,12 @@ import { reviewRouter } from './routes/reviews.js';
 import { cartRouter } from './routes/cart.js';
 import { creditsRouter } from './routes/credits.js';
 import { testLoginRouter } from './routes/testLogin.js';
-import { startCartAbandonmentChecker, cartAbandonmentHydrationReady } from './lib/cartAbandonment.js';
-import { startScheduledEmailChecker, scheduledEmailsHydrationReady } from './lib/scheduledEmails.js';
+import { startCartAbandonmentChecker, stopCartAbandonmentChecker, cartAbandonmentHydrationReady } from './lib/cartAbandonment.js';
+import { startScheduledEmailChecker, stopScheduledEmailChecker, scheduledEmailsHydrationReady } from './lib/scheduledEmails.js';
 import { checkoutHydrationReady } from './lib/checkoutState.js';
 import { styleAnalyticsHydrationReady } from './lib/styleAnalytics.js';
 import { galleryHydrationReady } from './lib/galleryState.js';
-import { creditsHydrationReady } from './lib/credits.js';
+import { creditsHydrationReady, stopCleanupInterval } from './lib/credits.js';
 
 const app = express();
 const PORT = config.PORT;
@@ -133,8 +133,8 @@ app.use('/api/gallery', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix
 app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'reviews' }), reviewRouter);
 app.use('/api/cart', createRateLimiter({ windowMs: 60_000, max: 20, keyPrefix: 'cart' }), cartRouter);
 app.use('/api/credits', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'credits' }), creditsRouter);
-app.use('/api/internal', internalRouter);
-app.use('/api/test-login', testLoginRouter);
+app.use('/api/internal', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix: 'internal' }), internalRouter);
+app.use('/api/test-login', createRateLimiter({ windowMs: 60_000, max: 5, keyPrefix: 'test-login' }), testLoginRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -160,6 +160,9 @@ const server = app.listen(PORT, async () => {
 // [S-03] Graceful shutdown — flush pending persist queues before exit
 function gracefulShutdown(signal: string) {
   logger.info(`${signal} received, shutting down gracefully`);
+  stopCartAbandonmentChecker();
+  stopScheduledEmailChecker();
+  stopCleanupInterval();
   server.close(() => {
     // Allow pending async writes (persistQueue) a short window to flush
     setTimeout(() => process.exit(0), 500);

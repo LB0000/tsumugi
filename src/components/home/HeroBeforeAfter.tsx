@@ -22,7 +22,6 @@ function HeroAnimatedNumber({ target, suffix, decimals }: { target: number; suff
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
-    setCurrent(0);
     let rafId: number;
     const delay = setTimeout(() => {
       const duration = 2000;

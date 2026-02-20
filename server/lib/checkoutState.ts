@@ -3,7 +3,7 @@ import { readJsonFile } from './persistence.js';
 import { logger } from './logger.js';
 import { hasSupabaseConfig } from './supabaseClient.js';
 import { loadCheckoutStateSnapshot, persistCheckoutStateSnapshot } from './checkoutStateStore.js';
-import type { OrderItem, OrderShippingAddress, OrderGiftInfo, PersistedCheckoutState } from './checkoutTypes.js';
+import type { PersistedCheckoutState } from './checkoutTypes.js';
 import type { OrderPaymentStatus, ProcessedWebhookEvent } from './checkoutTypes.js';
 
 export type { OrderItem, OrderShippingAddress, OrderGiftInfo, OrderPaymentStatus, ProcessedWebhookEvent } from './checkoutTypes.js';

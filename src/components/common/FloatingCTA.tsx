@@ -17,8 +17,6 @@ export function FloatingCTA() {
 
   useEffect(() => {
     if (!isHomePage || isDismissed) {
-      // パスが変わったら可視性をリセット
-      setVisibilityByPath((prev) => ({ ...prev, [pathname]: false }));
       return;
     }
 

@@ -139,6 +139,14 @@ export function startScheduledEmailChecker(): void {
   logger.info('Scheduled email checker started');
 }
 
+export function stopScheduledEmailChecker(): void {
+  if (checkerInterval) {
+    clearInterval(checkerInterval);
+    checkerInterval = null;
+    logger.info('Scheduled email checker stopped');
+  }
+}
+
 const SCHEDULED_HYDRATION_TIMEOUT_MS = 15_000;
 
 export const scheduledEmailsHydrationReady: Promise<void> = hasSupabaseConfig()

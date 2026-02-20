@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
+import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import {
   SESSION_TTL_MS,
@@ -47,7 +48,7 @@ const googleOAuthClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) 
 
 export const authRouter = Router();
 const isProduction = process.env.NODE_ENV === 'production';
-const authCookieSameSite: 'none' | 'lax' = isProduction && process.env.COOKIE_SAME_SITE === 'none' ? 'none' : 'lax';
+const authCookieSameSite: 'none' | 'lax' = isProduction && config.COOKIE_SAME_SITE === 'none' ? 'none' : 'lax';
 const authCookieSecure = isProduction;
 const MAX_ADDRESS_LENGTH = {
   label: 40,

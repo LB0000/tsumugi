@@ -101,6 +101,7 @@ export function CheckoutPage() {
     if (defaultAddress) {
       shippingForm.setForm(convertSavedAddressToShippingForm(defaultAddress));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- shippingForm object identity changes on every render; only setForm is needed
   }, [savedAddresses, shippingForm.setForm]);
 
   // 保存済み住所のエラーを state に反映

@@ -12,7 +12,9 @@ function ImagePlaceholder({ label }: { label: string }) {
 }
 
 export function ParallaxCard({ sample, index }: { sample: TransformationSample; index: number }) {
-  const [showAfter, setShowAfter] = useState(false);
+  const [showAfter, setShowAfter] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
   const [imageErrors, setImageErrors] = useState({ before: false, after: false });
   const [isVisible, setIsVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -53,19 +55,16 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
     // prefers-reduced-motion 対応（ランタイム変更も検知）
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    if (mql.matches) {
-      setShowAfter(true); // 常に After を表示
-      return;
-    }
+    // reduced-motion の場合は初期値で true にしてあるのでタイマー不要
+    if (mql.matches) return;
 
     // 全カードで同期した切り替え（indexに依存しない）
     let interval: number | null = null;
-    let startTimer: number;
 
     const handleMotionChange = (e: MediaQueryListEvent) => {
       if (e.matches) {
         // ユーザーが動きを減らす設定に変更した
-        clearTimeout(startTimer);
+        clearTimeout(timerId);
         if (interval !== null) clearInterval(interval);
         setShowAfter(true);
       }
@@ -73,7 +72,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
     mql.addEventListener('change', handleMotionChange);
 
-    startTimer = setTimeout(() => {
+    const timerId = setTimeout(() => {
       setShowAfter(true);
       interval = setInterval(() => {
         setShowAfter(prev => !prev);
@@ -82,7 +81,7 @@ export function ParallaxCard({ sample, index }: { sample: TransformationSample; 
 
     return () => {
       mql.removeEventListener('change', handleMotionChange);
-      clearTimeout(startTimer);
+      clearTimeout(timerId);
       if (interval !== null) clearInterval(interval);
     };
   }, []);
