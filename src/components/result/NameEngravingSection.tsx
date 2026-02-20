@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
@@ -47,28 +47,11 @@ export function NameEngravingSection({
 }: NameEngravingSectionProps) {
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
   const prevTabIndexRef = useRef(0);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [isPanelVisible, setIsPanelVisible] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
   const activeTabIndex = TABS.findIndex((t) => t.id === activeTab);
 
   const hasName = portraitName.trim() !== '';
-
-  // パネルの可視性をIntersectionObserverで監視
-  useEffect(() => {
-    const el = panelRef.current;
-    if (!el || !hasName) {
-      setIsPanelVisible(false);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsPanelVisible(entry.isIntersecting),
-      { threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasName]);
 
   // カスタマイズ進捗計算
   const progress = {
@@ -86,16 +69,19 @@ export function NameEngravingSection({
     setActiveTab(tabId);
   }, [activeTabIndex]);
 
-  // キーボードナビゲーション
+  // キーボードナビゲーション（WAI-ARIA Tabs: Arrow keyでフォーカス移動）
   const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let newIndex: number | null = null;
     if (e.key === 'ArrowRight') {
       e.preventDefault();
-      const nextIndex = (index + 1) % TABS.length;
-      switchTab(TABS[nextIndex].id);
+      newIndex = (index + 1) % TABS.length;
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
-      const prevIndex = (index - 1 + TABS.length) % TABS.length;
-      switchTab(TABS[prevIndex].id);
+      newIndex = (index - 1 + TABS.length) % TABS.length;
+    }
+    if (newIndex !== null) {
+      switchTab(TABS[newIndex].id);
+      document.getElementById(`tab-${TABS[newIndex].id}`)?.focus();
     }
   };
 
@@ -185,33 +171,39 @@ export function NameEngravingSection({
       <AnimatePresence>
         {hasName && (
           <motion.div
-            initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
-            animate={shouldReduceMotion ? {} : { opacity: 1, scale: 1 }}
-            exit={shouldReduceMotion ? {} : { opacity: 0, scale: 0.95 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1 }}
+            exit={shouldReduceMotion ? {} : { opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="relative bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-6 border-2 border-[#EC4899] shadow-xl"
+            {/* sticky offset = Announcement Bar (~28px) + Main Header (56px) + Category Nav (~36px) */}
+            className="sticky top-[120px] z-10 md:static"
           >
-            {/* LIVEバッジ */}
-            <div className="absolute -top-3 -right-3 bg-[#EC4899] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              LIVE
+            <div className="relative bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 md:p-6 border-2 border-[#EC4899] shadow-xl">
+              {/* LIVEバッジ */}
+              <div className="absolute -top-3 -right-3 z-20 bg-[#EC4899] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                LIVE
+              </div>
+
+              <PortraitPreview
+                baseImageUrl={baseImageUrl}
+                styleId={styleId}
+                portraitName={portraitName}
+                overlaySettings={overlaySettings}
+                precomputedImageUrl={precomputedImageUrl}
+                precomputedIsProcessing={isProcessing}
+                precomputedError={overlayError}
+                alt="名前入り肖像画プレビュー"
+                className="max-w-md mx-auto rounded-lg shadow-2xl [&>img]:max-h-[38vh] [&>img]:w-auto [&>img]:mx-auto md:[&>img]:max-h-none"
+              />
+
+              <p className="text-xs text-[#71717A] text-center mt-3 md:mt-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+                実際の商品もこのように名前が表示されます
+              </p>
+
+              {/* Sticky時の下端シャドウ（モバイルのみ） */}
+              <div className="absolute -bottom-2 left-2 right-2 h-4 bg-gradient-to-b from-pink-100/80 to-transparent pointer-events-none md:hidden blur-sm" />
             </div>
-
-            <PortraitPreview
-              baseImageUrl={baseImageUrl}
-              styleId={styleId}
-              portraitName={portraitName}
-              overlaySettings={overlaySettings}
-              precomputedImageUrl={precomputedImageUrl}
-              precomputedIsProcessing={isProcessing}
-              precomputedError={overlayError}
-              alt="名前入り肖像画プレビュー"
-              className="max-w-md mx-auto rounded-lg shadow-2xl"
-            />
-
-            <p className="text-xs text-[#71717A] text-center mt-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-              実際の商品もこのように名前が表示されます
-            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -220,20 +212,19 @@ export function NameEngravingSection({
       <AnimatePresence>
         {hasName && (
           <motion.div
-            ref={panelRef}
             initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
             className="rounded-2xl overflow-hidden bg-zinc-900/70 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-[0_-8px_40px_rgba(0,0,0,0.15)]"
           >
-            {/* ドラッグインジケーター */}
-            <div className="flex justify-center pt-3 pb-1">
+            {/* ドラッグインジケーター（装飾） */}
+            <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
               <div className="w-9 h-1 rounded-full bg-white/30" />
             </div>
 
             {/* ヘッダー */}
-            <div className="text-center px-5 pb-3">
+            <div className="text-center px-5 pb-2">
               <h4
                 className="text-sm font-semibold text-white/90 tracking-wide"
                 style={{ fontFamily: 'Poiret One, serif' }}
@@ -241,6 +232,15 @@ export function NameEngravingSection({
                 カスタマイズ
               </h4>
             </div>
+
+            {/* iOS風セグメントコントロール（パネル上部） */}
+            <SegmentedControl
+              tabs={TABS}
+              activeTab={activeTab}
+              activeTabIndex={activeTabIndex}
+              onTabClick={switchTab}
+              onKeyDown={handleTabKeyDown}
+            />
 
             {/* コンテンツ */}
             <div className="px-5 py-4 min-h-[100px]">
@@ -302,43 +302,6 @@ export function NameEngravingSection({
                 )}
               </AnimatePresence>
             </div>
-
-            {/* セグメントコントロール用スペーサー（固定時にコンテンツが隠れないように） */}
-            {isPanelVisible && <div className="h-[60px]" />}
-
-            {/* iOS風セグメントコントロール（パネル非表示時はインライン） */}
-            {!isPanelVisible && (
-              <SegmentedControl
-                tabs={TABS}
-                activeTab={activeTab}
-                activeTabIndex={activeTabIndex}
-                onTabClick={switchTab}
-                onKeyDown={handleTabKeyDown}
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 固定フッター: セグメントコントロール（パネルが画面内の時だけ表示） */}
-      <AnimatePresence>
-        {hasName && isPanelVisible && (
-          <motion.div
-            initial={shouldReduceMotion ? {} : { y: 60, opacity: 0 }}
-            animate={shouldReduceMotion ? {} : { y: 0, opacity: 1 }}
-            exit={shouldReduceMotion ? {} : { y: 60, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/10"
-            style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
-          >
-            <SegmentedControl
-              tabs={TABS}
-              activeTab={activeTab}
-              activeTabIndex={activeTabIndex}
-              onTabClick={switchTab}
-              onKeyDown={handleTabKeyDown}
-              pillLayoutId="segmentedPillFixed"
-            />
           </motion.div>
         )}
       </AnimatePresence>
