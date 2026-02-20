@@ -8,9 +8,13 @@ import { contentRouter } from './routes/content.js';
 import { customersRouter } from './routes/customers.js';
 import { campaignsRouter } from './routes/campaigns.js';
 import { styleAnalyticsRouter } from './routes/style-analytics.js';
+import { strategyRouter } from './routes/strategy.js';
+import { cacRouter } from './routes/cac.js';
+import { funnelRouter } from './routes/funnel.js';
+import { reviewsRouter } from './routes/reviews.js';
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = Number(process.env.PORT) || 3002;
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendUrl = process.env.FRONTEND_URL;
 
@@ -63,6 +67,10 @@ app.use('/api/content', createRateLimiter({ windowMs: 60_000, max: 10, keyPrefix
 app.use('/api/customers', customersRouter);
 app.use('/api/campaigns', createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'campaigns' }), campaignsRouter);
 app.use('/api/style-analytics', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'style-analytics' }), styleAnalyticsRouter);
+app.use('/api/strategy', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'strategy' }), strategyRouter);
+app.use('/api/cac', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'cac' }), cacRouter);
+app.use('/api/funnel', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'funnel' }), funnelRouter);
+app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'reviews' }), reviewsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

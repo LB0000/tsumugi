@@ -6,6 +6,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ContentPage } from './pages/ContentPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { CampaignsPage } from './pages/CampaignsPage';
+import { StrategyPage } from './pages/StrategyPage';
+import { ReviewsPage } from './pages/ReviewsPage';
 import { SettingsPage } from './pages/PlaceholderPage';
 import type { ReactNode } from 'react';
 
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/content" element={<ContentPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
+          <Route path="/strategy" element={<StrategyPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

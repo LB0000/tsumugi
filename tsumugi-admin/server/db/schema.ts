@@ -77,3 +77,39 @@ export const emailSends = sqliteTable('email_sends', {
   sentAt: text('sent_at'),
   openedAt: text('opened_at'),
 });
+
+export const strategicGoals = sqliteTable('strategic_goals', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  category: text('category').notNull(), // 'reviews' | 'email_list' | 'seo' | 'sns' | 'revenue' | 'customers' | 'custom'
+  targetValue: real('target_value').notNull(),
+  currentValue: real('current_value').notNull().default(0),
+  unit: text('unit').notNull(),
+  deadline: text('deadline').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const adSpends = sqliteTable('ad_spends', {
+  id: text('id').primaryKey(),
+  channel: text('channel').notNull(), // 'meta' | 'google' | 'tiktok' | 'influencer' | 'other'
+  amount: integer('amount').notNull(),
+  period: text('period').notNull(), // YYYY-MM
+  impressions: integer('impressions').default(0),
+  clicks: integer('clicks').default(0),
+  conversions: integer('conversions').default(0),
+  revenue: integer('revenue').default(0),
+  note: text('note'),
+  createdAt: text('created_at').notNull(),
+});
+
+export const funnelSnapshots = sqliteTable('funnel_snapshots', {
+  id: text('id').primaryKey(),
+  date: text('date').notNull().unique(),
+  visitors: integer('visitors').default(0),
+  freeGenerations: integer('free_generations').default(0),
+  charges: integer('charges').default(0),
+  physicalPurchases: integer('physical_purchases').default(0),
+  revenue: integer('revenue').default(0),
+  createdAt: text('created_at').notNull(),
+});

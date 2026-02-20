@@ -96,6 +96,42 @@ sqlite.exec(`
     sent_at TEXT,
     opened_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS strategic_goals (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    target_value REAL NOT NULL,
+    current_value REAL NOT NULL DEFAULT 0,
+    unit TEXT NOT NULL,
+    deadline TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ad_spends (
+    id TEXT PRIMARY KEY,
+    channel TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    period TEXT NOT NULL,
+    impressions INTEGER DEFAULT 0,
+    clicks INTEGER DEFAULT 0,
+    conversions INTEGER DEFAULT 0,
+    revenue INTEGER DEFAULT 0,
+    note TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS funnel_snapshots (
+    id TEXT PRIMARY KEY,
+    date TEXT NOT NULL UNIQUE,
+    visitors INTEGER DEFAULT 0,
+    free_generations INTEGER DEFAULT 0,
+    charges INTEGER DEFAULT 0,
+    physical_purchases INTEGER DEFAULT 0,
+    revenue INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+  );
 `);
 
 function ensureColumn(table: string, column: string, definition: string): void {
