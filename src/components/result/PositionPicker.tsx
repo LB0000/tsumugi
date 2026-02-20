@@ -1,12 +1,17 @@
 import type { TextPosition } from '../../types/textOverlay';
 
-const POSITIONS: { id: TextPosition; label: string; dotClass: string }[] = [
-  { id: 'top-left', label: '左上', dotClass: 'top-1.5 left-1.5' },
-  { id: 'top-center', label: '上中央', dotClass: 'top-1.5 left-1/2 -translate-x-1/2' },
-  { id: 'top-right', label: '右上', dotClass: 'top-1.5 right-1.5' },
-  { id: 'bottom-left', label: '左下', dotClass: 'bottom-1.5 left-1.5' },
-  { id: 'bottom-center', label: '下中央', dotClass: 'bottom-1.5 left-1/2 -translate-x-1/2' },
-  { id: 'bottom-right', label: '右下', dotClass: 'bottom-1.5 right-1.5' },
+const POSITIONS: {
+  id: TextPosition;
+  label: string;
+  alignItems: string;
+  justifyContent: string;
+}[] = [
+  { id: 'top-left', label: '左上', alignItems: 'items-start', justifyContent: 'justify-start' },
+  { id: 'top-center', label: '上中央', alignItems: 'items-start', justifyContent: 'justify-center' },
+  { id: 'top-right', label: '右上', alignItems: 'items-start', justifyContent: 'justify-end' },
+  { id: 'bottom-left', label: '左下', alignItems: 'items-end', justifyContent: 'justify-start' },
+  { id: 'bottom-center', label: '下中央', alignItems: 'items-end', justifyContent: 'justify-center' },
+  { id: 'bottom-right', label: '右下', alignItems: 'items-end', justifyContent: 'justify-end' },
 ];
 
 interface PositionPickerProps {
@@ -16,44 +21,54 @@ interface PositionPickerProps {
 
 export function PositionPicker({ selectedPosition, onSelect }: PositionPickerProps) {
   return (
-    <div className="flex justify-center">
-      <div className="grid grid-cols-3 gap-2 max-w-[240px]">
-        {POSITIONS.map((pos) => (
+    <div className="grid grid-cols-3 gap-3 max-w-[320px] mx-auto">
+      {POSITIONS.map((pos) => {
+        const isSelected = selectedPosition === pos.id;
+        return (
           <button
             key={pos.id}
             type="button"
             onClick={() => onSelect(pos.id)}
-            className={`
-              relative aspect-[4/3] rounded-lg border-2 transition-all cursor-pointer
-              ${selectedPosition === pos.id
-                ? 'border-[#EC4899] bg-[#EC4899]/20'
-                : 'border-white/15 bg-white/10 hover:border-white/30'
-              }
-            `}
-            title={pos.label}
+            className="flex flex-col items-center gap-1.5 cursor-pointer group"
           >
-            {/* 画像エリア表現 */}
-            <div className="absolute inset-1 rounded bg-white/8" />
-
-            {/* テキスト位置ドット */}
-            <div className={`absolute ${pos.dotClass}`}>
-              <div className={`
-                w-2.5 h-2.5 rounded-full transition-colors
-                ${selectedPosition === pos.id ? 'bg-[#EC4899]' : 'bg-white/40'}
-              `} />
+            {/* ミニフレーム: テキスト位置を視覚的に表現 */}
+            <div
+              className={`
+                relative w-full aspect-square rounded-xl border-2 p-3
+                flex ${pos.alignItems} ${pos.justifyContent}
+                transition-all duration-200
+                ${isSelected
+                  ? 'border-[#EC4899] bg-[#EC4899]/5 shadow-sm'
+                  : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50'
+                }
+              `}
+            >
+              {/* テキスト位置を示す横線 */}
+              <div className="flex flex-col gap-1">
+                <div
+                  className={`h-1 w-8 rounded-full transition-colors ${
+                    isSelected ? 'bg-[#EC4899]' : 'bg-zinc-300 group-hover:bg-zinc-400'
+                  }`}
+                />
+                <div
+                  className={`h-0.5 w-5 rounded-full transition-colors ${
+                    isSelected ? 'bg-[#EC4899]/60' : 'bg-zinc-200 group-hover:bg-zinc-300'
+                  }`}
+                />
+              </div>
             </div>
 
-            {/* テキスト位置の線（表現） */}
-            <div className={`absolute ${pos.dotClass}`}>
-              <div className={`
-                h-[2px] w-6 rounded-full mt-3.5
-                ${selectedPosition === pos.id ? 'bg-[#EC4899]/60' : 'bg-white/25'}
-                ${pos.id.includes('right') ? '-translate-x-full ml-2.5' : pos.id.includes('center') ? '-translate-x-1/2' : ''}
-              `} />
-            </div>
+            {/* ラベル */}
+            <span
+              className={`text-xs transition-colors ${
+                isSelected ? 'text-[#EC4899] font-medium' : 'text-zinc-500'
+              }`}
+            >
+              {pos.label}
+            </span>
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

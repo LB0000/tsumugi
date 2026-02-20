@@ -24,7 +24,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
             w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all
             ${selectedDecorationId === null
               ? 'border-[#EC4899] ring-2 ring-[#EC4899]/30 scale-110'
-              : 'border-white/20 group-hover:border-white/40'
+              : 'border-zinc-200 group-hover:border-zinc-400'
             }
           `}
           style={{
@@ -33,7 +33,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
         >
           {selectedDecorationId === null && <Check className="w-4 h-4 text-white drop-shadow-md" />}
         </div>
-        <span className="text-[10px] text-white/60">推奨</span>
+        <span className="text-[10px] text-zinc-500">推奨</span>
       </button>
 
       {/* プリセット */}
@@ -49,7 +49,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
               w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all
               ${selectedDecorationId === preset.id
                 ? 'border-[#EC4899] ring-2 ring-[#EC4899]/30 scale-110'
-                : 'border-white/20 group-hover:border-white/40'
+                : 'border-zinc-200 group-hover:border-zinc-400'
               }
             `}
             style={{ backgroundColor: preset.color }}
@@ -60,7 +60,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
               }} />
             )}
           </div>
-          <span className="text-[10px] text-white/60">{preset.displayName}</span>
+          <span className="text-[10px] text-zinc-500">{preset.displayName}</span>
         </button>
       ))}
     </div>

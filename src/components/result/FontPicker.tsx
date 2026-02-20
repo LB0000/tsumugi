@@ -24,7 +24,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
             w-14 h-14 rounded-full flex items-center justify-center transition-all
             ${selectedFontId === null
               ? 'bg-[#EC4899] text-white ring-2 ring-[#EC4899]/30 scale-110'
-              : 'bg-white/15 text-white/80 group-hover:bg-white/25'
+              : 'bg-zinc-100 text-zinc-700 group-hover:bg-zinc-200'
             }
           `}
         >
@@ -39,7 +39,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
             </span>
           )}
         </div>
-        <span className="text-[10px] text-white/60 max-w-[48px] text-center truncate">推奨</span>
+        <span className="text-[10px] text-zinc-500 max-w-[48px] text-center truncate">推奨</span>
       </button>
 
       {/* 選択可能フォント */}
@@ -57,7 +57,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
                 w-14 h-14 rounded-full flex items-center justify-center transition-all
                 ${isSelected
                   ? 'bg-[#EC4899] text-white ring-2 ring-[#EC4899]/30 scale-110'
-                  : 'bg-white/15 text-white/80 group-hover:bg-white/25'
+                  : 'bg-zinc-100 text-zinc-700 group-hover:bg-zinc-200'
                 }
               `}
             >
@@ -75,7 +75,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
                 </span>
               )}
             </div>
-            <span className="text-[10px] text-white/60 max-w-[48px] text-center truncate">
+            <span className="text-[10px] text-zinc-500 max-w-[48px] text-center truncate">
               {font.displayName}
             </span>
           </button>

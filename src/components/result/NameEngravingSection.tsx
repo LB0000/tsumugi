@@ -216,17 +216,12 @@ export function NameEngravingSection({
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="rounded-2xl overflow-hidden bg-zinc-900/70 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-[0_-8px_40px_rgba(0,0,0,0.15)]"
+            className="rounded-2xl bg-zinc-50 border-2 border-zinc-200"
           >
-            {/* ドラッグインジケーター（装飾） */}
-            <div className="flex justify-center pt-3 pb-1" aria-hidden="true">
-              <div className="w-9 h-1 rounded-full bg-white/30" />
-            </div>
-
             {/* ヘッダー */}
-            <div className="text-center px-5 pb-2">
+            <div className="text-center px-5 pt-4 pb-2">
               <h4
-                className="text-sm font-semibold text-white/90 tracking-wide"
+                className="text-sm font-semibold text-zinc-700 tracking-wide"
                 style={{ fontFamily: 'Poiret One, serif' }}
               >
                 カスタマイズ
@@ -335,12 +330,12 @@ function SegmentedControl({
   return (
     <div className="px-5 py-2">
       <div
-        className="relative flex items-center p-1 rounded-full bg-white/10"
+        className="relative flex items-center p-1 rounded-full bg-zinc-200"
         role="tablist"
         aria-label="カスタマイズオプション"
       >
         <motion.div
-          className="absolute top-1 bottom-1 rounded-full bg-white/90 shadow-sm"
+          className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm"
           layoutId={pillLayoutId}
           style={{
             width: `calc(${100 / tabs.length}% - 4px)`,
@@ -367,7 +362,7 @@ function SegmentedControl({
                 cursor-pointer transition-colors duration-200
                 ${isActive
                   ? 'text-zinc-900'
-                  : 'text-white/60 hover:text-white/80'
+                  : 'text-zinc-500 hover:text-zinc-700'
                 }
               `}
               style={{ fontFamily: 'Didact Gothic, sans-serif' }}

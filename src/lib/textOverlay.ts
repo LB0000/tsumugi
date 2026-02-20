@@ -206,7 +206,7 @@ function renderText(
  * 画像サイズと文字数に応じてフォントサイズを計算
  */
 function calculateFontSize(width: number, _height: number, textLength: number): number {
-  const baseSize = width * 0.05;
+  const baseSize = width * 0.07; // 7%: 肖像画の銘として適正なサイズ
 
   let adjustedSize = baseSize;
   if (textLength > 15) {
@@ -217,7 +217,7 @@ function calculateFontSize(width: number, _height: number, textLength: number): 
     adjustedSize = baseSize * 0.9;
   }
 
-  return Math.max(10, Math.min(100, adjustedSize));
+  return Math.max(12, Math.min(140, adjustedSize));
 }
 
 /**
