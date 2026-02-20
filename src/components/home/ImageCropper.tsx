@@ -59,7 +59,7 @@ export function ImageCropper({ imageSrc, originalFile }: ImageCropperProps) {
   }, []);
 
   return (
-    <div className="w-full space-y-4 p-4">
+    <div className="w-full sm:max-w-sm sm:mx-auto space-y-4 p-4">
       <div className="text-center">
         <div className="inline-flex items-center gap-2 text-sm text-muted">
           <Crop className="w-4 h-4" />
