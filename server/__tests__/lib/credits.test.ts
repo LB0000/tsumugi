@@ -3,7 +3,7 @@
  * Following TDD approach per CLAUDE.md
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   initializeUserCredits,
   getUserCredits,
@@ -11,7 +11,6 @@ import {
   consumeCredit,
   addPurchasedCredits,
   getUserTransactions,
-  getAllBalances,
 } from '../../lib/credits.js';
 import { FREE_CREDITS, CREDITS_PER_PACK, MAX_CREDITS_PER_PURCHASE } from '../../lib/creditTypes.js';
 
@@ -23,6 +22,7 @@ vi.mock('../../lib/creditsStore.js', () => ({
     transactions: [],
   })),
   persistCreditsStateSnapshot: vi.fn(async () => {}),
+  cleanupExpiredRowsInSupabase: vi.fn(async () => {}),
 }));
 
 // Mock logger

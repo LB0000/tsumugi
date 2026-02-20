@@ -34,18 +34,22 @@ describe('isValidEmail', () => {
   });
 
   it('accepts an email with exactly 254 characters', () => {
-    // local@domain.tld  — build a 254-char address
+    // local@label1.label2.label3...tld — domain labels must be ≤63 chars (RFC 5321)
     const local = 'a'.repeat(64);
-    const domainLabel = 'b'.repeat(254 - 64 - 1 - 3); // minus local(64), @(1), .co(3)
-    const email = `${local}@${domainLabel}.co`;
+    // Need 254 - 64(local) - 1(@) = 189 chars for domain
+    // Use 2 labels of 63 chars + 1 label of 60 chars + ".co" = 63+1+63+1+60+1+2 = 191...
+    // Simpler: build "b{63}.b{63}.b{59}.co" = 63+1+63+1+59+1+2 = 190, need 189
+    // "b{63}.b{63}.b{58}.co" = 63+1+63+1+58+1+2 = 189 ✓
+    const domain = `${'b'.repeat(63)}.${'b'.repeat(63)}.${'b'.repeat(58)}.co`;
+    const email = `${local}@${domain}`;
     expect(email.length).toBe(254);
     expect(isValidEmail(email)).toBe(true);
   });
 
   it('rejects an email with 255 characters', () => {
     const local = 'a'.repeat(64);
-    const domainLabel = 'b'.repeat(255 - 64 - 1 - 3);
-    const email = `${local}@${domainLabel}.co`;
+    const domain = `${'b'.repeat(63)}.${'b'.repeat(63)}.${'b'.repeat(59)}.co`;
+    const email = `${local}@${domain}`;
     expect(email.length).toBe(255);
     expect(isValidEmail(email)).toBe(false);
   });

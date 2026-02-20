@@ -1,3 +1,10 @@
+import { vi, beforeEach, describe, it, expect } from 'vitest';
+
+// Mock Zustand persist middleware as passthrough (no localStorage dependency)
+vi.mock('zustand/middleware', () => ({
+  persist: (fn: unknown) => fn,
+}));
+
 import { useCartStore } from '../../stores/cartStore';
 import type { CartItem } from '../../types';
 
