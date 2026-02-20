@@ -1,17 +1,6 @@
-import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { selectableFonts } from '../../data/selectableFonts';
 import { getPortraitFont } from '../../data/portraitFonts';
-import type { FontCategory } from '../../types/textOverlay';
-
-const CATEGORIES: { id: FontCategory | 'all'; label: string }[] = [
-  { id: 'all', label: 'すべて' },
-  { id: 'elegant', label: 'エレガント' },
-  { id: 'classic', label: 'クラシック' },
-  { id: 'pop', label: 'ポップ' },
-  { id: 'handwritten', label: '手書き' },
-  { id: 'japanese', label: '和文' },
-];
 
 interface FontPickerProps {
   selectedFontId: string | null;
@@ -20,101 +9,78 @@ interface FontPickerProps {
 }
 
 export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProps) {
-  const [activeCategory, setActiveCategory] = useState<FontCategory | 'all'>('all');
   const styleFontConfig = getPortraitFont(styleId);
 
-  const filteredFonts = activeCategory === 'all'
-    ? selectableFonts
-    : selectableFonts.filter((f) => f.category === activeCategory);
-
   return (
-    <div className="space-y-3">
-      {/* カテゴリタブ */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => setActiveCategory(cat.id)}
-            className={`
-              px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer
-              ${activeCategory === cat.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }
-            `}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* フォントリスト */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {/* スタイル推奨オプション */}
-        <button
-          type="button"
-          onClick={() => onSelect(null)}
+    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center">
+      {/* スタイル推奨オプション */}
+      <button
+        type="button"
+        onClick={() => onSelect(null)}
+        className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
+      >
+        <div
           className={`
-            flex-shrink-0 w-32 p-3 rounded-xl border-2 transition-all cursor-pointer
+            w-14 h-14 rounded-full flex items-center justify-center transition-all
             ${selectedFontId === null
-              ? 'border-purple-500 bg-purple-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              ? 'bg-[#EC4899] text-white ring-2 ring-[#EC4899]/30 scale-110'
+              : 'bg-white/15 text-white/80 group-hover:bg-white/25'
             }
           `}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">推奨</span>
-            {selectedFontId === null && <Check className="w-3.5 h-3.5 text-purple-600" />}
-          </div>
-          <p
-            className="text-sm truncate text-gray-800"
-            style={{ fontFamily: `"${styleFontConfig.fontFamily}", sans-serif` }}
-          >
-            サンプル
-          </p>
-          <p className="text-[10px] text-gray-500 mt-1 truncate">スタイルに合わせる</p>
-        </button>
+          {selectedFontId === null ? (
+            <Check className="w-5 h-5" />
+          ) : (
+            <span
+              className="text-sm leading-none"
+              style={{ fontFamily: `"${styleFontConfig.fontFamily}", sans-serif` }}
+            >
+              Aa
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-white/60 max-w-[48px] text-center truncate">推奨</span>
+      </button>
 
-        {/* 選択可能フォント */}
-        {filteredFonts.map((font) => (
+      {/* 選択可能フォント */}
+      {selectableFonts.map((font) => {
+        const isSelected = selectedFontId === font.id;
+        return (
           <button
             key={font.id}
             type="button"
             onClick={() => onSelect(font.id)}
-            className={`
-              flex-shrink-0 w-32 p-3 rounded-xl border-2 transition-all cursor-pointer
-              ${selectedFontId === font.id
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-              }
-            `}
+            className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group"
           >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-gray-500">{font.displayName}</span>
-              {selectedFontId === font.id && <Check className="w-3.5 h-3.5 text-purple-600" />}
+            <div
+              className={`
+                w-14 h-14 rounded-full flex items-center justify-center transition-all
+                ${isSelected
+                  ? 'bg-[#EC4899] text-white ring-2 ring-[#EC4899]/30 scale-110'
+                  : 'bg-white/15 text-white/80 group-hover:bg-white/25'
+                }
+              `}
+            >
+              {isSelected ? (
+                <Check className="w-5 h-5" />
+              ) : (
+                <span
+                  className="text-sm leading-none"
+                  style={{
+                    fontFamily: `"${font.fontFamily}", sans-serif`,
+                    fontWeight: font.fontWeight,
+                  }}
+                >
+                  Aa
+                </span>
+              )}
             </div>
-            <p
-              className="text-sm truncate text-gray-800"
-              style={{
-                fontFamily: `"${font.fontFamily}", sans-serif`,
-                fontWeight: font.fontWeight,
-              }}
-            >
-              サンプル
-            </p>
-            <p
-              className="text-[10px] text-gray-400 mt-1 truncate"
-              style={{
-                fontFamily: `"${font.fontFamily}", sans-serif`,
-                fontWeight: font.fontWeight,
-              }}
-            >
-              ABCあいう
-            </p>
+            <span className="text-[10px] text-white/60 max-w-[48px] text-center truncate">
+              {font.displayName}
+            </span>
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

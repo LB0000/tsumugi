@@ -12,7 +12,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
   const styleFontConfig = getPortraitFont(styleId);
 
   return (
-    <div className="flex gap-3 flex-wrap">
+    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center">
       {/* スタイル推奨オプション */}
       <button
         type="button"
@@ -21,10 +21,10 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
       >
         <div
           className={`
-            w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all
+            w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all
             ${selectedDecorationId === null
-              ? 'border-purple-500 ring-2 ring-purple-200'
-              : 'border-gray-300 group-hover:border-gray-400'
+              ? 'border-[#EC4899] ring-2 ring-[#EC4899]/30 scale-110'
+              : 'border-white/20 group-hover:border-white/40'
             }
           `}
           style={{
@@ -33,7 +33,7 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
         >
           {selectedDecorationId === null && <Check className="w-4 h-4 text-white drop-shadow-md" />}
         </div>
-        <span className="text-[10px] text-gray-500">推奨</span>
+        <span className="text-[10px] text-white/60">推奨</span>
       </button>
 
       {/* プリセット */}
@@ -46,21 +46,21 @@ export function DecorationPicker({ selectedDecorationId, onSelect, styleId }: De
         >
           <div
             className={`
-              w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all
+              w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all
               ${selectedDecorationId === preset.id
-                ? 'border-purple-500 ring-2 ring-purple-200'
-                : 'border-gray-300 group-hover:border-gray-400'
+                ? 'border-[#EC4899] ring-2 ring-[#EC4899]/30 scale-110'
+                : 'border-white/20 group-hover:border-white/40'
               }
             `}
             style={{ backgroundColor: preset.color }}
           >
             {selectedDecorationId === preset.id && (
-              <Check className="w-4 h-4 text-white drop-shadow-md" style={{
+              <Check className="w-4 h-4 drop-shadow-md" style={{
                 color: preset.color === '#FFFFFF' || preset.color === '#FFD700' ? '#333' : '#fff',
               }} />
             )}
           </div>
-          <span className="text-[10px] text-gray-500">{preset.displayName}</span>
+          <span className="text-[10px] text-white/60">{preset.displayName}</span>
         </button>
       ))}
     </div>

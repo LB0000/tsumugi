@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Sparkles, Type, Palette, MapPin, AlertCircle } from 'lucide-react';
+import { Sparkles, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
 import { PortraitPreview } from './PortraitPreview';
 import { FontPicker } from './FontPicker';
@@ -27,10 +27,10 @@ export interface NameEngravingSectionProps {
 
 type CustomizeTab = 'font' | 'decoration' | 'position';
 
-const TABS: { id: CustomizeTab; label: string; icon: typeof Type }[] = [
-  { id: 'font', label: 'フォント', icon: Type },
-  { id: 'decoration', label: 'カラー', icon: Palette },
-  { id: 'position', label: '位置', icon: MapPin },
+const TABS: { id: CustomizeTab; label: string }[] = [
+  { id: 'font', label: 'フォント' },
+  { id: 'decoration', label: 'カラー' },
+  { id: 'position', label: '位置' },
 ];
 
 export function NameEngravingSection({
@@ -46,7 +46,10 @@ export function NameEngravingSection({
   overlayError,
 }: NameEngravingSectionProps) {
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
+  const prevTabIndexRef = useRef(0);
   const shouldReduceMotion = useReducedMotion();
+
+  const activeTabIndex = TABS.findIndex((t) => t.id === activeTab);
 
   const hasName = portraitName.trim() !== '';
 
@@ -190,7 +193,7 @@ export function NameEngravingSection({
         )}
       </AnimatePresence>
 
-      {/* カスタマイズセクション - iOSボトムタブバースタイル（名前入力時のみ表示） */}
+      {/* カスタマイズパネル - iOS Home Screen風（名前入力時のみ表示） */}
       <AnimatePresence>
         {hasName && (
           <motion.div
@@ -198,10 +201,25 @@ export function NameEngravingSection({
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl border-2 border-zinc-200 overflow-hidden"
+            className="rounded-2xl overflow-hidden bg-zinc-900/70 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-[0_-8px_40px_rgba(0,0,0,0.15)]"
           >
-            {/* タブコンテンツ（上部） */}
-            <div className="p-5">
+            {/* ドラッグインジケーター */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-9 h-1 rounded-full bg-white/30" />
+            </div>
+
+            {/* ヘッダー */}
+            <div className="text-center px-5 pb-3">
+              <h4
+                className="text-sm font-semibold text-white/90 tracking-wide"
+                style={{ fontFamily: 'Poiret One, serif' }}
+              >
+                カスタマイズ
+              </h4>
+            </div>
+
+            {/* コンテンツ */}
+            <div className="px-5 py-4 min-h-[100px]">
               <AnimatePresence mode="wait">
                 {activeTab === 'font' && (
                   <motion.div
@@ -209,10 +227,10 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-font"
                     aria-labelledby="tab-font"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
-                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
-                    transition={{ duration: 0.15 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <FontPicker
                       selectedFontId={overlaySettings.fontId}
@@ -228,10 +246,10 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-decoration"
                     aria-labelledby="tab-decoration"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
-                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
-                    transition={{ duration: 0.15 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <DecorationPicker
                       selectedDecorationId={overlaySettings.decorationId}
@@ -247,10 +265,10 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-position"
                     aria-labelledby="tab-position"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
-                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
-                    transition={{ duration: 0.15 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    transition={{ duration: 0.2 }}
                   >
                     <PositionPicker
                       selectedPosition={overlaySettings.position}
@@ -261,15 +279,25 @@ export function NameEngravingSection({
               </AnimatePresence>
             </div>
 
-            {/* iOS風ボトムタブバー */}
-            <div
-              className="border-t border-zinc-200 bg-zinc-50/80 backdrop-blur-sm"
-              role="tablist"
-              aria-label="カスタマイズオプション"
-            >
-              <div className="flex items-stretch">
+            {/* iOS風セグメントコントロール */}
+            <div className="px-5 pb-5 pt-2">
+              <div
+                className="relative flex items-center p-1 rounded-full bg-white/10"
+                role="tablist"
+                aria-label="カスタマイズオプション"
+              >
+                {/* スライドするピル背景 */}
+                <motion.div
+                  className="absolute top-1 bottom-1 rounded-full bg-white/90 shadow-sm"
+                  layoutId="segmentedPill"
+                  style={{
+                    width: `calc(${100 / TABS.length}% - 4px)`,
+                    left: `calc(${(activeTabIndex * 100) / TABS.length}% + 2px)`,
+                  }}
+                  transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                />
+
                 {TABS.map((tab, index) => {
-                  const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
                     <button
@@ -280,31 +308,26 @@ export function NameEngravingSection({
                       aria-selected={isActive}
                       aria-controls={`panel-${tab.id}`}
                       tabIndex={isActive ? 0 : -1}
-                      onClick={() => setActiveTab(tab.id)}
-                      onKeyDown={(e) => handleTabKeyDown(e, index)}
+                      onClick={() => {
+                        prevTabIndexRef.current = activeTabIndex;
+                        setActiveTab(tab.id);
+                      }}
+                      onKeyDown={(e) => {
+                        prevTabIndexRef.current = activeTabIndex;
+                        handleTabKeyDown(e, index);
+                      }}
                       className={`
-                        relative flex-1 flex flex-col items-center justify-center
-                        gap-1 py-3 min-h-[56px] cursor-pointer
-                        transition-colors duration-200
+                        relative z-10 flex-1 py-2 min-h-[36px]
+                        text-xs font-semibold text-center rounded-full
+                        cursor-pointer transition-colors duration-200
                         ${isActive
-                          ? 'text-[#EC4899]'
-                          : 'text-[#A1A1AA] hover:text-[#71717A]'
+                          ? 'text-zinc-900'
+                          : 'text-white/60 hover:text-white/80'
                         }
                       `}
                       style={{ fontFamily: 'Didact Gothic, sans-serif' }}
                     >
-                      {/* アクティブインジケーター（上部ライン） */}
-                      {isActive && (
-                        <motion.div
-                          layoutId="bottomTabIndicator"
-                          className="absolute top-0 left-3 right-3 h-0.5 bg-[#EC4899] rounded-full"
-                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                        />
-                      )}
-                      <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
-                      <span className={`text-[10px] leading-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                        {tab.label}
-                      </span>
+                      {tab.label}
                     </button>
                   );
                 })}
