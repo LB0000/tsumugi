@@ -77,7 +77,7 @@ const upload = multer({
 
 // Retry configuration for handling transient API errors
 const MAX_RETRIES = 3;
-const INITIAL_DELAY_MS = 2000;
+const INITIAL_DELAY_MS = 1000;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 503]);
 
 async function sleep(ms: number): Promise<void> {
@@ -397,11 +397,10 @@ CRITICAL REQUIREMENTS:
     };
 
     try {
-    // --- Image generation with empty-response resilience ---
-    // Gemini may return HTTP 200 with empty content when the model is transiently
-    // unavailable. We retry with escalating prompt simplification and backoff.
-    // Total API calls bounded: stage 1 gets full HTTP retries, stages 2-3 get
-    // single attempt only. Maximum: 3 + 1 + 1 = 5 API calls.
+    // --- Image generation with fast fallback ---
+    // If primary model (gemini-3-pro-image-preview) fails, immediately try fallback
+    // model (gemini-2.5-flash-image) to minimize user wait time.
+    // Total API calls bounded: 1 + 1 + 1 = 3 max.
     let clientDisconnected = false;
     res.on('close', () => { clientDisconnected = true; });
 
@@ -409,11 +408,12 @@ CRITICAL REQUIREMENTS:
       inlineData: { mimeType: parsedImage.mimeType, data: parsedImage.data },
     };
     const retryStages = [
-      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: MAX_RETRIES, useFallback: false },
-      // Stage 2: simplified prompt (often bypasses transient safety filters), single HTTP attempt
-      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 5000, label: 'simplified' as const, httpRetries: 1, useFallback: false },
-      // Stage 3: minimal prompt as last resort with fallback model, single HTTP attempt
-      { prompt: 'Transform this photo into a classical painting. Keep the subject recognizable.', delay: 15000, label: 'minimal' as const, httpRetries: 1, useFallback: true },
+      // Stage 1: プライマリモデルで1回試行（503なら即座に次へ）
+      { prompt: fullPrompt, delay: 0, label: 'full' as const, httpRetries: 1, useFallback: false },
+      // Stage 2: フォールバックモデルでフルプロンプト試行（待機なし）
+      { prompt: fullPrompt, delay: 0, label: 'full-fallback' as const, httpRetries: 1, useFallback: true },
+      // Stage 3: フォールバックモデルで簡易プロンプト（最終手段）
+      { prompt: `${stylePrompt}\n\n${categoryPrompt}\n\nTransform this photo into artwork. Keep the subject recognizable. Do not add text or watermarks.`, delay: 2000, label: 'simplified-fallback' as const, httpRetries: 1, useFallback: true },
     ];
 
     let generatedImage = '';
