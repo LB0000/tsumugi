@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { compositeOnMockup, hasMockupConfig } from '../lib/mockupComposite';
+import type { CompositeOptions } from '../lib/mockupComposite';
+
+/** プレビュー表示用のデフォルト最大辺サイズ (px) */
+const DEFAULT_PREVIEW_MAX_SIZE = 1024;
 
 interface UseMockupPreviewResult {
   mockupUrl: string | null;
@@ -12,10 +16,12 @@ interface UseMockupPreviewResult {
  *
  * - 商品にモックアップ設定がなければ即座に null を返す
  * - 依存値（generatedImageUrl, productId）が変わった時のみ再合成
+ * - maxSize 省略時は表示用に 1024px に縮小（フルサイズが必要なら明示的に指定）
  */
 export function useMockupPreview(
   generatedImageUrl: string | null,
   productId: string,
+  options?: CompositeOptions,
 ): UseMockupPreviewResult {
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,6 +29,9 @@ export function useMockupPreview(
 
   // 競合防止用カウンタ
   const generationRef = useRef(0);
+
+  // オブジェクト参照ではなくプリミティブを依存値に使う
+  const maxSize = options?.maxSize ?? DEFAULT_PREVIEW_MAX_SIZE;
 
   useEffect(() => {
     if (!generatedImageUrl || !hasMockupConfig(productId)) {
@@ -39,7 +48,7 @@ export function useMockupPreview(
     setIsLoading(true);
     setError(null);
 
-    compositeOnMockup(generatedImageUrl, productId)
+    compositeOnMockup(generatedImageUrl, productId, { maxSize })
       .then((result) => {
         if (cancelled || generationRef.current !== currentGen) return;
         setMockupUrl(result);
@@ -56,7 +65,7 @@ export function useMockupPreview(
       });
 
     return () => { cancelled = true; };
-  }, [generatedImageUrl, productId]);
+  }, [generatedImageUrl, productId, maxSize]);
 
   return { mockupUrl, isLoading, error };
 }

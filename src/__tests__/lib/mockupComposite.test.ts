@@ -9,6 +9,7 @@ const mockRestore = vi.fn();
 const mockBeginPath = vi.fn();
 const mockRect = vi.fn();
 const mockClip = vi.fn();
+const mockStrokeRect = vi.fn();
 const mockToDataURL = vi.fn(() => 'data:image/jpeg;base64,mock');
 const mockGetContext = vi.fn(() => ({
   drawImage: mockDrawImage,
@@ -17,6 +18,9 @@ const mockGetContext = vi.fn(() => ({
   beginPath: mockBeginPath,
   rect: mockRect,
   clip: mockClip,
+  strokeRect: mockStrokeRect,
+  strokeStyle: '',
+  lineWidth: 0,
 }));
 
 beforeEach(() => {
@@ -27,6 +31,7 @@ beforeEach(() => {
   mockBeginPath.mockClear();
   mockRect.mockClear();
   mockClip.mockClear();
+  mockStrokeRect.mockClear();
   mockToDataURL.mockClear();
   mockGetContext.mockClear();
 
@@ -208,5 +213,97 @@ describe('compositeOnMockup', () => {
     await expect(
       compositeOnMockup('data:image/png;base64,abc', 'acrylic-stand'),
     ).rejects.toThrow('Canvas context not available');
+  });
+
+  // --- A: アスペクト比保持 ---
+
+  it('preserves portrait aspect ratio within region (landscape image)', async () => {
+    // Mock: portrait = 800x600 (横長), mockup = 800x600
+    await compositeOnMockup('data:image/png;base64,abc', 'acrylic-stand');
+
+    // acrylic-stand region: x=0.255, y=0.095, w=0.49, h=0.645
+    // canvas=800x600 → rw=392, rh=387
+    // imgAspect=800/600≈1.33, regionAspect=392/387≈1.01
+    // imgAspect > regionAspect → fit to width: drawW=392, drawH=392/1.33≈294
+    const portraitDraw = mockDrawImage.mock.calls[1];
+    const [, drawX, drawY, drawW, drawH] = portraitDraw;
+
+    // Width should match region width (fit to width)
+    expect(drawW).toBe(Math.round(0.49 * 800));
+    // Height should be less than region height (aspect ratio preserved)
+    expect(drawH).toBeLessThan(Math.round(0.645 * 600));
+    // Vertically centered within region
+    const ry = Math.round(0.095 * 600);
+    const rh = Math.round(0.645 * 600);
+    const expectedY = ry + (rh - drawH) / 2;
+    expect(drawY).toBeCloseTo(expectedY, 0);
+    // X stays at region start
+    expect(drawX).toBe(Math.round(0.255 * 800));
+  });
+
+  it('preserves portrait aspect ratio within region (tall image)', async () => {
+    // Override mock: portrait = 400x800 (縦長)
+    vi.stubGlobal(
+      'Image',
+      class TallImage {
+        width = 400;
+        height = 800;
+        crossOrigin = '';
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        private _src = '';
+        get src() { return this._src; }
+        set src(value: string) {
+          this._src = value;
+          if (value && this.onload) {
+            Promise.resolve().then(() => this.onload?.());
+          }
+        }
+      },
+    );
+
+    await compositeOnMockup('data:image/png;base64,abc', 'canvas');
+
+    // canvas region: x=0.215, y=0.04, w=0.57, h=0.72
+    // mockup=400x800 → rw=228, rh=576
+    // imgAspect=400/800=0.5, regionAspect=228/576≈0.396
+    // imgAspect > regionAspect → fit to width
+    const portraitDraw = mockDrawImage.mock.calls[1];
+    const [, , , drawW, drawH] = portraitDraw;
+    expect(drawW).toBe(Math.round(0.57 * 400));
+    expect(drawH).toBeLessThan(Math.round(0.72 * 800));
+  });
+
+  // --- B: maxSize による出力サイズ最適化 ---
+
+  it('scales canvas down when maxSize is specified', async () => {
+    const canvasEl = { width: 0, height: 0, getContext: mockGetContext, toDataURL: mockToDataURL };
+    vi.spyOn(document, 'createElement').mockReturnValue(canvasEl as unknown as HTMLCanvasElement);
+
+    // mockup image = 800x600, maxSize = 400
+    // scale = min(1, 400/800) = 0.5 → canvas = 400x300
+    await compositeOnMockup('data:image/png;base64,abc', 'acrylic-stand', { maxSize: 400 });
+
+    // Canvas was set to scaled size before toDataURL (now zeroed after cleanup)
+    // Verify drawImage first call uses scaled dimensions
+    const [, bgX, bgY, bgW, bgH] = mockDrawImage.mock.calls[0];
+    expect(bgX).toBe(0);
+    expect(bgY).toBe(0);
+    expect(bgW).toBe(400);
+    expect(bgH).toBe(300);
+  });
+
+  it('does not upscale when maxSize exceeds image dimensions', async () => {
+    const canvasEl = { width: 0, height: 0, getContext: mockGetContext, toDataURL: mockToDataURL };
+    vi.spyOn(document, 'createElement').mockReturnValue(canvasEl as unknown as HTMLCanvasElement);
+
+    // mockup = 800x600, maxSize = 2000 → scale = min(1, 2000/800) = 1
+    await compositeOnMockup('data:image/png;base64,abc', 'acrylic-stand', { maxSize: 2000 });
+
+    const [, bgX, bgY, bgW, bgH] = mockDrawImage.mock.calls[0];
+    expect(bgX).toBe(0);
+    expect(bgY).toBe(0);
+    expect(bgW).toBe(800);
+    expect(bgH).toBe(600);
   });
 });
