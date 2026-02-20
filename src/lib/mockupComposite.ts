@@ -107,6 +107,13 @@ export async function compositeOnMockup(
   ctx.drawImage(portraitImg, rx, ry, rw, rh);
   ctx.restore();
 
+  // DEV: リージョン境界を赤枠で表示（座標調整用）
+  if (import.meta.env.DEV) {
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(rx, ry, rw, rh);
+  }
+
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
   // GPU バックバッファと Image デコードバッファを即座に解放
