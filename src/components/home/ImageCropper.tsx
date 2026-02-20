@@ -93,7 +93,7 @@ export function ImageCropper({ imageSrc, originalFile }: ImageCropperProps) {
           step={0.05}
           value={zoom}
           onChange={(e) => setZoom(Number(e.target.value))}
-          className="flex-1 h-1.5 rounded-full accent-primary"
+          className="flex-1 h-2 rounded-full accent-primary [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6"
           aria-label="ズーム"
         />
         <ZoomIn className="w-4 h-4 text-muted shrink-0" />

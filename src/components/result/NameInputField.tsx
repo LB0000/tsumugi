@@ -79,8 +79,8 @@ export function NameInputField({
   return (
     <div className="space-y-3">
       {/* ラベル */}
-      <label htmlFor="portrait-name-input" className="flex items-center gap-2 text-sm md:text-base font-medium text-[#18181B]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-        <Type className="h-4 w-4 md:h-5 md:w-5 text-[#71717A]" aria-hidden="true" />
+      <label htmlFor="portrait-name-input" className="flex items-center gap-2 text-sm md:text-base font-medium text-foreground" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+        <Type className="h-4 w-4 md:h-5 md:w-5 text-muted" aria-hidden="true" />
         {label}
       </label>
 
@@ -110,13 +110,12 @@ export function NameInputField({
             ${error
               ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
               : isFocused
-                ? 'border-[#EC4899] focus:border-[#EC4899] focus:ring-[#EC4899]/20'
-                : 'border-zinc-300 focus:border-[#EC4899] focus:ring-[#EC4899]/20'
+                ? 'border-primary focus:border-primary focus:ring-primary/20'
+                : 'border-border focus:border-primary focus:ring-primary/20'
             }
-            ${disabled ? 'bg-zinc-100 cursor-not-allowed' : 'bg-white'}
+            ${disabled ? 'bg-card-hover cursor-not-allowed' : 'bg-card'}
           `}
-          style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-        />
+                 />
 
         {/* 文字数カウント */}
         {showCharCount && !error && (
@@ -125,11 +124,10 @@ export function NameInputField({
             animate={shouldReduceMotion ? {} : { opacity: 1, scale: 1 }}
             className={`
               absolute right-3 top-3.5 text-xs font-medium
-              ${isNearLimit ? 'text-orange-600' : 'text-[#71717A]'}
+              ${isNearLimit ? 'text-orange-600' : 'text-muted'}
               ${isOverLimit ? 'text-red-600 font-bold' : ''}
             `}
-            style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-          >
+                     >
             {charCount}/20
           </motion.div>
         )}
@@ -142,8 +140,7 @@ export function NameInputField({
           animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
           id="name-warning"
           className="flex items-center gap-1.5 text-sm text-orange-600"
-          style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-        >
+                 >
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           {warning}
         </motion.p>
@@ -157,8 +154,7 @@ export function NameInputField({
           id="name-error"
           role="alert"
           className="flex items-center gap-1.5 text-sm text-red-600"
-          style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-        >
+                 >
           <AlertCircle className="h-4 w-4" aria-hidden="true" />
           {error}
         </motion.p>
@@ -166,7 +162,7 @@ export function NameInputField({
 
       {/* ヒントテキスト */}
       {!error && !warning && charCount === 0 && !isProcessing && (
-        <p id="name-hint" className="text-xs md:text-sm text-[#71717A]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+        <p id="name-hint" className="text-xs md:text-sm text-muted" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
           日本語・英語の文字、数字、スペース、ハイフンが使用できます
         </p>
       )}
@@ -176,10 +172,9 @@ export function NameInputField({
         <motion.div
           initial={shouldReduceMotion ? {} : { opacity: 0, y: -10 }}
           animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-          className="flex items-center gap-2 text-sm text-[#18181B] bg-[#EC4899]/10 px-3 py-2 rounded-lg"
-          style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-        >
-          <Loader2 className="h-4 w-4 animate-spin text-[#EC4899]" />
+          className="flex items-center gap-2 text-sm text-foreground bg-primary/10 px-3 py-2 rounded-lg"
+                 >
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span className="animate-pulse">{processingStage}</span>
         </motion.div>
       )}

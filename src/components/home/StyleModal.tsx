@@ -110,9 +110,12 @@ function StyleModalBase() {
     const modal = modalRef.current;
     if (!modal) return;
 
-    // 初期フォーカスを検索入力に移動
-    const searchInput = modal.querySelector('input[type="text"]') as HTMLElement;
-    searchInput?.focus();
+    // PCのみ検索入力にフォーカス（モバイルではキーボードが邪魔）
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    if (!isTouchDevice) {
+      const searchInput = modal.querySelector('input[type="text"]') as HTMLElement;
+      searchInput?.focus();
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

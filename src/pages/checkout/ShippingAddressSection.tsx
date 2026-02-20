@@ -46,7 +46,7 @@ export function ShippingAddressSection({
                 key={address.id}
                 type="button"
                 onClick={() => onApplySavedAddress(address)}
-                className="text-xs px-3 py-1.5 rounded-full border border-border hover:border-primary hover:text-primary transition-colors"
+                className="text-sm px-3 py-2 min-h-[44px] rounded-full border border-border hover:border-primary hover:text-primary transition-colors"
               >
                 {address.label}（{address.lastName}{address.firstName}）
               </button>
@@ -95,6 +95,7 @@ export function ShippingAddressSection({
           <input
             id="email"
             type="email"
+            inputMode="email"
             autoComplete="email"
             value={form.email}
             onChange={(event) => onUpdateForm('email', event.target.value)}
@@ -112,6 +113,7 @@ export function ShippingAddressSection({
           <input
             id="phone"
             type="tel"
+            inputMode="tel"
             autoComplete="tel"
             value={form.phone}
             onChange={(event) => onUpdateForm('phone', event.target.value)}
@@ -130,6 +132,7 @@ export function ShippingAddressSection({
             <input
               id="postalCode"
               type="text"
+              inputMode="tel"
               autoComplete="postal-code"
               value={form.postalCode}
               onChange={(event) => onUpdateForm('postalCode', event.target.value)}

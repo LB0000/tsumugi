@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Sparkles, AlertCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { NameInputField } from './NameInputField';
 import { PortraitPreview } from './PortraitPreview';
 import { FontPicker } from './FontPicker';
@@ -86,58 +86,45 @@ export function NameEngravingSection({
   };
 
   return (
-    <div className="bg-white border-2 border-zinc-200 rounded-lg p-6 md:p-10 space-y-6 md:space-y-8">
+    <div className="bg-card border border-border rounded-lg p-6 md:p-10 space-y-6 md:space-y-8">
       {/* ヘッダー */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 sm:gap-4">
-          <motion.div
-            initial={shouldReduceMotion ? {} : { scale: 0.8, opacity: 0 }}
-            animate={shouldReduceMotion ? {} : { scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#EC4899] text-white flex-shrink-0"
-          >
+          <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-secondary to-primary text-white flex-shrink-0">
             <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-          </motion.div>
+          </div>
           <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#18181B] tracking-tight" style={{ fontFamily: 'Poiret One, serif' }}>
+            <h3 className="font-serif text-xl sm:text-2xl md:text-3xl font-semibold text-foreground tracking-wide">
               名前を入れて特別な1枚に
             </h3>
-            <p className="text-sm md:text-base text-[#71717A] mt-1" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+            <p className="text-sm md:text-base text-muted mt-1">
               無料で名前を追加できます
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {/* 進捗インジケーター */}
-          {hasName && (
-            <div className="flex items-center gap-2 text-xs text-[#71717A]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-              <span className="hidden sm:inline">進捗</span>
-              <div className="flex gap-1">
-                {Array.from({ length: totalSteps }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={shouldReduceMotion ? {} : { scale: 0 }}
-                    animate={shouldReduceMotion ? {} : { scale: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
-                      i < completionRate ? 'bg-[#EC4899]' : 'bg-zinc-300'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="font-medium text-[#18181B]">
-                {completionRate}/{totalSteps}
-              </span>
+        {/* 進捗インジケーター */}
+        {hasName && (
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span className="hidden sm:inline">進捗</span>
+            <div className="flex gap-1">
+              {Array.from({ length: totalSteps }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
+                    i < completionRate ? 'bg-secondary' : 'bg-border'
+                  }`}
+                />
+              ))}
             </div>
-          )}
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#EC4899]/10 text-[#EC4899]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-            NEW
-          </span>
-        </div>
+            <span className="font-medium text-foreground">
+              {completionRate}/{totalSteps}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 名前入力フィールド */}
-      <div className="bg-white rounded-xl p-5 border-2 border-zinc-200">
+      <div>
         <NameInputField
           value={portraitName}
           onChange={onNameChange}
@@ -148,23 +135,19 @@ export function NameEngravingSection({
         />
       </div>
 
-      {/* 未入力時の促し（Zeigarnik Effect） */}
+      {/* 未入力時の促し */}
       {!hasName && (
-        <motion.div
-          initial={shouldReduceMotion ? {} : { opacity: 0, y: 10 }}
-          animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200 rounded-lg p-4 flex items-start gap-3"
-        >
-          <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-card-hover border border-border rounded-lg p-4 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-secondary flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-yellow-900" style={{ fontFamily: 'Poiret One, serif' }}>
+            <p className="text-sm font-medium text-foreground">
               名前を追加すると、より特別な贈り物になります
             </p>
-            <p className="text-xs text-yellow-700 mt-1" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+            <p className="text-xs text-muted mt-1">
               無料で追加できます（後から変更も可能）
             </p>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* インラインプレビュー（名前入力時に常時表示） */}
@@ -178,11 +161,10 @@ export function NameEngravingSection({
             // sticky offset = Announcement Bar (~28px) + Main Header (56px) + Category Nav (~36px)
             className="sticky top-[120px] z-10 md:static"
           >
-            <div className="relative bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 md:p-6 border-2 border-[#EC4899] shadow-xl">
-              {/* LIVEバッジ */}
-              <div className="absolute -top-3 -right-3 z-20 bg-[#EC4899] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                LIVE
+            <div className="relative bg-card-hover rounded-lg p-4 md:p-6 border border-primary/30 shadow-md">
+              {/* プレビューラベル */}
+              <div className="absolute -top-2.5 left-4 z-20 bg-card text-muted text-xs font-medium px-2.5 py-0.5 rounded border border-border">
+                プレビュー
               </div>
 
               <PortraitPreview
@@ -197,12 +179,12 @@ export function NameEngravingSection({
                 className="max-w-md mx-auto rounded-lg shadow-2xl [&>img]:max-h-[38vh] [&>img]:w-auto [&>img]:mx-auto md:[&>img]:max-h-none"
               />
 
-              <p className="text-xs text-[#71717A] text-center mt-3 md:mt-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+              <p className="text-xs text-muted text-center mt-3 md:mt-4">
                 実際の商品もこのように名前が表示されます
               </p>
 
               {/* Sticky時の下端シャドウ（モバイルのみ） */}
-              <div className="absolute -bottom-2 left-2 right-2 h-4 bg-gradient-to-b from-pink-100/80 to-transparent pointer-events-none md:hidden blur-sm" />
+              <div className="absolute -bottom-2 left-2 right-2 h-4 bg-gradient-to-b from-card-hover/80 to-transparent pointer-events-none md:hidden blur-sm" />
             </div>
           </motion.div>
         )}
@@ -216,14 +198,11 @@ export function NameEngravingSection({
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="rounded-2xl bg-zinc-50 border-2 border-zinc-200"
+            className="rounded-2xl bg-card-hover border border-border"
           >
             {/* ヘッダー */}
             <div className="text-center px-5 pt-4 pb-2">
-              <h4
-                className="text-sm font-semibold text-zinc-700 tracking-wide"
-                style={{ fontFamily: 'Poiret One, serif' }}
-              >
+              <h4 className="font-serif text-sm font-semibold text-foreground tracking-wide">
                 カスタマイズ
               </h4>
             </div>
@@ -302,10 +281,10 @@ export function NameEngravingSection({
       </AnimatePresence>
 
       {/* 注意事項 */}
-      <div className="text-xs md:text-sm text-[#71717A] space-y-1.5 bg-zinc-50 rounded-lg p-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
+      <div className="text-xs md:text-sm text-muted space-y-1.5 bg-card-hover rounded-lg p-4">
         <p>• 名前は最大20文字まで入力できます</p>
         <p>• 日本語・英語の文字、数字、スペース、ハイフンが使用できます</p>
-        <p className="text-[#EC4899] font-medium">• 名前は無料で追加できます（料金は変わりません）</p>
+        <p className="text-primary font-medium">• 名前は無料で追加できます（料金は変わりません）</p>
       </div>
     </div>
   );
@@ -330,12 +309,12 @@ function SegmentedControl({
   return (
     <div className="px-5 py-2">
       <div
-        className="relative flex items-center p-1 rounded-full bg-zinc-200"
+        className="relative flex items-center p-1 rounded-full bg-border/60"
         role="tablist"
         aria-label="カスタマイズオプション"
       >
         <motion.div
-          className="absolute top-1 bottom-1 rounded-full bg-white shadow-sm"
+          className="absolute top-1 bottom-1 rounded-full bg-card shadow-sm"
           layoutId={pillLayoutId}
           style={{
             width: `calc(${100 / tabs.length}% - 4px)`,
@@ -360,12 +339,12 @@ function SegmentedControl({
                 relative z-10 flex-1 py-2 min-h-[36px]
                 text-xs font-semibold text-center rounded-full
                 cursor-pointer transition-colors duration-200
+                focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1
                 ${isActive
-                  ? 'text-zinc-900'
-                  : 'text-zinc-500 hover:text-zinc-700'
+                  ? 'text-foreground'
+                  : 'text-muted hover:text-foreground'
                 }
               `}
-              style={{ fontFamily: 'Didact Gothic, sans-serif' }}
             >
               {tab.label}
             </button>

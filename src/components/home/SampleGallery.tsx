@@ -1,4 +1,4 @@
-import { memo, useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { memo, useMemo, useState, useEffect, useRef, useCallback, type MouseEvent as ReactMouseEvent } from 'react';
 import { Sparkles, Crown, Leaf, Grid3X3, Wand2, ArrowRight, X, Palette } from 'lucide-react';
 import { galleryItems, type GalleryItem } from '../../data/galleryItems';
 import { artStyles } from '../../data/artStyles';
@@ -69,7 +69,6 @@ function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void })
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn"
       onClick={onClose}
       role="presentation"
-      aria-hidden="true"
     >
       <div
         ref={dialogRef}
@@ -158,6 +157,18 @@ function GalleryCard({ item, onOpenLightbox }: {
 }) {
   const [showAfter, setShowAfter] = useState(false);
 
+  // タッチデバイスでは1回目のタップでAfter表示、2回目でライトボックスを開く
+  const handleImageClick = useCallback((e: ReactMouseEvent) => {
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    if (isTouchDevice && !showAfter) {
+      e.stopPropagation();
+      setShowAfter(true);
+      return;
+    }
+    onOpenLightbox(item);
+    setShowAfter(false);
+  }, [showAfter, item, onOpenLightbox]);
+
   return (
     <div
       className="rounded-2xl overflow-hidden group cursor-pointer border-2 border-border/50 hover:border-secondary/40 transition-all duration-300 hover:shadow-xl hover:shadow-secondary/10"
@@ -167,7 +178,7 @@ function GalleryCard({ item, onOpenLightbox }: {
       {/* 画像エリア */}
       <div
         className="relative aspect-square sm:aspect-[4/5] overflow-hidden"
-        onClick={() => onOpenLightbox(item)}
+        onClick={handleImageClick}
       >
         {/* Before Image */}
         <img
@@ -188,7 +199,7 @@ function GalleryCard({ item, onOpenLightbox }: {
         {/* Before/After インジケーター */}
         <div className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10">
           <span className={`
-            inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide shadow-lg backdrop-blur-sm transition-all duration-300
+            inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-semibold tracking-wide shadow-lg backdrop-blur-sm transition-all duration-300
             ${showAfter
               ? 'bg-secondary/90 text-white'
               : 'bg-white/90 text-foreground'
@@ -203,7 +214,7 @@ function GalleryCard({ item, onOpenLightbox }: {
 
         {/* スタイル名バッジ（オーバーレイ内に残す） */}
         <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/80 text-white text-[10px] font-semibold backdrop-blur-sm">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/80 text-white text-xs font-semibold backdrop-blur-sm">
             <Sparkles className="w-2.5 h-2.5" />
             {item.styleName}
           </span>
@@ -258,7 +269,7 @@ export const SampleGallery = memo(function SampleGallery() {
               key={tab.id}
               onClick={() => handleFilterChange(tab.id)}
               className={`
-                inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium
+                inline-flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium
                 transition-all duration-300 cursor-pointer
                 ${isActive
                   ? 'bg-primary text-white shadow-md'
@@ -268,7 +279,7 @@ export const SampleGallery = memo(function SampleGallery() {
             >
               <tab.icon className="w-3.5 h-3.5" />
               {tab.name}
-              <span className={`text-[10px] ${isActive ? 'text-white/70' : 'text-muted'}`}>
+              <span className={`text-xs ${isActive ? 'text-white/70' : 'text-muted'}`}>
                 {count}
               </span>
             </button>
@@ -292,7 +303,7 @@ export const SampleGallery = memo(function SampleGallery() {
         <div className="text-center mt-8">
           <button
             onClick={() => { setShowAll(true); setAnimKey(prev => prev + 1); }}
-            className="px-6 py-2.5 text-sm font-medium text-secondary border border-secondary/30 rounded-full hover:bg-secondary/5 transition-all duration-300 cursor-pointer"
+            className="px-6 py-3 text-sm font-medium text-secondary border border-secondary/30 rounded-full hover:bg-secondary/5 transition-all duration-300 cursor-pointer"
           >
             もっと見る（残り {filtered.length - 6} 点）
           </button>

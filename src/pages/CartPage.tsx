@@ -180,7 +180,7 @@ export function CartPage() {
                           onClick={() => updateCartItemQuantity(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
                           aria-label="数量を減らす"
-                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
@@ -189,7 +189,7 @@ export function CartPage() {
                           onClick={() => updateCartItemQuantity(item.id, item.quantity + 1)}
                           disabled={item.quantity >= MAX_ITEM_QUANTITY}
                           aria-label="数量を増やす"
-                          className="w-8 h-8 rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg bg-card-hover flex items-center justify-center hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -206,7 +206,7 @@ export function CartPage() {
                   <button
                     onClick={() => removeFromCart(item.id)}
                     aria-label="商品を削除"
-                    className="self-start p-2 text-muted hover:text-sale transition-colors"
+                    className="self-start p-3 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:text-sale transition-colors"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>

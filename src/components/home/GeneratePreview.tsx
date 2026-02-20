@@ -180,7 +180,7 @@ export function GeneratePreview() {
       {/* Generate Button */}
       {!generatedImage && (
         <div className="text-center">
-          <div className="inline-flex flex-col items-center p-8 rounded-3xl glass-card max-w-lg w-full">
+          <div className="inline-flex flex-col items-center p-4 sm:p-8 rounded-3xl glass-card max-w-lg w-full">
             {isGenerating && selectedStyle ? (
               <GeneratingUI
                 smoothProgress={smoothProgress}
