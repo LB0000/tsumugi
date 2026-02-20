@@ -175,7 +175,7 @@ export function NameEngravingSection({
             animate={shouldReduceMotion ? {} : { opacity: 1 }}
             exit={shouldReduceMotion ? {} : { opacity: 0 }}
             transition={{ duration: 0.3 }}
-            {/* sticky offset = Announcement Bar (~28px) + Main Header (56px) + Category Nav (~36px) */}
+            // sticky offset = Announcement Bar (~28px) + Main Header (56px) + Category Nav (~36px)
             className="sticky top-[120px] z-10 md:static"
           >
             <div className="relative bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 md:p-6 border-2 border-[#EC4899] shadow-xl">
