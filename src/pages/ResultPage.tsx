@@ -24,7 +24,7 @@ export function ResultPage() {
   const navigate = useNavigate();
   const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName, textOverlaySettings, setTextOverlaySettings } = useAppStore();
   const postcard = crossSellProducts[0];
-  const beforeImage = uploadState.previewUrl;
+  const beforeImage = uploadState.croppedPreviewUrl ?? uploadState.previewUrl;
   const { isWithin24Hours, timeRemaining } = useDiscountTimer(PREVIEW_GENERATED_AT_KEY);
   const discountPercent = Math.round(DISCOUNT_RATE * 100);
 
@@ -176,14 +176,6 @@ export function ResultPage() {
                   alt="生成された肖像画"
                   className="w-full h-full object-cover"
                 />
-                {/* Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="px-4 py-2 sm:px-6 sm:py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
-                    <p className="text-foreground/30 text-base sm:text-xl font-serif tracking-wider">
-                      PREVIEW
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

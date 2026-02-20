@@ -57,14 +57,6 @@ export function ResultSection({
               alt="生成された肖像画"
               className="w-full h-full object-cover"
             />
-            {/* Watermark overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="px-6 py-3 bg-foreground/10 backdrop-blur-sm rounded-xl rotate-[-15deg]">
-                <p className="text-foreground/30 text-xl font-serif tracking-wider">
-                  PREVIEW
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -11,6 +11,8 @@ import { logger } from '../lib/logger.js';
 import { recordStyleUsage } from '../lib/styleAnalytics.js';
 import { styleNameMap, getStylePrompt, getStyleFocusPrompt, categoryPrompts, validStyleIds } from '../lib/stylePrompts.js';
 import { generateMockResponse, type GenerateImageResponse } from '../lib/mockGeneration.js';
+import { applyWatermark, parseBase64DataUrl, bufferToDataUrl } from '../lib/watermark.js';
+import { uploadOriginalImage } from '../lib/imageStorage.js';
 import {
   getUserCredits,
   canGenerate,
@@ -479,12 +481,41 @@ CRITICAL REQUIREMENTS:
       // Return 0 remaining to indicate the issue - user should contact support
     }
 
+    // Apply server-side watermark to prevent unauthorized use
+    let responseImage = generatedImage;
+    let isWatermarked = false;
+
+    const parsed = parseBase64DataUrl(generatedImage);
+    if (parsed) {
+      // Store original and apply watermark in parallel
+      const [, watermarkedBuffer] = await Promise.all([
+        uploadOriginalImage(userId, projectId, generatedImage).catch((err) => {
+          logger.error('Failed to store original image', {
+            error: err instanceof Error ? err.message : String(err),
+            requestId: req.requestId,
+          });
+          return null;
+        }),
+        applyWatermark(parsed.buffer, parsed.mimeType),
+      ]);
+
+      if (watermarkedBuffer) {
+        responseImage = bufferToDataUrl(watermarkedBuffer, parsed.mimeType);
+        isWatermarked = true;
+        logger.info('Watermark applied successfully', { requestId: req.requestId });
+      } else {
+        logger.warn('Watermark failed, returning original image', { requestId: req.requestId });
+      }
+    } else {
+      logger.warn('Failed to parse generated image for watermarking', { requestId: req.requestId });
+    }
+
     const apiResponse: GenerateImageResponse = {
       success: true,
       projectId,
-      generatedImage,
-      thumbnailImage: generatedImage,
-      watermarked: false,
+      generatedImage: responseImage,
+      thumbnailImage: responseImage,
+      watermarked: isWatermarked,
       creditsUsed: 1,
       creditsRemaining: totalRemaining
     };
@@ -494,8 +525,8 @@ CRITICAL REQUIREMENTS:
       try {
         await addGalleryItem({
           userId: sessionUser.id,
-          imageDataUrl: generatedImage,
-          thumbnailDataUrl: generatedImage,
+          imageDataUrl: responseImage,
+          thumbnailDataUrl: responseImage,
           artStyleId: styleId,
           artStyleName: styleNameMap[styleId] || styleId,
         });
