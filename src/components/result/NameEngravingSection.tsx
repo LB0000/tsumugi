@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Sparkles, Type, Palette, MapPin, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Sparkles, Type, Palette, MapPin, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
 import { PortraitPreview } from './PortraitPreview';
 import { FontPicker } from './FontPicker';
@@ -45,7 +45,6 @@ export function NameEngravingSection({
   precomputedImageUrl,
   overlayError,
 }: NameEngravingSectionProps) {
-  const [showCustomize, setShowCustomize] = useState(false);
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
   const shouldReduceMotion = useReducedMotion();
 
@@ -191,139 +190,129 @@ export function NameEngravingSection({
         )}
       </AnimatePresence>
 
-      {/* カスタマイズセクション（名前入力時のみ表示） */}
-      {hasName && (
-        <div className="bg-white rounded-lg border-2 border-zinc-200 overflow-hidden">
-          {/* トグルヘッダー */}
-          <button
-            type="button"
-            onClick={() => setShowCustomize(!showCustomize)}
-            className="w-full flex items-center justify-between px-5 py-4 text-left transition-all duration-200 hover:bg-zinc-50 cursor-pointer group"
+      {/* カスタマイズセクション - iOSボトムタブバースタイル（名前入力時のみ表示） */}
+      <AnimatePresence>
+        {hasName && (
+          <motion.div
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-xl border-2 border-zinc-200 overflow-hidden"
           >
-            <div className="flex items-center gap-2.5">
-              <Palette className="h-5 w-5 text-[#EC4899] transition-transform group-hover:scale-110" />
-              <span className="text-sm md:text-base font-semibold text-[#18181B]" style={{ fontFamily: 'Poiret One, serif' }}>カスタマイズ</span>
-              <span className="text-xs md:text-sm text-[#71717A]" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>フォント・カラー・位置</span>
+            {/* タブコンテンツ（上部） */}
+            <div className="p-5">
+              <AnimatePresence mode="wait">
+                {activeTab === 'font' && (
+                  <motion.div
+                    key="font"
+                    role="tabpanel"
+                    id="panel-font"
+                    aria-labelledby="tab-font"
+                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <FontPicker
+                      selectedFontId={overlaySettings.fontId}
+                      onSelect={(fontId) => onSettingsChange({ ...overlaySettings, fontId })}
+                      styleId={styleId}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === 'decoration' && (
+                  <motion.div
+                    key="decoration"
+                    role="tabpanel"
+                    id="panel-decoration"
+                    aria-labelledby="tab-decoration"
+                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <DecorationPicker
+                      selectedDecorationId={overlaySettings.decorationId}
+                      onSelect={(decorationId) => onSettingsChange({ ...overlaySettings, decorationId })}
+                      styleId={styleId}
+                    />
+                  </motion.div>
+                )}
+
+                {activeTab === 'position' && (
+                  <motion.div
+                    key="position"
+                    role="tabpanel"
+                    id="panel-position"
+                    aria-labelledby="tab-position"
+                    initial={shouldReduceMotion ? {} : { opacity: 0, y: 8 }}
+                    animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <PositionPicker
+                      selectedPosition={overlaySettings.position}
+                      onSelect={(position) => onSettingsChange({ ...overlaySettings, position })}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            {showCustomize
-              ? <ChevronUp className="h-5 w-5 text-[#71717A]" />
-              : <ChevronDown className="h-5 w-5 text-[#71717A]" />
-            }
-          </button>
 
-          {/* カスタマイズ内容 */}
-          <AnimatePresence>
-            {showCustomize && (
-              <motion.div
-                initial={shouldReduceMotion ? {} : { height: 0, opacity: 0 }}
-                animate={shouldReduceMotion ? {} : { height: 'auto', opacity: 1 }}
-                exit={shouldReduceMotion ? {} : { height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="px-5 pb-5 space-y-5 border-t border-zinc-200 pt-5"
-              >
-                {/* タブ */}
-                <div className="flex gap-1 bg-zinc-100 rounded-lg p-1" role="tablist" aria-label="カスタマイズオプション">
-                  {TABS.map((tab, index) => {
-                    const Icon = tab.icon;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeTab === tab.id}
-                        aria-controls={`panel-${tab.id}`}
-                        tabIndex={activeTab === tab.id ? 0 : -1}
-                        onClick={() => setActiveTab(tab.id)}
-                        onKeyDown={(e) => handleTabKeyDown(e, index)}
-                        className={`
-                          relative flex-1 flex items-center justify-center gap-1.5
-                          px-4 py-3 min-h-[44px] rounded-md text-xs font-medium
-                          transition-all duration-200 cursor-pointer
-                          ${activeTab === tab.id
-                            ? 'text-[#EC4899]'
-                            : 'text-[#71717A] hover:text-[#18181B]'
-                          }
-                        `}
-                        style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-                      >
-                        {/* アクティブ背景 */}
-                        {activeTab === tab.id && (
-                          <motion.div
-                            layoutId="activeTab"
-                            className="absolute inset-0 bg-white rounded-md shadow-md"
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                          />
-                        )}
-                        <Icon className="h-4 w-4 relative z-10" />
-                        <span className="relative z-10">{tab.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* タブコンテンツ */}
-                <AnimatePresence mode="wait">
-                  {activeTab === 'font' && (
-                    <motion.div
-                      key="font"
-                      role="tabpanel"
-                      id="panel-font"
-                      aria-labelledby="tab-font"
-                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
-                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2 }}
+            {/* iOS風ボトムタブバー */}
+            <div
+              className="border-t border-zinc-200 bg-zinc-50/80 backdrop-blur-sm"
+              role="tablist"
+              aria-label="カスタマイズオプション"
+            >
+              <div className="flex items-stretch">
+                {TABS.map((tab, index) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      id={`tab-${tab.id}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={`panel-${tab.id}`}
+                      tabIndex={isActive ? 0 : -1}
+                      onClick={() => setActiveTab(tab.id)}
+                      onKeyDown={(e) => handleTabKeyDown(e, index)}
+                      className={`
+                        relative flex-1 flex flex-col items-center justify-center
+                        gap-1 py-3 min-h-[56px] cursor-pointer
+                        transition-colors duration-200
+                        ${isActive
+                          ? 'text-[#EC4899]'
+                          : 'text-[#A1A1AA] hover:text-[#71717A]'
+                        }
+                      `}
+                      style={{ fontFamily: 'Didact Gothic, sans-serif' }}
                     >
-                      <FontPicker
-                        selectedFontId={overlaySettings.fontId}
-                        onSelect={(fontId) => onSettingsChange({ ...overlaySettings, fontId })}
-                        styleId={styleId}
-                      />
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'decoration' && (
-                    <motion.div
-                      key="decoration"
-                      role="tabpanel"
-                      id="panel-decoration"
-                      aria-labelledby="tab-decoration"
-                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
-                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <DecorationPicker
-                        selectedDecorationId={overlaySettings.decorationId}
-                        onSelect={(decorationId) => onSettingsChange({ ...overlaySettings, decorationId })}
-                        styleId={styleId}
-                      />
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'position' && (
-                    <motion.div
-                      key="position"
-                      role="tabpanel"
-                      id="panel-position"
-                      aria-labelledby="tab-position"
-                      initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
-                      animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                      exit={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <PositionPicker
-                        selectedPosition={overlaySettings.position}
-                        onSelect={(position) => onSettingsChange({ ...overlaySettings, position })}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+                      {/* アクティブインジケーター（上部ライン） */}
+                      {isActive && (
+                        <motion.div
+                          layoutId="bottomTabIndicator"
+                          className="absolute top-0 left-3 right-3 h-0.5 bg-[#EC4899] rounded-full"
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                        />
+                      )}
+                      <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`} />
+                      <span className={`text-[10px] leading-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 注意事項 */}
       <div className="text-xs md:text-sm text-[#71717A] space-y-1.5 bg-zinc-50 rounded-lg p-4" style={{ fontFamily: 'Didact Gothic, sans-serif' }}>
