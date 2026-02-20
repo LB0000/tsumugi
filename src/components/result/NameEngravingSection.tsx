@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Sparkles, AlertCircle } from 'lucide-react';
 import { NameInputField } from './NameInputField';
@@ -47,11 +47,28 @@ export function NameEngravingSection({
 }: NameEngravingSectionProps) {
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
   const prevTabIndexRef = useRef(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
   const activeTabIndex = TABS.findIndex((t) => t.id === activeTab);
 
   const hasName = portraitName.trim() !== '';
+
+  // パネルの可視性をIntersectionObserverで監視
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el || !hasName) {
+      setIsPanelVisible(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsPanelVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasName]);
 
   // カスタマイズ進捗計算
   const progress = {
@@ -63,16 +80,22 @@ export function NameEngravingSection({
   const completionRate = Object.values(progress).filter(Boolean).length;
   const totalSteps = 4;
 
+  // タブ切替ハンドラー
+  const switchTab = useCallback((tabId: CustomizeTab) => {
+    prevTabIndexRef.current = activeTabIndex;
+    setActiveTab(tabId);
+  }, [activeTabIndex]);
+
   // キーボードナビゲーション
   const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
       const nextIndex = (index + 1) % TABS.length;
-      setActiveTab(TABS[nextIndex].id);
+      switchTab(TABS[nextIndex].id);
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       const prevIndex = (index - 1 + TABS.length) % TABS.length;
-      setActiveTab(TABS[prevIndex].id);
+      switchTab(TABS[prevIndex].id);
     }
   };
 
@@ -197,6 +220,7 @@ export function NameEngravingSection({
       <AnimatePresence>
         {hasName && (
           <motion.div
+            ref={panelRef}
             initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
@@ -279,60 +303,42 @@ export function NameEngravingSection({
               </AnimatePresence>
             </div>
 
-            {/* iOS風セグメントコントロール */}
-            <div className="px-5 pb-5 pt-2">
-              <div
-                className="relative flex items-center p-1 rounded-full bg-white/10"
-                role="tablist"
-                aria-label="カスタマイズオプション"
-              >
-                {/* スライドするピル背景 */}
-                <motion.div
-                  className="absolute top-1 bottom-1 rounded-full bg-white/90 shadow-sm"
-                  layoutId="segmentedPill"
-                  style={{
-                    width: `calc(${100 / TABS.length}% - 4px)`,
-                    left: `calc(${(activeTabIndex * 100) / TABS.length}% + 2px)`,
-                  }}
-                  transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
-                />
+            {/* セグメントコントロール用スペーサー（固定時にコンテンツが隠れないように） */}
+            {isPanelVisible && <div className="h-[60px]" />}
 
-                {TABS.map((tab, index) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      id={`tab-${tab.id}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={`panel-${tab.id}`}
-                      tabIndex={isActive ? 0 : -1}
-                      onClick={() => {
-                        prevTabIndexRef.current = activeTabIndex;
-                        setActiveTab(tab.id);
-                      }}
-                      onKeyDown={(e) => {
-                        prevTabIndexRef.current = activeTabIndex;
-                        handleTabKeyDown(e, index);
-                      }}
-                      className={`
-                        relative z-10 flex-1 py-2 min-h-[36px]
-                        text-xs font-semibold text-center rounded-full
-                        cursor-pointer transition-colors duration-200
-                        ${isActive
-                          ? 'text-zinc-900'
-                          : 'text-white/60 hover:text-white/80'
-                        }
-                      `}
-                      style={{ fontFamily: 'Didact Gothic, sans-serif' }}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* iOS風セグメントコントロール（パネル非表示時はインライン） */}
+            {!isPanelVisible && (
+              <SegmentedControl
+                tabs={TABS}
+                activeTab={activeTab}
+                activeTabIndex={activeTabIndex}
+                onTabClick={switchTab}
+                onKeyDown={handleTabKeyDown}
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 固定フッター: セグメントコントロール（パネルが画面内の時だけ表示） */}
+      <AnimatePresence>
+        {hasName && isPanelVisible && (
+          <motion.div
+            initial={shouldReduceMotion ? {} : { y: 60, opacity: 0 }}
+            animate={shouldReduceMotion ? {} : { y: 0, opacity: 1 }}
+            exit={shouldReduceMotion ? {} : { y: 60, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-900/80 backdrop-blur-2xl border-t border-white/10"
+            style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+          >
+            <SegmentedControl
+              tabs={TABS}
+              activeTab={activeTab}
+              activeTabIndex={activeTabIndex}
+              onTabClick={switchTab}
+              onKeyDown={handleTabKeyDown}
+              pillLayoutId="segmentedPillFixed"
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -342,6 +348,71 @@ export function NameEngravingSection({
         <p>• 名前は最大20文字まで入力できます</p>
         <p>• 日本語・英語の文字、数字、スペース、ハイフンが使用できます</p>
         <p className="text-[#EC4899] font-medium">• 名前は無料で追加できます（料金は変わりません）</p>
+      </div>
+    </div>
+  );
+}
+
+/** iOS風セグメントコントロール */
+function SegmentedControl({
+  tabs,
+  activeTab,
+  activeTabIndex,
+  onTabClick,
+  onKeyDown,
+  pillLayoutId = 'segmentedPill',
+}: {
+  tabs: readonly { id: CustomizeTab; label: string }[];
+  activeTab: CustomizeTab;
+  activeTabIndex: number;
+  onTabClick: (tabId: CustomizeTab) => void;
+  onKeyDown: (e: React.KeyboardEvent, index: number) => void;
+  pillLayoutId?: string;
+}) {
+  return (
+    <div className="px-5 py-2">
+      <div
+        className="relative flex items-center p-1 rounded-full bg-white/10"
+        role="tablist"
+        aria-label="カスタマイズオプション"
+      >
+        <motion.div
+          className="absolute top-1 bottom-1 rounded-full bg-white/90 shadow-sm"
+          layoutId={pillLayoutId}
+          style={{
+            width: `calc(${100 / tabs.length}% - 4px)`,
+            left: `calc(${(activeTabIndex * 100) / tabs.length}% + 2px)`,
+          }}
+          transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+        />
+        {tabs.map((tab, index) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`panel-${tab.id}`}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => onTabClick(tab.id)}
+              onKeyDown={(e) => onKeyDown(e, index)}
+              className={`
+                relative z-10 flex-1 py-2 min-h-[36px]
+                text-xs font-semibold text-center rounded-full
+                cursor-pointer transition-colors duration-200
+                ${isActive
+                  ? 'text-zinc-900'
+                  : 'text-white/60 hover:text-white/80'
+                }
+              `}
+              style={{ fontFamily: 'Didact Gothic, sans-serif' }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
