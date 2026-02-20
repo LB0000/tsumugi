@@ -1,4 +1,8 @@
 import 'dotenv/config';
+import { initSentry, captureError, Sentry } from './lib/sentry.js';
+
+initSentry();
+
 import express from 'express';
 import cors from 'cors';
 import type { Request, Response, NextFunction } from 'express';
@@ -144,6 +148,7 @@ app.get('/api/health', (_req, res) => {
 // Global error handler — catches unhandled errors from route handlers
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  captureError(err, { handler: 'globalErrorHandler', url: _req.url, method: _req.method });
   logger.error('Unhandled route error', { error: err.message, stack: err.stack });
   if (!res.headersSent) {
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'サーバー内部エラーが発生しました' } });
@@ -173,5 +178,6 @@ function gracefulShutdown(signal: string) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('unhandledRejection', (reason) => {
+  captureError(reason, { handler: 'unhandledRejection' });
   logger.error('Unhandled promise rejection', { error: reason instanceof Error ? reason.message : String(reason) });
 });

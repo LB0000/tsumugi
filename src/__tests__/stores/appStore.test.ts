@@ -9,6 +9,8 @@ beforeEach(() => {
       previewUrl: null,
       errorMessage: null,
       rawFile: null,
+      croppedFile: null,
+      croppedPreviewUrl: null,
     },
     generatedImage: null,
     currentStep: 'upload',
@@ -23,6 +25,9 @@ describe('resetUpload', () => {
         progress: 100,
         previewUrl: 'preview.png',
         errorMessage: null,
+        rawFile: null,
+        croppedFile: null,
+        croppedPreviewUrl: null,
       },
       generatedImage: 'generated.png',
       currentStep: 'download',
@@ -37,6 +42,8 @@ describe('resetUpload', () => {
       previewUrl: null,
       errorMessage: null,
       rawFile: null,
+      croppedFile: null,
+      croppedPreviewUrl: null,
     });
     expect(state.generatedImage).toBeNull();
     expect(state.currentStep).toBe('upload');

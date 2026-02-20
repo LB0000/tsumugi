@@ -76,7 +76,9 @@ const initialUploadState: UploadState = {
   progress: 0,
   previewUrl: null,
   errorMessage: null,
-  rawFile: null
+  rawFile: null,
+  croppedFile: null,
+  croppedPreviewUrl: null,
 };
 
 export const useAppStore = create<AppState>()(persist((set) => ({
@@ -104,17 +106,29 @@ export const useAppStore = create<AppState>()(persist((set) => ({
 
   // Upload
   uploadState: initialUploadState,
-  setUploadState: (state) => set((prev) => ({
-    uploadState: { ...prev.uploadState, ...state }
-  })),
-  resetUpload: () => set({
-    uploadState: initialUploadState,
-    generatedImage: null,
-    gallerySaved: null,
-    portraitName: '',
-    textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS,
-    currentStep: 'upload'
+  setUploadState: (update) => set((prev) => {
+    // ObjectURL が置き換わる場合は旧URLを解放してメモリリーク防止
+    if (
+      'croppedPreviewUrl' in update &&
+      update.croppedPreviewUrl !== prev.uploadState.croppedPreviewUrl &&
+      prev.uploadState.croppedPreviewUrl
+    ) {
+      URL.revokeObjectURL(prev.uploadState.croppedPreviewUrl);
+    }
+    return { uploadState: { ...prev.uploadState, ...update } };
   }),
+  resetUpload: () => {
+    const prev = useAppStore.getState().uploadState;
+    if (prev.croppedPreviewUrl) URL.revokeObjectURL(prev.croppedPreviewUrl);
+    set({
+      uploadState: initialUploadState,
+      generatedImage: null,
+      gallerySaved: null,
+      portraitName: '',
+      textOverlaySettings: DEFAULT_TEXT_OVERLAY_SETTINGS,
+      currentStep: 'upload',
+    });
+  },
 
   // Generated Image
   generatedImage: null,
@@ -203,8 +217,10 @@ export const useAppStore = create<AppState>()(persist((set) => ({
       progress: state.uploadState.progress,
       previewUrl: state.uploadState.previewUrl,
       errorMessage: state.uploadState.errorMessage,
-      // IMPORTANT: rawFile (File object) はシリアライズ不可のため除外
+      // IMPORTANT: File / ObjectURL はシリアライズ不可のため除外
       rawFile: null,
+      croppedFile: null,
+      croppedPreviewUrl: null,
     },
   } as AppState),
 }));

@@ -112,6 +112,8 @@ export interface UploadState {
   previewUrl: string | null;
   errorMessage: string | null;
   rawFile: File | null;
+  croppedFile: File | null;
+  croppedPreviewUrl: string | null;
 }
 
 export interface GenerateImageResponse {

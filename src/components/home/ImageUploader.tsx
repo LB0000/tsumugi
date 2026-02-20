@@ -1,9 +1,10 @@
 import { useCallback, useRef, useMemo, useState } from 'react';
-import { Upload, FileImage, HardDrive, Info, ImageIcon, Camera } from 'lucide-react';
+import { Upload, FileImage, HardDrive, Info, ImageIcon, Camera, Crop } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { categories } from '../../data/categories';
 import { throttle } from '../../utils/debounce';
 import { trackEvent } from '../../lib/analytics';
+import { ImageCropper } from './ImageCropper';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -53,28 +54,23 @@ export function ImageUploader() {
       }
     };
     reader.onload = () => {
+      // クロップ状態をリセットして新しい画像でクロッパーを表示
       setUploadState({
         status: 'complete',
         progress: 100,
         previewUrl: reader.result as string,
-        rawFile: file
+        rawFile: file,
+        croppedFile: null,
+        croppedPreviewUrl: null,
       });
       trackEvent('image_upload');
-      setCurrentStep('preview');
-
-      // Step2へ自動スクロール（少し遅延させてUIの更新を待つ）
-      setTimeout(() => {
-        document.getElementById('style-section')?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }, 500);
+      // setCurrentStep('preview') と自動スクロールはクロップ確定時に実行
     };
     reader.onerror = () => {
       setUploadState({ status: 'error', errorMessage: 'ファイルの読み込みに失敗しました' });
     };
     reader.readAsDataURL(file);
-  }, [setUploadState, setCurrentStep, throttledProgressUpdate]);
+  }, [setUploadState, throttledProgressUpdate]);
 
   const [dragActive, setDragActive] = useState(false);
   const [dragValid, setDragValid] = useState<boolean | null>(null);
@@ -205,16 +201,38 @@ export function ImageUploader() {
           aria-hidden="true"
         />
 
-        {uploadState.status === 'complete' && uploadState.previewUrl ? (
+        {uploadState.status === 'complete' && uploadState.previewUrl && uploadState.rawFile && !uploadState.croppedFile ? (
+          /* クロップ未完了: クロッパー表示 */
+          <div className="w-full animate-fadeIn" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+            <ImageCropper
+              imageSrc={uploadState.previewUrl}
+              originalFile={uploadState.rawFile}
+            />
+          </div>
+        ) : uploadState.status === 'complete' && uploadState.croppedPreviewUrl ? (
+          /* クロップ完了: プレビュー表示 */
           <div className="relative w-full h-full min-h-[280px] p-6 animate-fadeIn">
             <img
-              src={uploadState.previewUrl}
-              alt="アップロードされた写真"
+              src={uploadState.croppedPreviewUrl}
+              alt="切り取り済みの写真"
               className="w-full h-full object-contain max-h-[350px] rounded-xl shadow-lg"
             />
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-accent-sage/90 text-white rounded-full text-sm font-medium flex items-center gap-2">
-              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              アップロード完了
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
+              <div className="px-4 py-2 bg-accent-sage/90 text-white rounded-full text-sm font-medium flex items-center gap-2">
+                <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                アップロード完了
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUploadState({ croppedFile: null, croppedPreviewUrl: null });
+                }}
+                className="px-3 py-2 bg-foreground/70 text-white rounded-full text-sm font-medium flex items-center gap-1.5 hover:bg-foreground/80 transition-colors"
+              >
+                <Crop className="w-3.5 h-3.5" />
+                切り直す
+              </button>
             </div>
           </div>
         ) : uploadState.status === 'uploading' ? (

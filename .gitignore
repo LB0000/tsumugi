@@ -43,5 +43,14 @@ dist-server
 .env.local
 .env.production
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# Coverage
+coverage/
+
 # Runtime data stores
 server/.data/

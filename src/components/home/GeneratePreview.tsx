@@ -8,7 +8,7 @@ import { useCredits } from '../../hooks/useCredits';
 import { needsCharge } from '../../types/credits';
 import { ChargeModal } from '../charge/ChargeModal';
 import { FreeTrialCompleteModal } from '../charge/FreeTrialCompleteModal';
-import { generationStages } from './generate-preview/generationStages';
+import { computeProgress, stageFromProgress } from './generate-preview/generationStages';
 import { GeneratingUI } from './generate-preview/GeneratingUI';
 import { ResultSection } from './generate-preview/ResultSection';
 
@@ -33,72 +33,35 @@ export function GeneratePreview() {
   const [smoothProgress, setSmoothProgress] = useState(0);
   const [currentInfoPanel, setCurrentInfoPanel] = useState(0);
   const [currentFact, setCurrentFact] = useState(0);
-  const cancelledRef = useRef(false);
-  const timerIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
-  // ステージを段階的に進める（可変 duration）
+  // 経過時間ベースの漸近プログレス（rAF で駆動、~10fps にスロットル）
+  // 指数減衰カーブにより生成時間に関わらず自然に減速し、98%付近で停滞しない
   useEffect(() => {
     if (!isGenerating) {
       setGenerationStage(0);
       setSmoothProgress(0);
-      cancelledRef.current = true;
       return;
     }
 
-    cancelledRef.current = false;
-    timerIdsRef.current = [];
-
-    const scheduleNext = (currentStage: number) => {
-      if (currentStage >= generationStages.length - 1) return;
-
-      const nextStage = currentStage + 1;
-      const timeout = setTimeout(() => {
-        if (cancelledRef.current) return;
-        setGenerationStage(nextStage);
-        scheduleNext(nextStage);
-      }, generationStages[nextStage].duration);
-      timerIdsRef.current.push(timeout);
-    };
-
-    const firstTimeout = setTimeout(() => {
-      if (cancelledRef.current) return;
-      setGenerationStage(1);
-      scheduleNext(1);
-    }, generationStages[0].duration);
-    timerIdsRef.current.push(firstTimeout);
-
-    return () => {
-      cancelledRef.current = true;
-      timerIdsRef.current.forEach(id => clearTimeout(id));
-      timerIdsRef.current = [];
-    };
-  }, [isGenerating]);
-
-  // 滑らかなプログレス補間（rAF で効率化: タブ非表示時は自動停止）
-  useEffect(() => {
-    if (!isGenerating) return;
-
-    const targetProgress = generationStages[generationStage].progress;
+    const startTime = performance.now();
     let rafId: number;
-    let lastTime = 0;
+    let lastUpdate = 0;
 
-    const animate = (time: number) => {
-      if (lastTime === 0) lastTime = time;
-      if (time - lastTime >= 50) {
-        lastTime = time;
-        setSmoothProgress(prev => {
-          const diff = targetProgress - prev;
-          if (Math.abs(diff) < 0.5) return targetProgress;
-          return prev + diff * 0.08;
-        });
+    const animate = (now: number) => {
+      if (now - lastUpdate >= 100) {
+        lastUpdate = now;
+        const elapsed = now - startTime;
+        const progress = computeProgress(elapsed);
+        setSmoothProgress(progress);
+        setGenerationStage(stageFromProgress(progress));
       }
       rafId = requestAnimationFrame(animate);
     };
 
     rafId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafId);
-  }, [isGenerating, generationStage]);
+  }, [isGenerating]);
 
   // インフォパネルのローテーション（3秒ごと）
   useEffect(() => {
@@ -129,7 +92,8 @@ export function GeneratePreview() {
   }, [isGenerating]);
 
   const handleGenerate = async () => {
-    if (!uploadState.previewUrl || !selectedStyle || !uploadState.rawFile) return;
+    const fileToSend = uploadState.croppedFile ?? uploadState.rawFile;
+    if (!uploadState.previewUrl || !selectedStyle || !fileToSend) return;
 
     // Credit check: if user has credits info and is out of credits, show modal
     if (credits && needsCharge(credits)) {
@@ -153,7 +117,7 @@ export function GeneratePreview() {
 
     try {
       const result = await generateImage({
-        file: uploadState.rawFile,
+        file: fileToSend,
         styleId: selectedStyle.id,
         category: selectedCategory,
       }, controller.signal);
@@ -204,7 +168,7 @@ export function GeneratePreview() {
   };
 
   const hasPhoto = uploadState.status === 'complete' && Boolean(uploadState.previewUrl);
-  const canGenerate = hasPhoto && Boolean(selectedStyle) && Boolean(uploadState.rawFile);
+  const canGenerate = hasPhoto && Boolean(selectedStyle) && Boolean(uploadState.croppedFile ?? uploadState.rawFile);
 
   const progressColors: [string, string] = [
     selectedStyle?.colorPalette[0] || '#8B4513',
@@ -221,7 +185,7 @@ export function GeneratePreview() {
               <GeneratingUI
                 smoothProgress={smoothProgress}
                 generationStage={generationStage}
-                uploadPreviewUrl={uploadState.previewUrl ?? ''}
+                uploadPreviewUrl={uploadState.croppedPreviewUrl ?? uploadState.previewUrl ?? ''}
                 progressColors={progressColors}
                 selectedStyle={selectedStyle}
                 currentInfoPanel={currentInfoPanel}
@@ -288,7 +252,7 @@ export function GeneratePreview() {
       {generatedImage && (
         <ResultSection
           generatedImage={generatedImage}
-          uploadPreviewUrl={uploadState.previewUrl ?? ''}
+          uploadPreviewUrl={uploadState.croppedPreviewUrl ?? uploadState.previewUrl ?? ''}
           onStartOver={resetUpload}
           onNavigateResult={() => navigate('/result')}
         />
