@@ -132,6 +132,51 @@ sqlite.exec(`
     revenue INTEGER DEFAULT 0,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS system_status (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS alerts (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    metadata TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    read_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS api_usage_logs (
+    id TEXT PRIMARY KEY,
+    service TEXT NOT NULL,
+    endpoint TEXT,
+    status TEXT NOT NULL,
+    response_time_ms INTEGER,
+    error_message TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS action_plans (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT NOT NULL REFERENCES strategic_goals(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    action_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    due_date TEXT,
+    config TEXT,
+    executed_at TEXT,
+    execution_result TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    completed_at TEXT
+  );
 `);
 
 function ensureColumn(table: string, column: string, definition: string): void {

@@ -12,6 +12,12 @@ import { strategyRouter } from './routes/strategy.js';
 import { cacRouter } from './routes/cac.js';
 import { funnelRouter } from './routes/funnel.js';
 import { reviewsRouter } from './routes/reviews.js';
+import { actionsRouter } from './routes/actions.js';
+import { backupsRouter } from './routes/backups.js';
+import { alertsRouter } from './routes/alerts.js';
+import { funnelSyncRouter } from './routes/funnel-sync.js';
+import { apiMonitorRouter } from './routes/api-monitor.js';
+import { startAllJobs, stopAllJobs } from './jobs/index.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3002;
@@ -71,6 +77,11 @@ app.use('/api/strategy', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefi
 app.use('/api/cac', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'cac' }), cacRouter);
 app.use('/api/funnel', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'funnel' }), funnelRouter);
 app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'reviews' }), reviewsRouter);
+app.use('/api/actions', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'actions' }), actionsRouter);
+app.use('/api/backups', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'backups' }), backupsRouter);
+app.use('/api/alerts', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'alerts' }), alertsRouter);
+app.use('/api/funnel-sync', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'funnel-sync' }), funnelSyncRouter);
+app.use('/api/api-monitor', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'api-monitor' }), apiMonitorRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -79,4 +90,15 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Admin server running on http://0.0.0.0:${PORT}`);
+  startAllJobs();
+});
+
+process.on('SIGTERM', () => {
+  stopAllJobs();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  stopAllJobs();
+  process.exit(0);
 });

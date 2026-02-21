@@ -1,7 +1,7 @@
-import type { StrategicGoal, AdSpend, CacSummary, FunnelSnapshot, FunnelConversionRates } from '../types/strategy';
+import type { StrategicGoal, GoalWithAutoKpi, AdSpend, CacSummary, FunnelSnapshot, FunnelConversionRates, ActionPlan } from '../types/strategy';
 import { apiFetch } from './index';
 
-export async function getGoals(): Promise<{ goals: StrategicGoal[] }> {
+export async function getGoals(): Promise<{ goals: GoalWithAutoKpi[] }> {
   return apiFetch('/strategy/goals');
 }
 
@@ -54,4 +54,30 @@ export async function createFunnelSnapshot(data: {
   charges?: number; physicalPurchases?: number; revenue?: number;
 }): Promise<FunnelSnapshot> {
   return apiFetch('/funnel/snapshots', { method: 'POST', body: JSON.stringify(data) });
+}
+
+// --- Action Plans ---
+
+export async function getActionPlans(goalId?: string): Promise<{ actions: ActionPlan[] }> {
+  const qs = goalId ? `?goalId=${goalId}` : '';
+  return apiFetch(`/actions${qs}`);
+}
+
+export async function createActionPlan(data: {
+  goalId: string; title: string; description?: string;
+  actionType: string; priority?: string; dueDate?: string; config?: string;
+}): Promise<ActionPlan> {
+  return apiFetch('/actions', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function updateActionPlan(id: string, data: Partial<ActionPlan>): Promise<ActionPlan> {
+  return apiFetch(`/actions/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function deleteActionPlan(id: string): Promise<void> {
+  await apiFetch(`/actions/${id}`, { method: 'DELETE' });
+}
+
+export async function executeActionPlan(id: string): Promise<ActionPlan> {
+  return apiFetch(`/actions/${id}/execute`, { method: 'POST' });
 }

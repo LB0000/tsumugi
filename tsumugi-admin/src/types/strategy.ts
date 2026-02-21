@@ -87,3 +87,66 @@ export const CATEGORY_BADGE_COLORS: Record<GoalCategory, string> = {
   customers: 'bg-purple-100 text-purple-700',
   custom: 'bg-gray-100 text-gray-700',
 };
+
+// --- Action Plans ---
+
+export type ActionType = 'email' | 'coupon' | 'content' | 'sync' | 'manual';
+export type ActionStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+export type ActionPriority = 'high' | 'medium' | 'low';
+
+export interface ActionPlan {
+  id: string;
+  goalId: string;
+  title: string;
+  description: string | null;
+  actionType: ActionType;
+  status: ActionStatus;
+  priority: ActionPriority;
+  dueDate: string | null;
+  config: string | null; // JSON string
+  executedAt: string | null;
+  executionResult: string | null; // JSON string
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
+  email: 'メール配信',
+  coupon: 'クーポン作成',
+  content: 'コンテンツ生成',
+  sync: '顧客同期',
+  manual: '手動タスク',
+};
+
+export const ACTION_TYPE_COLORS: Record<ActionType, string> = {
+  email: 'bg-blue-100 text-blue-700',
+  coupon: 'bg-amber-100 text-amber-700',
+  content: 'bg-purple-100 text-purple-700',
+  sync: 'bg-green-100 text-green-700',
+  manual: 'bg-gray-100 text-gray-700',
+};
+
+export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
+  pending: '未着手',
+  in_progress: '進行中',
+  completed: '完了',
+  failed: '失敗',
+};
+
+export const PRIORITY_LABELS: Record<ActionPriority, string> = {
+  high: '高',
+  medium: '中',
+  low: '低',
+};
+
+export interface AutoKpi {
+  category: GoalCategory;
+  autoValue: number | null;
+  label: string;
+  source: string;
+}
+
+export interface GoalWithAutoKpi extends StrategicGoal {
+  autoKpi?: AutoKpi;
+}

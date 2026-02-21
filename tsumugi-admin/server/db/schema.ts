@@ -113,3 +113,48 @@ export const funnelSnapshots = sqliteTable('funnel_snapshots', {
   revenue: integer('revenue').default(0),
   createdAt: text('created_at').notNull(),
 });
+
+export const systemStatus = sqliteTable('system_status', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const alerts = sqliteTable('alerts', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(), // 'backup_failure' | 'sync_failure' | 'api_error' | 'anomaly'
+  severity: text('severity').notNull(), // 'info' | 'warning' | 'critical'
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  metadata: text('metadata'), // JSON
+  isRead: integer('is_read', { mode: 'boolean' }).default(false),
+  createdAt: text('created_at').notNull(),
+  readAt: text('read_at'),
+});
+
+export const apiUsageLogs = sqliteTable('api_usage_logs', {
+  id: text('id').primaryKey(),
+  service: text('service').notNull(), // 'gemini' | 'square' | 'resend' | 'tsumugi'
+  endpoint: text('endpoint'),
+  status: text('status').notNull(), // 'success' | 'error' | 'timeout'
+  responseTimeMs: integer('response_time_ms'),
+  errorMessage: text('error_message'),
+  createdAt: text('created_at').notNull(),
+});
+
+export const actionPlans = sqliteTable('action_plans', {
+  id: text('id').primaryKey(),
+  goalId: text('goal_id').notNull().references(() => strategicGoals.id),
+  title: text('title').notNull(),
+  description: text('description'),
+  actionType: text('action_type').notNull(), // 'email' | 'coupon' | 'content' | 'sync' | 'manual'
+  status: text('status').notNull().default('pending'), // 'pending' | 'in_progress' | 'completed' | 'failed'
+  priority: text('priority').notNull().default('medium'), // 'high' | 'medium' | 'low'
+  dueDate: text('due_date'),
+  config: text('config'), // JSON: action-specific configuration
+  executedAt: text('executed_at'),
+  executionResult: text('execution_result'), // JSON: execution result details
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  completedAt: text('completed_at'),
+});

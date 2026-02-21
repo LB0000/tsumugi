@@ -1,17 +1,72 @@
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
 import { db } from '../db/index.js';
-import { strategicGoals } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { strategicGoals, actionPlans, customers } from '../db/schema.js';
+import { eq, isNull, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const strategyRouter = Router();
 strategyRouter.use(requireAuth);
 
-strategyRouter.get('/goals', (_req, res) => {
+const TSUMUGI_API_URL = process.env.TSUMUGI_API_URL || 'http://localhost:3001/api';
+
+const AUTO_KPI_TIMEOUT_MS = 5000;
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), AUTO_KPI_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+async function fetchAutoKpi(category: string): Promise<{ autoValue: number | null; label: string; source: string }> {
+  switch (category) {
+    case 'reviews': {
+      try {
+        const response = await fetchWithTimeout(`${TSUMUGI_API_URL}/reviews/summary`);
+        if (!response.ok) return { autoValue: null, label: 'レビュー数', source: 'unavailable' };
+        const data = (await response.json()) as { totalReviews?: number };
+        return { autoValue: typeof data.totalReviews === 'number' ? data.totalReviews : null, label: 'レビュー数', source: 'reviews-api' };
+      } catch { return { autoValue: null, label: 'レビュー数', source: 'error' }; }
+    }
+    case 'revenue': {
+      // Use local DB directly -- avoids leaking credentials to external service
+      const row = db.get<{ total: number }>(sql`SELECT COALESCE(SUM(total_revenue), 0) as total FROM analytics_snapshots`);
+      return { autoValue: row?.total ?? null, label: '売上（累計）', source: 'local-db' };
+    }
+    case 'customers': {
+      const row = db.get<{ total: number }>(sql`SELECT COUNT(*) as total FROM customers`);
+      return { autoValue: row?.total ?? 0, label: '顧客数', source: 'local-db' };
+    }
+    case 'email_list': {
+      const row = db.get<{ total: number }>(sql`SELECT COUNT(*) as total FROM customers WHERE marketing_opt_out_at IS NULL`);
+      return { autoValue: row?.total ?? 0, label: 'メール配信可能数', source: 'local-db' };
+    }
+    default:
+      return { autoValue: null, label: '', source: 'none' };
+  }
+}
+
+strategyRouter.get('/goals', async (_req, res) => {
   try {
     const goals = db.select().from(strategicGoals).all();
-    res.json({ goals });
+
+    // Enrich with auto KPI for applicable categories
+    const autoCategories = ['reviews', 'revenue', 'customers', 'email_list'];
+    const enriched = await Promise.all(
+      goals.map(async (goal) => {
+        if (autoCategories.includes(goal.category)) {
+          const autoKpi = await fetchAutoKpi(goal.category);
+          return { ...goal, autoKpi: { category: goal.category, ...autoKpi } };
+        }
+        return goal;
+      }),
+    );
+
+    res.json({ goals: enriched });
   } catch (error) {
     console.error('List strategic goals error:', error);
     res.status(500).json({ error: 'Failed to list strategic goals' });
@@ -96,7 +151,13 @@ strategyRouter.delete('/goals/:id', (req, res) => {
   try {
     const existing = db.select().from(strategicGoals).where(eq(strategicGoals.id, req.params.id)).get();
     if (!existing) { res.status(404).json({ error: 'Goal not found' }); return; }
-    db.delete(strategicGoals).where(eq(strategicGoals.id, req.params.id)).run();
+
+    // Delete associated action plans first to avoid FK constraint violation
+    db.transaction((tx) => {
+      tx.delete(actionPlans).where(eq(actionPlans.goalId, req.params.id)).run();
+      tx.delete(strategicGoals).where(eq(strategicGoals.id, req.params.id)).run();
+    });
+
     res.json({ success: true });
   } catch (error) {
     console.error('Delete strategic goal error:', error);

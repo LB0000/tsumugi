@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Target, Plus, TrendingUp, DollarSign, Trash2, Pencil, ArrowRight, Calendar } from 'lucide-react';
+import { Target, Plus, TrendingUp, DollarSign, Trash2, Pencil, ArrowRight, Calendar, Clock, RefreshCw } from 'lucide-react';
 import {
-  type StrategicGoal, type AdSpend, type CacSummary, type FunnelConversionRates, type FunnelSnapshot,
+  type GoalWithAutoKpi, type AdSpend, type CacSummary, type FunnelConversionRates, type FunnelSnapshot, type ActionPlan, type ActionType,
   CATEGORY_LABELS, CATEGORY_BADGE_COLORS, CHANNEL_LABELS, CHANNEL_BADGE_COLORS,
   type GoalCategory, type AdChannel,
 } from '../types/strategy';
@@ -9,13 +9,20 @@ import {
   getGoals, createGoal, deleteGoal, updateGoalProgress,
   getAdSpends, createAdSpend, deleteAdSpend,
   getFunnelSnapshots, createFunnelSnapshot,
+  getActionPlans, createActionPlan,
 } from '../api/strategy';
+import { getFunnelSyncStatus, triggerFunnelSync } from '../api/settings';
 import { GoalForm } from '../components/strategy/GoalForm';
 import { AdSpendForm } from '../components/strategy/AdSpendForm';
 import { FunnelForm } from '../components/strategy/FunnelForm';
+import { AutoKpiCard } from '../components/strategy/AutoKpiCard';
+import { QuickActions } from '../components/strategy/QuickActions';
+import { ActionPlanList } from '../components/strategy/ActionPlanList';
+import { ActionPlanForm } from '../components/strategy/ActionPlanForm';
 
 export function StrategyPage() {
-  const [goals, setGoals] = useState<StrategicGoal[]>([]);
+  const [goals, setGoals] = useState<GoalWithAutoKpi[]>([]);
+  const [actionsByGoal, setActionsByGoal] = useState<Record<string, ActionPlan[]>>({});
   const [spends, setSpends] = useState<AdSpend[]>([]);
   const [cacSummary, setCacSummary] = useState<CacSummary>({ totalSpend: 0, totalConversions: 0, avgCac: 0, totalRevenue: 0, roas: 0 });
   const [funnelRates, setFunnelRates] = useState<FunnelConversionRates>({ visitToFree: 0, freeToCharge: 0, chargeToPurchase: 0, visitToPurchase: 0 });
@@ -28,15 +35,34 @@ export function StrategyPage() {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
+  // Action plan form state
+  const [actionFormGoalId, setActionFormGoalId] = useState<string | null>(null);
+  const [actionFormDefaultType, setActionFormDefaultType] = useState<ActionType | undefined>();
+  const [actionFormDefaultTitle, setActionFormDefaultTitle] = useState<string | undefined>();
+  const [lastFunnelSync, setLastFunnelSync] = useState<string | null>(null);
+  const [funnelSyncing, setFunnelSyncing] = useState(false);
+  const [funnelSyncMsg, setFunnelSyncMsg] = useState('');
+
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
-      const [goalsRes, spendsRes, funnelRes] = await Promise.all([getGoals(), getAdSpends(), getFunnelSnapshots()]);
+      const [goalsRes, spendsRes, funnelRes, actionsRes] = await Promise.all([
+        getGoals(), getAdSpends(), getFunnelSnapshots(), getActionPlans(),
+      ]);
       setGoals(goalsRes.goals);
       setSpends(spendsRes.spends);
       setCacSummary(spendsRes.summary);
       setFunnelSnapshots(funnelRes.snapshots);
       setFunnelRates(funnelRes.conversionRates);
+
+      // Group actions by goalId
+      const grouped: Record<string, ActionPlan[]> = {};
+      for (const action of actionsRes.actions) {
+        if (!grouped[action.goalId]) grouped[action.goalId] = [];
+        grouped[action.goalId].push(action);
+      }
+      setActionsByGoal(grouped);
+
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'データの取得に失敗しました');
@@ -46,6 +72,31 @@ export function StrategyPage() {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+    getFunnelSyncStatus()
+      .then((res) => setLastFunnelSync(res.lastSync))
+      .catch(() => {/* ignore */});
+  }, []);
+
+  const handleFunnelSync = async () => {
+    setFunnelSyncing(true);
+    setFunnelSyncMsg('');
+    try {
+      const result = await triggerFunnelSync();
+      setFunnelSyncMsg(
+        result.data
+          ? `${result.date}: ${result.data.charges}件の注文, ¥${result.data.revenue.toLocaleString()}の売上を取得`
+          : `${result.date}: データなし`,
+      );
+      setLastFunnelSync(new Date().toISOString());
+      await fetchAll();
+    } catch (e) {
+      setFunnelSyncMsg(e instanceof Error ? e.message : 'ファネル同期に失敗しました');
+    } finally {
+      setFunnelSyncing(false);
+    }
+  };
 
   const handleCreateGoal = async (data: { name: string; category: string; targetValue: number; unit: string; deadline: string }) => {
     try { await createGoal(data); fetchAll(); }
@@ -59,7 +110,9 @@ export function StrategyPage() {
   };
 
   const handleUpdateProgress = async (id: string) => {
-    try { await updateGoalProgress(id, Number(editValue)); setEditingGoalId(null); fetchAll(); }
+    const num = Number(editValue);
+    if (!Number.isFinite(num) || num < 0) { setError('有効な数値を入力してください'); return; }
+    try { await updateGoalProgress(id, num); setEditingGoalId(null); fetchAll(); }
     catch (e) { setError(e instanceof Error ? e.message : '進捗の更新に失敗しました'); }
   };
 
@@ -79,8 +132,19 @@ export function StrategyPage() {
     catch (e) { setError(e instanceof Error ? e.message : 'ファネルデータの保存に失敗しました'); }
   };
 
+  const handleCreateAction = async (data: Parameters<typeof createActionPlan>[0]) => {
+    await createActionPlan(data);
+    fetchAll();
+  };
+
+  const openActionForm = (goalId: string, actionType?: ActionType, defaultTitle?: string) => {
+    setActionFormGoalId(goalId);
+    setActionFormDefaultType(actionType);
+    setActionFormDefaultTitle(defaultTitle);
+  };
+
   const overallProgress = goals.length > 0
-    ? Math.round(goals.reduce((sum, g) => sum + Math.min(g.currentValue / g.targetValue, 1), 0) / goals.length * 100)
+    ? Math.round(goals.reduce((sum, g) => sum + (g.targetValue > 0 ? Math.min(g.currentValue / g.targetValue, 1) : 0), 0) / goals.length * 100)
     : 0;
 
   const funnelTotals = funnelSnapshots.reduce(
@@ -99,9 +163,9 @@ export function StrategyPage() {
 
   return (
     <div className="p-6 space-y-8">
-      <h1 className="text-xl font-bold flex items-center gap-2"><Target size={22} /> 戦略ダッシュボード</h1>
+      <h1 className="text-xl font-bold flex items-center gap-2"><Target size={22} /> 戦略コマンドセンター</h1>
 
-      {/* Section 1: Strategic Goals */}
+      {/* Section 1: Strategic Goals with Auto KPI + Actions */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -119,6 +183,7 @@ export function StrategyPage() {
           {goals.map((goal) => {
             const pct = goal.targetValue > 0 ? Math.min(Math.round((goal.currentValue / goal.targetValue) * 100), 100) : 0;
             const color = pct >= 75 ? 'bg-emerald-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+            const goalActions = actionsByGoal[goal.id] || [];
             return (
               <div key={goal.id} className="bg-white rounded-xl border border-border p-5">
                 <div className="flex items-start justify-between mb-2">
@@ -129,8 +194,8 @@ export function StrategyPage() {
                     <h3 className="font-medium mt-1.5">{goal.name}</h3>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => { setEditingGoalId(goal.id); setEditValue(String(goal.currentValue)); }} className="p-1 text-text-secondary hover:text-primary"><Pencil size={14} /></button>
-                    <button onClick={() => handleDeleteGoal(goal.id)} className="p-1 text-text-secondary hover:text-danger"><Trash2 size={14} /></button>
+                    <button onClick={() => { setEditingGoalId(goal.id); setEditValue(String(goal.currentValue)); }} className="p-1 text-text-secondary hover:text-primary" aria-label={`${goal.name}を編集`}><Pencil size={14} /></button>
+                    <button onClick={() => handleDeleteGoal(goal.id)} className="p-1 text-text-secondary hover:text-danger" aria-label={`${goal.name}を削除`}><Trash2 size={14} /></button>
                   </div>
                 </div>
                 <div className="flex items-end gap-2 mb-2">
@@ -151,6 +216,26 @@ export function StrategyPage() {
                   <span>{pct}%</span>
                   <span className="flex items-center gap-1"><Calendar size={12} /> {goal.deadline}</span>
                 </div>
+
+                {/* Auto KPI */}
+                <AutoKpiCard goal={goal} />
+
+                {/* Quick Actions */}
+                <QuickActions
+                  category={goal.category as GoalCategory}
+                  onAction={(actionType, defaultTitle) => openActionForm(goal.id, actionType, defaultTitle)}
+                />
+
+                {/* Action Plan List */}
+                <ActionPlanList actions={goalActions} onRefresh={fetchAll} />
+
+                {/* Add action button */}
+                <button
+                  onClick={() => openActionForm(goal.id)}
+                  className="mt-3 flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus size={12} /> アクション追加
+                </button>
               </div>
             );
           })}
@@ -161,9 +246,31 @@ export function StrategyPage() {
       {/* Section 2: Conversion Funnel */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2"><TrendingUp size={20} /> コンバージョンファネル</h2>
-          <button onClick={() => setShowFunnelForm(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-surface-secondary"><Plus size={16} /> データ入力</button>
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2"><TrendingUp size={20} /> コンバージョンファネル</h2>
+            <p className="text-xs text-text-secondary mt-1">注文数・売上はSquareから自動取得。訪問者数・無料生成数は手動入力。</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {lastFunnelSync && (
+              <span className="flex items-center gap-1 text-xs text-text-secondary">
+                <Clock size={12} />
+                最終自動収集: {new Date(lastFunnelSync).toLocaleString('ja-JP')}
+              </span>
+            )}
+            <button
+              onClick={handleFunnelSync}
+              disabled={funnelSyncing}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm bg-primary text-white rounded-lg hover:opacity-90 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={funnelSyncing ? 'animate-spin' : ''} />
+              {funnelSyncing ? '収集中...' : '今すぐ収集'}
+            </button>
+            <button onClick={() => setShowFunnelForm(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-surface-secondary"><Plus size={16} /> データ入力</button>
+          </div>
         </div>
+        {funnelSyncMsg && (
+          <p className="text-sm text-text-secondary mb-3">{funnelSyncMsg}</p>
+        )}
         <div className="bg-white rounded-xl border border-border p-6">
           {funnelSnapshots.length > 0 ? (
             <div className="space-y-3">
@@ -249,6 +356,16 @@ export function StrategyPage() {
       <GoalForm isOpen={showGoalForm} onClose={() => setShowGoalForm(false)} onSubmit={handleCreateGoal} />
       <AdSpendForm isOpen={showAdSpendForm} onClose={() => setShowAdSpendForm(false)} onSubmit={handleCreateAdSpend} />
       <FunnelForm isOpen={showFunnelForm} onClose={() => setShowFunnelForm(false)} onSubmit={handleCreateFunnel} />
+      {actionFormGoalId && (
+        <ActionPlanForm
+          isOpen
+          onClose={() => setActionFormGoalId(null)}
+          onSubmit={handleCreateAction}
+          goalId={actionFormGoalId}
+          defaultActionType={actionFormDefaultType}
+          defaultTitle={actionFormDefaultTitle}
+        />
+      )}
     </div>
   );
 }
