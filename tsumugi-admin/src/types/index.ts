@@ -97,3 +97,36 @@ export interface Coupon {
   createdAt: string;
   isActive: boolean;
 }
+
+// Retention Analytics
+export interface CohortRow {
+  cohort: string;
+  total: number;
+  converted: number;
+  repeated: number;
+  revenue: number;
+  avgDaysToFirstPurchase: number | null;
+}
+
+export interface AtRiskCustomer {
+  id: string;
+  name: string;
+  email: string;
+  lastPurchaseAt: string;
+  daysSinceLastPurchase: number;
+  totalOrders: number;
+  totalSpent: number;
+}
+
+export interface LtvBucket {
+  bucket: string;
+  count: number;
+  totalRevenue: number;
+}
+
+export interface RetentionSummary {
+  churnRate: number;
+  avgDaysToFirstPurchase: number | null;
+  atRiskCount: number;
+  avgOrderFrequency: number;
+}

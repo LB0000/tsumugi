@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, FileText, Megaphone, Settings, LogOut, Users, Target, Star, Zap } from 'lucide-react';
+import { BarChart3, FileText, Megaphone, Settings, LogOut, Users, Target, Star, Zap, Activity } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { logout } from '../../api';
 
 const navItems = [
   { to: '/', icon: BarChart3, label: 'ダッシュボード' },
   { to: '/customers', icon: Users, label: '顧客管理' },
+  { to: '/retention', icon: Activity, label: 'リテンション' },
   { to: '/content', icon: FileText, label: 'コンテンツ' },
   { to: '/campaigns', icon: Megaphone, label: 'キャンペーン' },
   { to: '/automations', icon: Zap, label: '自動配信' },

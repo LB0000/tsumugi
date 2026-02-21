@@ -1,4 +1,8 @@
-import type { AnalyticsSummary, Content, ContentType, ContentPlatform, Customer, CustomerStats, Campaign, Coupon } from '../types/index.js';
+import type {
+  AnalyticsSummary, Content, ContentType, ContentPlatform,
+  Customer, CustomerStats, Campaign, Coupon,
+  CohortRow, AtRiskCustomer, LtvBucket, RetentionSummary,
+} from '../types/index.js';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -282,6 +286,23 @@ export async function toggleCoupon(id: string, isActive: boolean): Promise<Coupo
     method: 'PUT',
     body: JSON.stringify({ isActive }),
   });
+}
+
+// Retention Analytics API
+export async function getRetentionCohorts(): Promise<CohortRow[]> {
+  return apiFetch<CohortRow[]>('/retention/cohorts');
+}
+
+export async function getRetentionAtRisk(): Promise<AtRiskCustomer[]> {
+  return apiFetch<AtRiskCustomer[]>('/retention/at-risk');
+}
+
+export async function getRetentionLtv(): Promise<LtvBucket[]> {
+  return apiFetch<LtvBucket[]>('/retention/ltv');
+}
+
+export async function getRetentionSummary(): Promise<RetentionSummary> {
+  return apiFetch<RetentionSummary>('/retention/summary');
 }
 
 // Style Analytics API

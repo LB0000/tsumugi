@@ -15,6 +15,7 @@ import { funnelRouter } from './routes/funnel.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { actionsRouter } from './routes/actions.js';
 import { automationsRouter } from './routes/automations.js';
+import { retentionRouter } from './routes/retention.js';
 import { backupsRouter } from './routes/backups.js';
 import { alertsRouter } from './routes/alerts.js';
 import { funnelSyncRouter } from './routes/funnel-sync.js';
@@ -63,6 +64,7 @@ app.use('/api/funnel', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix:
 app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'reviews' }), reviewsRouter);
 app.use('/api/actions', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'actions' }), actionsRouter);
 app.use('/api/automations', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'automations' }), automationsRouter);
+app.use('/api/retention', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'retention' }), retentionRouter);
 app.use('/api/backups', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'backups' }), backupsRouter);
 app.use('/api/alerts', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'alerts' }), alertsRouter);
 app.use('/api/funnel-sync', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'funnel-sync' }), funnelSyncRouter);
