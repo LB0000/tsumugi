@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Zap, Plus, Play, Pause, Trash2, Users, Mail, ChevronDown, ChevronUp, Square, Loader2 } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import {
@@ -49,9 +49,11 @@ export function AutomationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [executing, setExecuting] = useState<string | null>(null);
+  const [enrollmentExecuting, setEnrollmentExecuting] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const expandedIdRef = useRef<string | null>(null);
   const [detail, setDetail] = useState<AutomationDetail | null>(null);
   const [enrollmentsList, setEnrollmentsList] = useState<AutomationEnrollment[]>([]);
 
@@ -77,7 +79,9 @@ export function AutomationsPage() {
     try {
       const data = await getAutomations();
       setAutomationsList(data.automations);
-    } catch { /* silent */ }
+    } catch {
+      setError('リストの更新に失敗しました。ページを再読み込みしてください。');
+    }
   }, []);
 
   useEffect(() => { void fetchList(); }, [fetchList]);
@@ -130,7 +134,7 @@ export function AutomationsPage() {
     try {
       await activateAutomation(id);
       void silentRefresh();
-      if (expandedId === id) await loadDetail(id);
+      if (expandedIdRef.current === id) await loadDetail(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '有効化に失敗しました');
     } finally {
@@ -144,7 +148,7 @@ export function AutomationsPage() {
     try {
       await pauseAutomation(id);
       void silentRefresh();
-      if (expandedId === id) await loadDetail(id);
+      if (expandedIdRef.current === id) await loadDetail(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '一時停止に失敗しました');
     } finally {
@@ -153,31 +157,36 @@ export function AutomationsPage() {
   };
 
   const loadDetail = async (id: string) => {
-    try {
-      const [d, e] = await Promise.all([getAutomation(id), getEnrollments(id)]);
-      setDetail(d);
-      setEnrollmentsList(e.enrollments);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '詳細の取得に失敗しました');
-    }
+    const [d, e] = await Promise.all([getAutomation(id), getEnrollments(id)]);
+    setDetail(d);
+    setEnrollmentsList(e.enrollments);
   };
 
   const toggleExpand = async (id: string) => {
     if (detailLoading) return;
     if (expandedId === id) {
       setExpandedId(null);
+      expandedIdRef.current = null;
       setDetail(null);
       setEnrollmentsList([]);
     } else {
       setExpandedId(id);
+      expandedIdRef.current = id;
       setDetailLoading(true);
-      await loadDetail(id);
-      setDetailLoading(false);
+      try {
+        await loadDetail(id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '詳細の取得に失敗しました');
+        setExpandedId(null);
+        expandedIdRef.current = null;
+      } finally {
+        setDetailLoading(false);
+      }
     }
   };
 
   const handleStopEnrollment = async (automationId: string, enrollmentId: string) => {
-    setExecuting(enrollmentId);
+    setEnrollmentExecuting(enrollmentId);
     setError('');
     try {
       await stopEnrollment(automationId, enrollmentId);
@@ -185,7 +194,7 @@ export function AutomationsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '停止に失敗しました');
     } finally {
-      setExecuting(null);
+      setEnrollmentExecuting(null);
     }
   };
 
@@ -412,7 +421,7 @@ export function AutomationsPage() {
                 <div key={auto.id} className="bg-white rounded-xl border border-border overflow-hidden">
                   {/* Row */}
                   <div className="px-5 py-4 flex items-center gap-4">
-                    <button onClick={() => void toggleExpand(auto.id)} className="flex-1 text-left flex items-center gap-3">
+                    <button onClick={() => void toggleExpand(auto.id)} aria-expanded={isExpanded} className="flex-1 text-left flex items-center gap-3">
                       {isExpanded ? <ChevronUp size={16} className="text-text-secondary" /> : <ChevronDown size={16} className="text-text-secondary" />}
                       <div>
                         <div className="flex items-center gap-2">
@@ -547,12 +556,12 @@ export function AutomationsPage() {
                                       {enr.status === 'active' && (
                                         <button
                                           onClick={() => void handleStopEnrollment(auto.id, enr.id)}
-                                          disabled={executing === enr.id}
+                                          disabled={enrollmentExecuting === enr.id}
                                           className="text-text-secondary hover:text-danger disabled:opacity-50"
                                           title="停止"
                                           aria-label="登録を停止"
                                         >
-                                          {executing === enr.id ? <Loader2 size={12} className="animate-spin" /> : <Square size={12} />}
+                                          {enrollmentExecuting === enr.id ? <Loader2 size={12} className="animate-spin" /> : <Square size={12} />}
                                         </button>
                                       )}
                                     </td>
