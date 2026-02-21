@@ -3,8 +3,6 @@ import type { Request, Response, NextFunction } from 'express';
 
 // ── Mocks ──────────────────────────────────────────────
 
-const mockEnv: Record<string, string | undefined> = {};
-
 vi.mock('../../lib/requestAuth.js', async () => {
   const actual = await vi.importActual<typeof import('../../lib/requestAuth.js')>('../../lib/requestAuth.js');
   return {
@@ -115,7 +113,7 @@ describe('csrfProtection', () => {
       middleware(
         mockReq({
           method: 'POST',
-          headers: { 'x-csrf-token': 'token123' } as any,
+          headers: { 'x-csrf-token': 'token123' } as Record<string, string>,
         }),
         res,
         next,

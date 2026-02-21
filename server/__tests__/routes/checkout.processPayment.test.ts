@@ -35,7 +35,7 @@ import { scheduleReviewRequestEmail } from '../../lib/scheduledEmails.js';
 // ── Helpers ────────────────────────────────────────────
 
 function mockReq(body: Record<string, unknown> = {}): Partial<Request> {
-  return { body, headers: { cookie: '' } as any, ip: '127.0.0.1', requestId: 'test-req-id' } as any;
+  return { body, headers: { cookie: '' } as Record<string, string>, ip: '127.0.0.1', requestId: 'test-req-id' } as Partial<Request>;
 }
 
 function mockRes() {

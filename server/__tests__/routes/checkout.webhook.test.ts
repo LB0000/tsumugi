@@ -52,18 +52,18 @@ function mockReq(overrides: Record<string, unknown> = {}) {
     },
     requestId: 'test-req-id',
     ...overrides,
-  } as any;
+  } as Partial<Request>;
 }
 
 function mockRes() {
   const jsonFn = vi.fn();
   const statusFn = vi.fn().mockReturnValue({ json: jsonFn });
-  return { res: { json: jsonFn, status: statusFn } as any, statusFn, jsonFn };
+  return { res: { json: jsonFn, status: statusFn } as Partial<Response>, statusFn, jsonFn };
 }
 
 // ── Extract handler ────────────────────────────────────
 
-type RouteHandler = (req: any, res: any) => Promise<void>;
+type RouteHandler = (req: Partial<Request>, res: Partial<Response>) => Promise<void>;
 let handler: RouteHandler;
 
 beforeAll(() => {
