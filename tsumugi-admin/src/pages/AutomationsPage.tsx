@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Zap, Plus, Play, Pause, Trash2, Users, Mail, ChevronDown, ChevronUp, Square } from 'lucide-react';
+import { Zap, Plus, Play, Pause, Trash2, Users, Mail, ChevronDown, ChevronUp, Square, Loader2 } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import {
   getAutomations, getAutomation, createAutomation, deleteAutomation,
@@ -48,7 +48,8 @@ export function AutomationsPage() {
   const [automationsList, setAutomationsList] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const [executing, setExecuting] = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AutomationDetail | null>(null);
@@ -72,6 +73,13 @@ export function AutomationsPage() {
     }
   }, []);
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await getAutomations();
+      setAutomationsList(data.automations);
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => { void fetchList(); }, [fetchList]);
 
   const handleCreate = async () => {
@@ -80,17 +88,17 @@ export function AutomationsPage() {
       setError('各ステップの件名を入力するか、AI生成を有効にしてください');
       return;
     }
-    setActionLoading(true);
+    setExecuting('create');
     setError('');
     try {
       await createAutomation({ name: formName, triggerType: formTrigger, steps: formSteps });
       setShowForm(false);
       resetForm();
-      await fetchList();
+      void silentRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '作成に失敗しました');
     } finally {
-      setActionLoading(false);
+      setExecuting(null);
     }
   };
 
@@ -102,16 +110,16 @@ export function AutomationsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('このオートメーションを削除しますか？')) return;
-    setActionLoading(true);
+    setExecuting(id);
     setError('');
     try {
       await deleteAutomation(id);
       if (expandedId === id) setExpandedId(null);
-      await fetchList();
+      void silentRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '削除に失敗しました');
     } finally {
-      setActionLoading(false);
+      setExecuting(null);
     }
   };
 
