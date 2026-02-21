@@ -1,4 +1,5 @@
 import { OrderState, SquareClient, SquareEnvironment } from 'square';
+import { recordApiCall } from './api-monitor.js';
 
 const environment = process.env.SQUARE_ENVIRONMENT === 'production'
   ? SquareEnvironment.Production
@@ -73,6 +74,7 @@ export async function fetchAnalytics(startDate: string, endDate: string): Promis
     };
   }
 
+  const start = Date.now();
   try {
     const locationId = process.env.SQUARE_LOCATION_ID || '';
     const orderQuery = {
@@ -153,12 +155,14 @@ export async function fetchAnalytics(startDate: string, endDate: string): Promis
       results.push(analytics);
     }
 
+    recordApiCall('square', 'fetchAnalytics', 'success', Date.now() - start);
     return {
       data: results.sort((a, b) => a.date.localeCompare(b.date)),
       source: 'live',
       periodUniqueCustomers: periodCustomerKeys.size,
     };
   } catch (error) {
+    recordApiCall('square', 'fetchAnalytics', 'error', Date.now() - start, error instanceof Error ? error.message : undefined);
     console.error('Square API error, falling back to mock data:', error);
     const { data, periodUniqueCustomers } = generateMockAnalytics(startDate, endDate);
     return {

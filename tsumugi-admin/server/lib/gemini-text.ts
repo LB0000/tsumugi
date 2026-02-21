@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { recordApiCall } from './api-monitor.js';
 
 let genAI: GoogleGenerativeAI | null = null;
 
@@ -125,11 +126,14 @@ ${PURPOSE_CONTEXTS[purpose]}
 
   const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+  const start = Date.now();
   try {
     const result = await model.generateContent(prompt);
+    recordApiCall('gemini', 'generateEmailContent', 'success', Date.now() - start);
     const text = result.response.text();
     return parseEmailResponse(text);
   } catch (error) {
+    recordApiCall('gemini', 'generateEmailContent', 'error', Date.now() - start, error instanceof Error ? error.message : undefined);
     console.error('Gemini email generation error:', error);
     throw new Error('メールの生成に失敗しました');
   }
@@ -198,11 +202,14 @@ export async function generateContent(
   const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
   const prompt = PROMPT_TEMPLATES[type](platform, topic);
 
+  const start = Date.now();
   try {
     const result = await model.generateContent(prompt);
+    recordApiCall('gemini', 'generateContent', 'success', Date.now() - start);
     const response = result.response;
     return response.text();
   } catch (error) {
+    recordApiCall('gemini', 'generateContent', 'error', Date.now() - start, error instanceof Error ? error.message : undefined);
     console.error('Gemini text generation error:', error);
     throw new Error('コンテンツの生成に失敗しました');
   }

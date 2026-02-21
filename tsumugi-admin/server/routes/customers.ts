@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
 import { db } from '../db/index.js';
-import { customers } from '../db/schema.js';
+import { customers, systemStatus } from '../db/schema.js';
 import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import { syncCustomers, getCustomerStats } from '../lib/customer-sync.js';
 
@@ -91,6 +91,21 @@ customersRouter.post('/sync', async (_req, res) => {
     console.error('Customer sync error:', error);
     const message = error instanceof Error ? error.message : 'Sync failed';
     res.status(500).json({ error: message });
+  }
+});
+
+// GET /api/customers/sync-status — last auto-sync timestamp
+customersRouter.get('/sync-status', (_req, res) => {
+  try {
+    const row = db
+      .select()
+      .from(systemStatus)
+      .where(eq(systemStatus.key, 'last_customer_sync'))
+      .get();
+    res.json({ lastSync: row?.value ?? null });
+  } catch (error) {
+    console.error('Get sync status error:', error);
+    res.status(500).json({ error: 'Failed to get sync status' });
   }
 });
 

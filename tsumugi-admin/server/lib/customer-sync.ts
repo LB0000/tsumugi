@@ -1,7 +1,9 @@
 import { db } from '../db/index.js';
-import { customers } from '../db/schema.js';
+import { customers, systemStatus } from '../db/schema.js';
 import { nanoid } from 'nanoid';
 import { eq, sql } from 'drizzle-orm';
+import { createAlert } from './alerts.js';
+import { recordApiCall } from './api-monitor.js';
 
 interface RemoteCustomer {
   tsumugiUserId: string;
@@ -111,12 +113,14 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     let response: globalThis.Response;
+    const fetchStart = Date.now();
     try {
       response = await fetch(url.toString(), {
         headers: { 'X-Internal-Key': internalKey },
         signal: controller.signal,
       });
     } catch (error) {
+      recordApiCall('tsumugi', 'customers-sync', error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'error', Date.now() - fetchStart, error instanceof Error ? error.message : undefined);
       if (error instanceof Error && error.name === 'AbortError') {
         throw new Error(`Fetching customers timed out after ${REQUEST_TIMEOUT_MS}ms`);
       }
@@ -126,8 +130,10 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
     }
 
     if (!response.ok) {
+      recordApiCall('tsumugi', 'customers-sync', 'error', Date.now() - fetchStart, `HTTP ${response.status}`);
       throw new Error(`Failed to fetch customers: ${response.status} ${response.statusText}`);
     }
+    recordApiCall('tsumugi', 'customers-sync', 'success', Date.now() - fetchStart);
 
     const payload = await response.json() as RemoteCustomersResponse;
     const batch = Array.isArray(payload.customers) ? payload.customers : [];
@@ -234,6 +240,25 @@ export async function syncCustomers(): Promise<{ synced: number; created: number
       break;
     }
     offset += batch.length;
+  }
+
+  // Update system status
+  const syncNow = new Date().toISOString();
+  const statusRow = db
+    .select()
+    .from(systemStatus)
+    .where(eq(systemStatus.key, 'last_customer_sync'))
+    .get();
+
+  if (statusRow) {
+    db.update(systemStatus)
+      .set({ value: syncNow, updatedAt: syncNow })
+      .where(eq(systemStatus.key, 'last_customer_sync'))
+      .run();
+  } else {
+    db.insert(systemStatus)
+      .values({ key: 'last_customer_sync', value: syncNow, updatedAt: syncNow })
+      .run();
   }
 
   return { synced: fetchedCount, created, updated };

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Users, RefreshCw, UserCheck, Repeat, TrendingUp } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Repeat, TrendingUp, Clock } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { StatCard } from '../components/analytics/StatCard';
 import { getCustomers, getCustomerStats, setCustomerMarketingOptOut, syncCustomers } from '../api';
+import { getCustomerSyncStatus } from '../api/settings';
 import { formatCurrency, formatFullDate } from '../lib/utils';
 import { SEGMENT_LABELS, SEGMENT_BADGE_COLORS } from '../lib/constants';
 import type { Customer, CustomerStats } from '../types';
@@ -22,6 +23,7 @@ export function CustomersPage() {
   const [customerTotal, setCustomerTotal] = useState(0);
   const [customerHasMore, setCustomerHasMore] = useState(false);
   const [updatingCustomerId, setUpdatingCustomerId] = useState<string | null>(null);
+  const [lastAutoSync, setLastAutoSync] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -50,6 +52,12 @@ export function CustomersPage() {
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    getCustomerSyncStatus()
+      .then((res) => setLastAutoSync(res.lastSync))
+      .catch(() => {/* ignore */});
+  }, []);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -89,7 +97,7 @@ export function CustomersPage() {
       <div className="p-6 space-y-6">
         {/* Sync Button & Stats */}
         <div className="flex items-center justify-between">
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <button
               onClick={handleSync}
               disabled={syncing}
@@ -98,8 +106,14 @@ export function CustomersPage() {
               <RefreshCw size={16} className={syncing ? 'animate-spin' : ''} />
               {syncing ? '同期中...' : 'データ同期'}
             </button>
+            {lastAutoSync && (
+              <span className="flex items-center gap-1 text-xs text-text-secondary">
+                <Clock size={12} />
+                最終自動同期: {new Date(lastAutoSync).toLocaleString('ja-JP')}
+              </span>
+            )}
             {syncMessage && (
-              <span className="text-sm text-text-secondary self-center">{syncMessage}</span>
+              <span className="text-sm text-text-secondary">{syncMessage}</span>
             )}
           </div>
         </div>

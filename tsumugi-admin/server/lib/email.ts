@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { createUnsubscribeUrl } from './unsubscribe.js';
+import { recordApiCall } from './api-monitor.js';
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const DEFAULT_FROM_EMAIL = 'noreply@example.com';
@@ -156,6 +157,7 @@ export async function sendMarketingEmail(params: SendEmailParams): Promise<{ suc
     return { success: true };
   }
 
+  const start = Date.now();
   try {
     await resend.emails.send({
       from: `${APP_NAME} <${safeFromEmail}>`,
@@ -163,9 +165,11 @@ export async function sendMarketingEmail(params: SendEmailParams): Promise<{ suc
       subject: safeSubject,
       html,
     });
+    recordApiCall('resend', 'sendEmail', 'success', Date.now() - start);
     return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    recordApiCall('resend', 'sendEmail', 'error', Date.now() - start, message);
     console.error('Failed to send marketing email:', message);
     return { success: false, error: message };
   }
