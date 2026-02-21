@@ -118,7 +118,12 @@ export function AutomationsPage() {
     setError('');
     try {
       await deleteAutomation(id);
-      if (expandedId === id) setExpandedId(null);
+      if (expandedIdRef.current === id) {
+        setExpandedId(null);
+        expandedIdRef.current = null;
+        setDetail(null);
+        setEnrollmentsList([]);
+      }
       void silentRefresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : '削除に失敗しました');
@@ -134,7 +139,9 @@ export function AutomationsPage() {
     try {
       await activateAutomation(id);
       void silentRefresh();
-      if (expandedIdRef.current === id) await loadDetail(id);
+      if (expandedIdRef.current === id) {
+        try { await loadDetail(id); } catch { setError('有効化は成功しましたが、詳細の再取得に失敗しました'); }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '有効化に失敗しました');
     } finally {
@@ -148,7 +155,9 @@ export function AutomationsPage() {
     try {
       await pauseAutomation(id);
       void silentRefresh();
-      if (expandedIdRef.current === id) await loadDetail(id);
+      if (expandedIdRef.current === id) {
+        try { await loadDetail(id); } catch { setError('一時停止は成功しましたが、詳細の再取得に失敗しました'); }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '一時停止に失敗しました');
     } finally {
@@ -190,7 +199,7 @@ export function AutomationsPage() {
     setError('');
     try {
       await stopEnrollment(automationId, enrollmentId);
-      await loadDetail(automationId);
+      try { await loadDetail(automationId); } catch { setError('停止は成功しましたが、一覧の再取得に失敗しました'); }
     } catch (err) {
       setError(err instanceof Error ? err.message : '停止に失敗しました');
     } finally {

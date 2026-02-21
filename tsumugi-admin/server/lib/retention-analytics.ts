@@ -90,7 +90,7 @@ export function getAtRiskCustomers(limit = 20): AtRiskCustomer[] {
 }
 
 export function getLtvDistribution(): LtvBucket[] {
-  return db.all<LtvBucket>(sql`
+  const rows = db.all<LtvBucket & { sortOrder: number }>(sql`
     SELECT
       CASE
         WHEN total_spent = 0 THEN '¥0'
@@ -112,6 +112,7 @@ export function getLtvDistribution(): LtvBucket[] {
     GROUP BY bucket
     ORDER BY sortOrder
   `);
+  return rows.map(({ bucket, count, totalRevenue }) => ({ bucket, count, totalRevenue }));
 }
 
 export function getRetentionSummary(): RetentionSummary {
