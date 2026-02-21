@@ -4,6 +4,7 @@ import { syncCustomers } from '../lib/customer-sync.js';
 import { autoSyncFunnelData, getYesterdayJST } from '../lib/funnel-auto-sync.js';
 import { runHealthChecks, cleanOldLogs } from '../lib/api-monitor.js';
 import { createAlert } from '../lib/alerts.js';
+import { processAutomationQueue, checkAndEnrollTriggers } from '../lib/automation-engine.js';
 
 const tasks: ScheduledTask[] = [];
 
@@ -84,6 +85,34 @@ export function startAllJobs(): void {
         console.log(`[cron] Cleaned ${removed} old API log entries`);
       } catch (err) {
         console.error('[cron] Log cleanup failed:', err);
+      }
+    }, { timezone: 'Asia/Tokyo' }),
+  );
+
+  // Automation queue processing every 15 minutes
+  tasks.push(
+    cron.schedule('*/15 * * * *', async () => {
+      console.log('[cron] Processing automation queue...');
+      try {
+        const result = await processAutomationQueue();
+        if (result.processed > 0) {
+          console.log(`[cron] Automation: ${result.sent} sent, ${result.skipped} skipped, ${result.failed} failed, ${result.completed} completed`);
+        }
+      } catch (err) {
+        console.error('[cron] Automation processing failed:', err);
+      }
+    }, { timezone: 'Asia/Tokyo' }),
+  );
+
+  // Automation trigger check every hour at :05 (after customer sync at :00)
+  tasks.push(
+    cron.schedule('5 * * * *', () => {
+      console.log('[cron] Checking automation triggers...');
+      try {
+        checkAndEnrollTriggers();
+        console.log('[cron] Automation trigger check complete');
+      } catch (err) {
+        console.error('[cron] Automation trigger check failed:', err);
       }
     }, { timezone: 'Asia/Tokyo' }),
   );

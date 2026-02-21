@@ -24,7 +24,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: 'Unknown error' }));
+    const body = await res.json().catch(() => ({ error: `サーバーエラー (HTTP ${res.status})` }));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
 

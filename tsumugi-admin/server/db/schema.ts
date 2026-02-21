@@ -71,6 +71,7 @@ export const customers = sqliteTable('customers', {
 export const emailSends = sqliteTable('email_sends', {
   id: text('id').primaryKey(),
   campaignId: text('campaign_id').references(() => campaigns.id),
+  automationId: text('automation_id'),
   recipientEmail: text('recipient_email').notNull(),
   subject: text('subject').notNull(),
   status: text('status').notNull(), // 'sent' | 'failed' | 'bounced'
@@ -140,6 +141,29 @@ export const apiUsageLogs = sqliteTable('api_usage_logs', {
   responseTimeMs: integer('response_time_ms'),
   errorMessage: text('error_message'),
   createdAt: text('created_at').notNull(),
+});
+
+export const automations = sqliteTable('automations', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  triggerType: text('trigger_type').notNull(), // 'welcome' | 'post_purchase' | 'reactivation' | 're_engagement'
+  status: text('status').notNull(), // 'draft' | 'active' | 'paused'
+  steps: text('steps').notNull(), // JSON: AutomationStep[]
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const automationEnrollments = sqliteTable('automation_enrollments', {
+  id: text('id').primaryKey(),
+  automationId: text('automation_id').notNull().references(() => automations.id),
+  customerId: text('customer_id').notNull().references(() => customers.id),
+  currentStepIndex: integer('current_step_index').notNull().default(0),
+  status: text('status').notNull(), // 'active' | 'completed' | 'stopped' | 'skipped'
+  triggerData: text('trigger_data'), // JSON
+  nextSendAt: text('next_send_at'),
+  enrolledAt: text('enrolled_at').notNull(),
+  completedAt: text('completed_at'),
+  updatedAt: text('updated_at').notNull(),
 });
 
 export const actionPlans = sqliteTable('action_plans', {

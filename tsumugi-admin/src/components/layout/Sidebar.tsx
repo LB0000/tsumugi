@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BarChart3, FileText, Megaphone, Settings, LogOut, Users, Target, Star } from 'lucide-react';
+import { BarChart3, FileText, Megaphone, Settings, LogOut, Users, Target, Star, Zap } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { logout } from '../../api';
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/customers', icon: Users, label: '顧客管理' },
   { to: '/content', icon: FileText, label: 'コンテンツ' },
   { to: '/campaigns', icon: Megaphone, label: 'キャンペーン' },
+  { to: '/automations', icon: Zap, label: '自動配信' },
   { to: '/strategy', icon: Target, label: '戦略' },
   { to: '/reviews', icon: Star, label: 'レビュー' },
   { to: '/settings', icon: Settings, label: '設定' },
