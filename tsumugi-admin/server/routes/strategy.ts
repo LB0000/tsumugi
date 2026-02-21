@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
+import { config } from '../config.js';
 import { db } from '../db/index.js';
 import { strategicGoals, actionPlans, customers } from '../db/schema.js';
 import { eq, isNull, sql } from 'drizzle-orm';
@@ -8,7 +9,7 @@ import { nanoid } from 'nanoid';
 export const strategyRouter = Router();
 strategyRouter.use(requireAuth);
 
-const TSUMUGI_API_URL = process.env.TSUMUGI_API_URL || 'http://localhost:3001/api';
+const TSUMUGI_API_URL = `${config.TSUMUGI_API_URL}/api`;
 
 const AUTO_KPI_TIMEOUT_MS = 5000;
 

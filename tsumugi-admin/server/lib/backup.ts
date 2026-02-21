@@ -5,8 +5,9 @@ import { db } from '../db/index.js';
 import { systemStatus } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { createAlert } from './alerts.js';
+import { config } from '../config.js';
 
-const DB_PATH = process.env.DATABASE_URL?.replace('file:', '') || './data/tsumugi-admin.db';
+const DB_PATH = config.DATABASE_URL.replace('file:', '');
 const BACKUP_DIR = path.join(path.dirname(DB_PATH), 'backups');
 
 function formatTimestamp(): string {

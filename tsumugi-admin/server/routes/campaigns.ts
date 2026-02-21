@@ -9,6 +9,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { sendBulkMarketingEmails } from '../lib/email.js';
 import { verifyUnsubscribeToken } from '../lib/unsubscribe.js';
 import { createRateLimiter } from '../lib/rateLimit.js';
+import { config } from '../config.js';
 
 export const campaignsRouter = Router();
 const internalCouponValidateLimiter = createRateLimiter({ windowMs: 60_000, max: 120, keyPrefix: 'campaign-coupon-validate' });
@@ -41,7 +42,7 @@ function readStringField(body: unknown, key: string): string {
 }
 
 function verifyInternalKey(req: Request, res: Response, next: NextFunction): void {
-  const internalKey = process.env.INTERNAL_API_KEY;
+  const internalKey = config.INTERNAL_API_KEY;
   const provided = req.headers['x-internal-key'];
 
   if (!internalKey || internalKey.length < MIN_INTERNAL_KEY_LENGTH) {

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { config } from '../config.js';
 
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 const sessions = new Map<string, { expiresAt: number }>();
@@ -15,11 +16,7 @@ setInterval(() => {
 }, 10 * 60_000).unref();
 
 function getAdminPassword(): string {
-  const pw = process.env.ADMIN_PASSWORD;
-  if (!pw || pw.length < 12) {
-    throw new Error('ADMIN_PASSWORD must be set and at least 12 characters');
-  }
-  return pw;
+  return config.ADMIN_PASSWORD;
 }
 
 export function login(password: string): string | null {

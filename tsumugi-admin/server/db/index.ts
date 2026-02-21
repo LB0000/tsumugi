@@ -3,8 +3,9 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema.js';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { config } from '../config.js';
 
-const dbPath = process.env.DATABASE_URL?.replace('file:', '') || './data/tsumugi-admin.db';
+const dbPath = config.DATABASE_URL.replace('file:', '');
 
 const dir = dirname(dbPath);
 if (!existsSync(dir)) {
@@ -161,6 +162,37 @@ sqlite.exec(`
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS automations (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    trigger_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    steps TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS automation_enrollments (
+    id TEXT PRIMARY KEY,
+    automation_id TEXT NOT NULL REFERENCES automations(id),
+    customer_id TEXT NOT NULL REFERENCES customers(id),
+    current_step_index INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL,
+    trigger_data TEXT,
+    next_send_at TEXT,
+    enrolled_at TEXT NOT NULL,
+    completed_at TEXT,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_enrollment_automation_customer
+    ON automation_enrollments(automation_id, customer_id)
+    WHERE status = 'active';
+
+  CREATE INDEX IF NOT EXISTS idx_enrollment_next_send
+    ON automation_enrollments(next_send_at)
+    WHERE status = 'active';
+
   CREATE TABLE IF NOT EXISTS action_plans (
     id TEXT PRIMARY KEY,
     goal_id TEXT NOT NULL REFERENCES strategic_goals(id),
@@ -188,3 +220,4 @@ function ensureColumn(table: string, column: string, definition: string): void {
 }
 
 ensureColumn('customers', 'marketing_opt_out_at', 'TEXT');
+ensureColumn('email_sends', 'automation_id', 'TEXT');

@@ -72,7 +72,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: https://api.tsumugi-art.com
-          VITE_SQUARE_APP_ID: placeholder
+          VITE_SQUARE_APPLICATION_ID: placeholder
           VITE_SQUARE_LOCATION_ID: placeholder
           VITE_GOOGLE_CLIENT_ID: placeholder
       - name: Verify build output
@@ -97,7 +97,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_URL: http://localhost:3001/api
-          VITE_SQUARE_APP_ID: placeholder
+          VITE_SQUARE_APPLICATION_ID: placeholder
           VITE_SQUARE_LOCATION_ID: placeholder
           VITE_GOOGLE_CLIENT_ID: placeholder
       - name: Run E2E tests

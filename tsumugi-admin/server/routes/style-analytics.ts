@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
+import { config } from '../config.js';
 
 export const styleAnalyticsRouter = Router();
 styleAnalyticsRouter.use(requireAuth);
@@ -7,8 +8,8 @@ styleAnalyticsRouter.use(requireAuth);
 const REQUEST_TIMEOUT_MS = 10_000;
 
 styleAnalyticsRouter.get('/', async (_req, res) => {
-  const tsumugiApiUrl = process.env.TSUMUGI_API_URL || 'http://localhost:3001';
-  const internalKey = process.env.INTERNAL_API_KEY;
+  const tsumugiApiUrl = config.TSUMUGI_API_URL;
+  const internalKey = config.INTERNAL_API_KEY;
 
   if (!internalKey) {
     res.status(503).json({ error: 'INTERNAL_API_KEY is not configured' });

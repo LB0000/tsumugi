@@ -1,17 +1,18 @@
 import { OrderState, SquareClient, SquareEnvironment } from 'square';
 import { recordApiCall } from './api-monitor.js';
+import { config } from '../config.js';
 
-const environment = process.env.SQUARE_ENVIRONMENT === 'production'
+const environment = config.SQUARE_ENVIRONMENT === 'production'
   ? SquareEnvironment.Production
   : SquareEnvironment.Sandbox;
 
 let squareClient: SquareClient | null = null;
 
 function getClient(): SquareClient | null {
-  if (!process.env.SQUARE_ACCESS_TOKEN) return null;
+  if (!config.SQUARE_ACCESS_TOKEN) return null;
   if (!squareClient) {
     squareClient = new SquareClient({
-      token: process.env.SQUARE_ACCESS_TOKEN,
+      token: config.SQUARE_ACCESS_TOKEN,
       environment,
     });
   }
@@ -76,7 +77,7 @@ export async function fetchAnalytics(startDate: string, endDate: string): Promis
 
   const start = Date.now();
   try {
-    const locationId = process.env.SQUARE_LOCATION_ID || '';
+    const locationId = config.SQUARE_LOCATION_ID || '';
     const orderQuery = {
       filter: {
         dateTimeFilter: {

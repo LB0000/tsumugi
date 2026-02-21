@@ -3,6 +3,7 @@ import { apiUsageLogs, systemStatus } from '../db/schema.js';
 import { eq, gte, sql, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { createAlert } from './alerts.js';
+import { config } from '../config.js';
 
 export type ApiService = 'gemini' | 'square' | 'resend' | 'tsumugi';
 export type ApiCallStatus = 'success' | 'error' | 'timeout';
@@ -86,34 +87,33 @@ export async function runHealthChecks(): Promise<HealthCheckResult[]> {
   const results: HealthCheckResult[] = [];
 
   // Check TSUMUGI main service
-  const tsumugiUrl = process.env.TSUMUGI_API_URL || 'http://localhost:3001';
-  results.push(await checkEndpoint('tsumugi', `${tsumugiUrl}/api/health`));
+  results.push(await checkEndpoint('tsumugi', `${config.TSUMUGI_API_URL}/api/health`));
 
   // Check Gemini - just verify key is configured
   results.push({
     service: 'gemini',
-    available: !!process.env.GEMINI_API_KEY,
+    available: !!config.GEMINI_API_KEY,
     latencyMs: null,
-    error: process.env.GEMINI_API_KEY ? null : 'GEMINI_API_KEY not configured',
-    configured: !!process.env.GEMINI_API_KEY,
+    error: config.GEMINI_API_KEY ? null : 'GEMINI_API_KEY not configured',
+    configured: !!config.GEMINI_API_KEY,
   });
 
   // Check Square - verify token is configured
   results.push({
     service: 'square',
-    available: !!process.env.SQUARE_ACCESS_TOKEN,
+    available: !!config.SQUARE_ACCESS_TOKEN,
     latencyMs: null,
-    error: process.env.SQUARE_ACCESS_TOKEN ? null : 'SQUARE_ACCESS_TOKEN not configured (using mock)',
-    configured: !!process.env.SQUARE_ACCESS_TOKEN,
+    error: config.SQUARE_ACCESS_TOKEN ? null : 'SQUARE_ACCESS_TOKEN not configured (using mock)',
+    configured: !!config.SQUARE_ACCESS_TOKEN,
   });
 
   // Check Resend - verify key is configured
   results.push({
     service: 'resend',
-    available: !!process.env.RESEND_API_KEY,
+    available: !!config.RESEND_API_KEY,
     latencyMs: null,
-    error: process.env.RESEND_API_KEY ? null : 'RESEND_API_KEY not configured (using mock)',
-    configured: !!process.env.RESEND_API_KEY,
+    error: config.RESEND_API_KEY ? null : 'RESEND_API_KEY not configured (using mock)',
+    configured: !!config.RESEND_API_KEY,
   });
 
   // Update system status

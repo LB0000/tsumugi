@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { config } from './config.js';
 import { createRateLimiter } from './lib/rateLimit.js';
 import { authRouter } from './routes/auth.js';
 import { analyticsRouter } from './routes/analytics.js';
@@ -13,6 +14,7 @@ import { cacRouter } from './routes/cac.js';
 import { funnelRouter } from './routes/funnel.js';
 import { reviewsRouter } from './routes/reviews.js';
 import { actionsRouter } from './routes/actions.js';
+import { automationsRouter } from './routes/automations.js';
 import { backupsRouter } from './routes/backups.js';
 import { alertsRouter } from './routes/alerts.js';
 import { funnelSyncRouter } from './routes/funnel-sync.js';
@@ -20,26 +22,8 @@ import { apiMonitorRouter } from './routes/api-monitor.js';
 import { startAllJobs, stopAllJobs } from './jobs/index.js';
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3002;
-const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = process.env.FRONTEND_URL;
-
-if (isProduction && !frontendUrl) {
-  throw new Error('FRONTEND_URL is required in production');
-}
-
-if (isProduction) {
-  try {
-    const url = new URL(frontendUrl || '');
-    if (url.protocol !== 'https:') {
-      throw new Error('FRONTEND_URL must use https: in production');
-    }
-  } catch (error) {
-    throw new Error(
-      `Invalid FRONTEND_URL: ${error instanceof Error ? error.message : 'unknown error'}`
-    );
-  }
-}
+const { PORT, NODE_ENV, FRONTEND_URL: frontendUrl } = config;
+const isProduction = NODE_ENV === 'production';
 
 const corsOptions = {
   origin: isProduction
@@ -78,6 +62,7 @@ app.use('/api/cac', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'c
 app.use('/api/funnel', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'funnel' }), funnelRouter);
 app.use('/api/reviews', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'reviews' }), reviewsRouter);
 app.use('/api/actions', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'actions' }), actionsRouter);
+app.use('/api/automations', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'automations' }), automationsRouter);
 app.use('/api/backups', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'backups' }), backupsRouter);
 app.use('/api/alerts', createRateLimiter({ windowMs: 60_000, max: 60, keyPrefix: 'alerts' }), alertsRouter);
 app.use('/api/funnel-sync', createRateLimiter({ windowMs: 60_000, max: 30, keyPrefix: 'funnel-sync' }), funnelSyncRouter);
@@ -90,6 +75,10 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Admin server running on http://0.0.0.0:${PORT}`);
+  if (!isProduction) {
+    console.log(`Database: ${config.DATABASE_URL}`);
+  }
+  console.log(`Environment: ${NODE_ENV}`);
   startAllJobs();
 });
 

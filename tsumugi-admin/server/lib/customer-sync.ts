@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 import { eq, sql } from 'drizzle-orm';
 import { createAlert } from './alerts.js';
 import { recordApiCall } from './api-monitor.js';
+import { config } from '../config.js';
 
 interface RemoteCustomer {
   tsumugiUserId: string;
@@ -41,8 +42,8 @@ function classifySegment(totalOrders: number, lastPurchaseAt: string | null): st
 }
 
 export async function syncCustomers(): Promise<{ synced: number; created: number; updated: number }> {
-  const tsumugiApiUrl = process.env.TSUMUGI_API_URL || 'http://localhost:3001';
-  const internalKey = process.env.INTERNAL_API_KEY;
+  const tsumugiApiUrl = config.TSUMUGI_API_URL;
+  const internalKey = config.INTERNAL_API_KEY;
 
   if (!internalKey) {
     throw new Error('INTERNAL_API_KEY is not configured');

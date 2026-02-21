@@ -1,10 +1,10 @@
 import { Resend } from 'resend';
 import { createUnsubscribeUrl } from './unsubscribe.js';
 import { recordApiCall } from './api-monitor.js';
+import { config } from '../config.js';
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const DEFAULT_FROM_EMAIL = 'noreply@example.com';
-const FROM_EMAIL = process.env.FROM_EMAIL || DEFAULT_FROM_EMAIL;
+const RESEND_API_KEY = config.RESEND_API_KEY || '';
+const FROM_EMAIL = config.FROM_EMAIL;
 const APP_NAME = '紡 TSUMUGI';
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
@@ -36,9 +36,9 @@ function escapeHtmlAttribute(value: string): string {
 
 function normalizeFromEmail(raw: string): string {
   const normalized = raw.trim();
-  if (!normalized) return DEFAULT_FROM_EMAIL;
+  if (!normalized) return config.FROM_EMAIL;
   if (/^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(normalized)) return normalized;
-  return DEFAULT_FROM_EMAIL;
+  return config.FROM_EMAIL;
 }
 
 function normalizeSubject(raw: string): string {

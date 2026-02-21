@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
+import { config } from '../config.js';
 
 export const reviewsRouter = Router();
 reviewsRouter.use(requireAuth);
 
-const TSUMUGI_API_URL = process.env.TSUMUGI_API_URL || 'http://localhost:3001/api';
+const TSUMUGI_API_URL = `${config.TSUMUGI_API_URL}/api`;
 
 function isValidReview(r: unknown): boolean {
   if (typeof r !== 'object' || r === null) return false;

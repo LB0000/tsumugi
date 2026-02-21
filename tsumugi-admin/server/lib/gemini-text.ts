@@ -1,12 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { recordApiCall } from './api-monitor.js';
+import { config } from '../config.js';
 
 let genAI: GoogleGenerativeAI | null = null;
 
 function getClient(): GoogleGenerativeAI | null {
-  if (!process.env.GEMINI_API_KEY) return null;
+  if (!config.GEMINI_API_KEY) return null;
   if (!genAI) {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
   }
   return genAI;
 }

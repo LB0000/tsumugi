@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { config } from '../config.js';
 
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_UNSUBSCRIBE_BASE_URL = 'http://localhost:3002';
@@ -9,7 +10,7 @@ function normalizeEmail(email: string): string {
 }
 
 function getUnsubscribeSecret(): string | null {
-  const secret = (process.env.MARKETING_UNSUBSCRIBE_SECRET || '').trim();
+  const secret = (config.MARKETING_UNSUBSCRIBE_SECRET || '').trim();
   if (secret.length >= 16) return secret;
 
   if (!hasWarnedMissingSecret) {
@@ -21,9 +22,9 @@ function getUnsubscribeSecret(): string | null {
 
 function getSafeUnsubscribeBaseUrl(): string {
   const candidates = [
-    process.env.MARKETING_UNSUBSCRIBE_BASE_URL,
-    process.env.TSUMUGI_ADMIN_API_URL,
-    process.env.FRONTEND_URL,
+    config.MARKETING_UNSUBSCRIBE_BASE_URL,
+    config.TSUMUGI_ADMIN_API_URL,
+    config.FRONTEND_URL,
     DEFAULT_UNSUBSCRIBE_BASE_URL,
   ];
 
