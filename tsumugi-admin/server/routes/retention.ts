@@ -20,9 +20,15 @@ retentionRouter.get('/cohorts', (_req, res) => {
   }
 });
 
-retentionRouter.get('/at-risk', (_req, res) => {
+retentionRouter.get('/at-risk', (req, res) => {
   try {
-    res.json(getAtRiskCustomers());
+    const limitParam = req.query.limit;
+    const limit = typeof limitParam === 'string' ? parseInt(limitParam, 10) : undefined;
+    if (limit !== undefined && (isNaN(limit) || limit < 1)) {
+      res.status(400).json({ error: 'limit must be a positive integer' });
+      return;
+    }
+    res.json(getAtRiskCustomers(limit));
   } catch (error) {
     console.error('At-risk customers error:', error);
     res.status(500).json({ error: 'Failed to get at-risk customers' });

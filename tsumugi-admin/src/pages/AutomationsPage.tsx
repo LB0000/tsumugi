@@ -265,8 +265,9 @@ export function AutomationsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-text-secondary mb-1">名前</label>
+                <label htmlFor="automation-name" className="block text-sm text-text-secondary mb-1">名前</label>
                 <input
+                  id="automation-name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm"
@@ -274,8 +275,9 @@ export function AutomationsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-text-secondary mb-1">トリガー</label>
+                <label htmlFor="automation-trigger" className="block text-sm text-text-secondary mb-1">トリガー</label>
                 <select
+                  id="automation-trigger"
                   value={formTrigger}
                   onChange={(e) => setFormTrigger(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-white"
@@ -430,7 +432,7 @@ export function AutomationsPage() {
                 <div key={auto.id} className="bg-white rounded-xl border border-border overflow-hidden">
                   {/* Row */}
                   <div className="px-5 py-4 flex items-center gap-4">
-                    <button onClick={() => void toggleExpand(auto.id)} aria-expanded={isExpanded} className="flex-1 text-left flex items-center gap-3">
+                    <button onClick={() => void toggleExpand(auto.id)} aria-expanded={isExpanded} aria-label={`${auto.name} の詳細を${isExpanded ? '閉じる' : '開く'}`} aria-controls={`automation-detail-${auto.id}`} className="flex-1 text-left flex items-center gap-3">
                       {isExpanded ? <ChevronUp size={16} className="text-text-secondary" /> : <ChevronDown size={16} className="text-text-secondary" />}
                       <div>
                         <div className="flex items-center gap-2">
@@ -491,7 +493,7 @@ export function AutomationsPage() {
                     </div>
                   )}
                   {isExpanded && detail && (
-                    <div className="border-t border-border px-5 py-4 space-y-4">
+                    <div id={`automation-detail-${auto.id}`} className="border-t border-border px-5 py-4 space-y-4">
                       {/* Stats */}
                       <div className="grid grid-cols-4 gap-3">
                         {[

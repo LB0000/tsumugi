@@ -7,7 +7,9 @@ vi.mock('zustand/middleware', () => ({
 }));
 
 import { useAppStore } from '../../stores/appStore';
+import { artStyles } from '../../data/artStyles';
 import { DEFAULT_TEXT_OVERLAY_SETTINGS } from '../../types/textOverlay';
+import type { ArtStyle } from '../../types';
 
 const initialUploadState = {
   status: 'idle' as const,
@@ -23,7 +25,7 @@ const initialUploadState = {
 beforeEach(() => {
   useAppStore.setState({
     selectedCategory: 'pets',
-    selectedStyle: null,
+    selectedStyle: artStyles[0] || null,
     isStyleModalOpen: false,
     styleFilterState: { searchQuery: '', selectedCategory: 'all' },
     uploadState: initialUploadState,
@@ -55,7 +57,7 @@ describe('Category', () => {
 
 describe('Style', () => {
   it('setSelectedStyle sets the style', () => {
-    const style = { id: 'baroque', name: 'Baroque' } as Parameters<typeof useAppStore.getState().setSelectedStyle>[0];
+    const style = { id: 'baroque', name: 'Baroque' } as ArtStyle;
     useAppStore.getState().setSelectedStyle(style);
     expect(useAppStore.getState().selectedStyle).toBe(style);
   });

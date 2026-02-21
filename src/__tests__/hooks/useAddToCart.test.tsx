@@ -53,6 +53,10 @@ beforeEach(() => {
   vi.useFakeTimers();
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('useAddToCart', () => {
   it('returns addedProductId as null initially', () => {
     const { result } = renderHook(() => useAddToCart(defaultOptions));
