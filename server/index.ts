@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { initSentry, captureError, Sentry } from './lib/sentry.js';
+import { initSentry, captureError } from './lib/sentry.js';
 
 initSentry();
 

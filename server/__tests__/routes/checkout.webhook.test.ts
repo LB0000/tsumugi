@@ -19,6 +19,8 @@ vi.mock('../../lib/coupon.js', () => ({ useCoupon: vi.fn() }));
 vi.mock('../../lib/lylyIntegration.js', () => ({ generatePDFForOrder: vi.fn() }));
 vi.mock('../../lib/logger.js', () => ({ logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
+import type { Router } from 'express';
+import type { OrderPaymentStatus } from '../../lib/checkoutTypes.js';
 import { registerWebhook } from '../../routes/checkout/webhook.js';
 import { WebhooksHelper } from 'square';
 import {
@@ -67,7 +69,7 @@ type RouteHandler = (req: Partial<Request>, res: Partial<Response>) => Promise<v
 let handler: RouteHandler;
 
 beforeAll(() => {
-  const mockRouter = { post: vi.fn() } as any;
+  const mockRouter = { post: vi.fn() } as unknown as Router;
   registerWebhook(mockRouter);
   handler = mockRouter.post.mock.calls[0][1];
 });
@@ -85,7 +87,7 @@ beforeEach(() => {
   vi.mocked(getOrderPaymentStatus).mockReturnValue({
     orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
     items: [{ productId: 'digital-data', name: 'データ', quantity: 1, price: 9800 }],
-  } as any);
+  } as OrderPaymentStatus);
 });
 
 afterEach(() => {
@@ -170,7 +172,7 @@ describe('webhook handler', () => {
     });
 
     it('triggers LYLY PDF generation on COMPLETED', async () => {
-      vi.mocked(generatePDFForOrder).mockResolvedValue({ success: true, pdfUrl: 'https://pdf.test/1' } as any);
+      vi.mocked(generatePDFForOrder).mockResolvedValue({ success: true, pdfUrl: 'https://pdf.test/1' } as Awaited<ReturnType<typeof generatePDFForOrder>>);
       const { res } = mockRes();
       await handler(mockReq(), res);
       // Allow async void to settle
@@ -184,7 +186,7 @@ describe('webhook handler', () => {
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         couponCode: 'SAVE10', couponUsed: false,
-      } as any);
+      } as OrderPaymentStatus);
       vi.mocked(claimCouponUsage).mockReturnValue(true);
       vi.mocked(useCoupon).mockResolvedValue(true);
 
@@ -198,7 +200,7 @@ describe('webhook handler', () => {
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         couponCode: 'SAVE10', couponUsed: false,
-      } as any);
+      } as OrderPaymentStatus);
       vi.mocked(claimCouponUsage).mockReturnValue(true);
       vi.mocked(useCoupon).mockResolvedValue(false);
 

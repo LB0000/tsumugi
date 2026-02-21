@@ -134,7 +134,7 @@ describe('csrfProtection', () => {
       middleware(
         mockReq({
           method: 'POST',
-          headers: { cookie: 'fable_csrf=token123' } as any,
+          headers: { cookie: 'fable_csrf=token123' } as Record<string, string>,
         }),
         res,
         next,
@@ -152,7 +152,7 @@ describe('csrfProtection', () => {
           headers: {
             cookie: 'fable_csrf=token-a',
             'x-csrf-token': 'token-b',
-          } as any,
+          } as Record<string, string>,
         }),
         res,
         next,
@@ -170,7 +170,7 @@ describe('csrfProtection', () => {
           headers: {
             cookie: 'fable_csrf=valid-token',
             'x-csrf-token': 'valid-token',
-          } as any,
+          } as Record<string, string>,
         }),
         res,
         next,

@@ -12,7 +12,8 @@ export function initSentry(): void {
     beforeSend(event) {
       // Strip sensitive headers
       if (event.request?.headers) {
-        const { cookie, authorization, ...safeHeaders } = event.request.headers;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { cookie: _cookie, authorization: _authorization, ...safeHeaders } = event.request.headers;
         event.request.headers = safeHeaders;
       }
       return event;

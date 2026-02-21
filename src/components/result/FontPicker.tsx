@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { Check } from 'lucide-react';
 import { selectableFonts } from '../../data/selectableFonts';
 import { getPortraitFont } from '../../data/portraitFonts';
@@ -16,10 +16,10 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
   const styleFontConfig = getPortraitFont(styleId);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const allOptions: FontOption[] = [
+  const allOptions: FontOption[] = useMemo(() => [
     { id: null, displayName: '推奨', fontFamily: styleFontConfig.fontFamily },
     ...selectableFonts,
-  ];
+  ], [styleFontConfig.fontFamily]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     let nextIndex: number | null = null;
@@ -34,7 +34,7 @@ export function FontPicker({ selectedFontId, onSelect, styleId }: FontPickerProp
       onSelect(allOptions[nextIndex].id);
       buttonRefs.current[nextIndex]?.focus();
     }
-  }, [onSelect, allOptions.length]);
+  }, [onSelect, allOptions]);
 
   return (
     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide justify-center" role="radiogroup" aria-label="フォント選択">

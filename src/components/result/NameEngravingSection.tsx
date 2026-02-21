@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { NameInputField } from './NameInputField';
@@ -46,7 +46,7 @@ export function NameEngravingSection({
   overlayError,
 }: NameEngravingSectionProps) {
   const [activeTab, setActiveTab] = useState<CustomizeTab>('font');
-  const prevTabIndexRef = useRef(0);
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
   const shouldReduceMotion = useReducedMotion();
 
   const activeTabIndex = TABS.findIndex((t) => t.id === activeTab);
@@ -65,7 +65,8 @@ export function NameEngravingSection({
 
   // タブ切替ハンドラー
   const switchTab = useCallback((tabId: CustomizeTab) => {
-    prevTabIndexRef.current = activeTabIndex;
+    const newIndex = TABS.findIndex((t) => t.id === tabId);
+    setSlideDirection(newIndex > activeTabIndex ? 1 : -1);
     setActiveTab(tabId);
   }, [activeTabIndex]);
 
@@ -225,9 +226,9 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-font"
                     aria-labelledby="tab-font"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: slideDirection * 30 }}
                     animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: -slideDirection * 30 }}
                     transition={{ duration: 0.2 }}
                   >
                     <FontPicker
@@ -244,9 +245,9 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-decoration"
                     aria-labelledby="tab-decoration"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: slideDirection * 30 }}
                     animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: -slideDirection * 30 }}
                     transition={{ duration: 0.2 }}
                   >
                     <DecorationPicker
@@ -263,9 +264,9 @@ export function NameEngravingSection({
                     role="tabpanel"
                     id="panel-position"
                     aria-labelledby="tab-position"
-                    initial={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? 1 : -1) * 30 }}
+                    initial={shouldReduceMotion ? {} : { opacity: 0, x: slideDirection * 30 }}
                     animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-                    exit={shouldReduceMotion ? {} : { opacity: 0, x: (activeTabIndex > prevTabIndexRef.current ? -1 : 1) * 30 }}
+                    exit={shouldReduceMotion ? {} : { opacity: 0, x: -slideDirection * 30 }}
                     transition={{ duration: 0.2 }}
                   >
                     <PositionPicker

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
-import type { Request, Response } from 'express';
+import type { Request, Response, Router } from 'express';
+import type { OrderPaymentStatus } from '../../lib/checkoutTypes.js';
 
 // ── Mocks ──────────────────────────────────────────────
 
@@ -46,11 +47,11 @@ function mockRes() {
 
 // ── Extract handler ────────────────────────────────────
 
-type RouteHandler = (req: any, res: any) => Promise<void>;
+type RouteHandler = (req: Partial<Request>, res: Partial<Response>) => Promise<void>;
 let handler: RouteHandler;
 
 beforeAll(() => {
-  const mockRouter = { post: vi.fn() } as any;
+  const mockRouter = { post: vi.fn() } as unknown as Router;
   registerProcessPayment(mockRouter);
   handler = mockRouter.post.mock.calls[0][1];
 });
@@ -88,7 +89,7 @@ describe('processPayment handler', () => {
     it('returns 400 when order amount is 0', async () => {
       vi.mocked(squareClient.orders.get).mockResolvedValue({
         order: { id: 'order-1', totalMoney: { amount: BigInt(0), currency: 'JPY' } },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.orders.get>>);
 
       const { res, statusFn, jsonFn } = mockRes();
       await handler(mockReq({ sourceId: 'src-1', orderId: 'order-1' }), res);
@@ -106,15 +107,15 @@ describe('processPayment handler', () => {
     beforeEach(() => {
       vi.mocked(squareClient.orders.get).mockResolvedValue({
         order: { id: 'order-1', totalMoney: { amount: BigInt(9800), currency: 'JPY' } },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.orders.get>>);
       vi.mocked(squareClient.payments.create).mockResolvedValue({
         payment: { id: 'pay-1', status: 'COMPLETED', receiptUrl: 'https://squareup.com/receipt/1' },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.payments.create>>);
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         shippingAddress: { lastName: '田中', firstName: '太郎', email: 'test@example.com', phone: '090', postalCode: '100', prefecture: '東京', city: '千代田', addressLine: '1-1' },
         items: [{ productId: 'digital-data', name: 'データ', quantity: 1, price: 9800 }],
-      } as any);
+      } as OrderPaymentStatus);
     });
 
     it('returns correct response shape for COMPLETED payment', async () => {
@@ -162,17 +163,17 @@ describe('processPayment handler', () => {
     beforeEach(() => {
       vi.mocked(squareClient.orders.get).mockResolvedValue({
         order: { id: 'order-1', totalMoney: { amount: BigInt(5000), currency: 'JPY' } },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.orders.get>>);
       vi.mocked(squareClient.payments.create).mockResolvedValue({
         payment: { id: 'pay-1', status: 'COMPLETED', receiptUrl: undefined },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.payments.create>>);
     });
 
     it('claims and uses coupon on COMPLETED when couponCode exists', async () => {
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         couponCode: 'SAVE10', couponUsed: false,
-      } as any);
+      } as OrderPaymentStatus);
       vi.mocked(claimCouponUsage).mockReturnValue(true);
       vi.mocked(useCoupon).mockResolvedValue(true);
 
@@ -186,7 +187,7 @@ describe('processPayment handler', () => {
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         couponCode: 'SAVE10', couponUsed: false,
-      } as any);
+      } as OrderPaymentStatus);
       vi.mocked(claimCouponUsage).mockReturnValue(true);
       vi.mocked(useCoupon).mockResolvedValue(false);
 
@@ -198,11 +199,11 @@ describe('processPayment handler', () => {
     it('does not claim coupon when payment is not COMPLETED', async () => {
       vi.mocked(squareClient.payments.create).mockResolvedValue({
         payment: { id: 'pay-1', status: 'APPROVED', receiptUrl: undefined },
-      } as any);
+      } as Awaited<ReturnType<typeof squareClient.payments.create>>);
       vi.mocked(getOrderPaymentStatus).mockReturnValue({
         orderId: 'order-1', paymentId: '', status: 'PENDING', updatedAt: '',
         couponCode: 'SAVE10', couponUsed: false,
-      } as any);
+      } as OrderPaymentStatus);
 
       const { res } = mockRes();
       await handler(mockReq({ sourceId: 'src-1', orderId: 'order-1' }), res);
