@@ -24,7 +24,10 @@ export function useFocusTrap(
   const { enabled = true, onEscape } = options;
   const previouslyFocusedRef = useRef<Element | null>(null);
   const onEscapeRef = useRef(onEscape);
-  onEscapeRef.current = onEscape;
+
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  });
 
   useEffect(() => {
     if (!enabled) return;

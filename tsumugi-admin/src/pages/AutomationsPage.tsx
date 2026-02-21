@@ -125,30 +125,30 @@ export function AutomationsPage() {
 
   const handleActivate = async (id: string) => {
     if (!confirm('このオートメーションを有効化しますか？登録顧客へのメール配信が開始されます。')) return;
-    setActionLoading(true);
+    setExecuting(id);
     setError('');
     try {
       await activateAutomation(id);
-      await fetchList();
+      void silentRefresh();
       if (expandedId === id) await loadDetail(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '有効化に失敗しました');
     } finally {
-      setActionLoading(false);
+      setExecuting(null);
     }
   };
 
   const handlePause = async (id: string) => {
-    setActionLoading(true);
+    setExecuting(id);
     setError('');
     try {
       await pauseAutomation(id);
-      await fetchList();
+      void silentRefresh();
       if (expandedId === id) await loadDetail(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : '一時停止に失敗しました');
     } finally {
-      setActionLoading(false);
+      setExecuting(null);
     }
   };
 
@@ -163,18 +163,21 @@ export function AutomationsPage() {
   };
 
   const toggleExpand = async (id: string) => {
+    if (detailLoading) return;
     if (expandedId === id) {
       setExpandedId(null);
       setDetail(null);
       setEnrollmentsList([]);
     } else {
       setExpandedId(id);
+      setDetailLoading(true);
       await loadDetail(id);
+      setDetailLoading(false);
     }
   };
 
   const handleStopEnrollment = async (automationId: string, enrollmentId: string) => {
-    setActionLoading(true);
+    setExecuting(enrollmentId);
     setError('');
     try {
       await stopEnrollment(automationId, enrollmentId);
@@ -182,7 +185,7 @@ export function AutomationsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : '停止に失敗しました');
     } finally {
-      setActionLoading(false);
+      setExecuting(null);
     }
   };
 
@@ -371,9 +374,10 @@ export function AutomationsPage() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={handleCreate}
-                disabled={actionLoading}
+                disabled={executing === 'create'}
                 className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50"
               >
+                {executing === 'create' ? <Loader2 size={16} className="animate-spin inline mr-1" /> : null}
                 下書き保存
               </button>
               <button
@@ -432,27 +436,27 @@ export function AutomationsPage() {
                       {auto.status !== 'active' ? (
                         <button
                           onClick={() => void handleActivate(auto.id)}
-                          disabled={actionLoading}
+                          disabled={executing === auto.id}
                           className="p-1.5 text-green-600 hover:bg-green-50 rounded disabled:opacity-50"
                           title="有効化"
                           aria-label="有効化"
                         >
-                          <Play size={16} />
+                          {executing === auto.id ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
                         </button>
                       ) : (
                         <button
                           onClick={() => void handlePause(auto.id)}
-                          disabled={actionLoading}
+                          disabled={executing === auto.id}
                           className="p-1.5 text-amber-600 hover:bg-amber-50 rounded disabled:opacity-50"
                           title="一時停止"
                           aria-label="一時停止"
                         >
-                          <Pause size={16} />
+                          {executing === auto.id ? <Loader2 size={16} className="animate-spin" /> : <Pause size={16} />}
                         </button>
                       )}
                       <button
                         onClick={() => void handleDelete(auto.id)}
-                        disabled={actionLoading}
+                        disabled={executing === auto.id}
                         className="p-1.5 text-text-secondary hover:text-danger hover:bg-red-50 rounded disabled:opacity-50"
                         title="削除"
                         aria-label="削除"
@@ -463,6 +467,11 @@ export function AutomationsPage() {
                   </div>
 
                   {/* Expanded Detail */}
+                  {isExpanded && detailLoading && !detail && (
+                    <div className="border-t border-border px-5 py-4 flex justify-center">
+                      <Loader2 size={20} className="animate-spin text-text-secondary" />
+                    </div>
+                  )}
                   {isExpanded && detail && (
                     <div className="border-t border-border px-5 py-4 space-y-4">
                       {/* Stats */}
@@ -538,12 +547,12 @@ export function AutomationsPage() {
                                       {enr.status === 'active' && (
                                         <button
                                           onClick={() => void handleStopEnrollment(auto.id, enr.id)}
-                                          disabled={actionLoading}
+                                          disabled={executing === enr.id}
                                           className="text-text-secondary hover:text-danger disabled:opacity-50"
                                           title="停止"
                                           aria-label="登録を停止"
                                         >
-                                          <Square size={12} />
+                                          {executing === enr.id ? <Loader2 size={12} className="animate-spin" /> : <Square size={12} />}
                                         </button>
                                       )}
                                     </td>
