@@ -3,14 +3,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ─── Mock Setup (vi.hoisted for factory access) ────────────────
 
 const { mockDb, mockSendEmail, mockGenerateEmail, mockCreateAlert, chainable } = vi.hoisted(() => {
-  const _chainable = (terminal?: unknown) => {
+  /**
+   * Creates a chainable mock for Drizzle ORM's query builder.
+   * @param allResult - value returned by .all() (should be an array)
+   * @param getResult - value returned by .get() (should be a single record or undefined)
+   */
+  const _chainable = (allResult?: unknown[], getResult?: unknown) => {
     const chain: Record<string, unknown> = {};
     const methods = ['select', 'from', 'where', 'orderBy', 'limit', 'insert', 'update', 'set', 'values', 'delete'];
     for (const m of methods) {
       chain[m] = vi.fn(() => chain);
     }
-    chain.get = vi.fn(() => terminal ?? undefined);
-    chain.all = vi.fn(() => terminal ?? []);
+    chain.get = vi.fn(() => getResult);
+    chain.all = vi.fn(() => allResult ?? []);
     chain.run = vi.fn();
     return chain;
   };
@@ -106,13 +111,18 @@ function makeEnrollment(overrides = {}) {
   };
 }
 
-/** Configure mock DB to return specific values for sequential select calls */
+/**
+ * Configure mock DB to return specific values for sequential select calls.
+ * Arrays are returned by .all(), non-arrays by .get().
+ */
 function setupSelectSequence(results: unknown[]) {
   let callIndex = 0;
   mockDb.select.mockImplementation(() => {
-    const result = results[callIndex] ?? undefined;
+    const result = results[callIndex];
     callIndex++;
-    const chain = chainable(result);
+    const chain = Array.isArray(result)
+      ? chainable(result, result[0])    // .all() returns array, .get() returns first element
+      : chainable([], result);           // .all() returns [], .get() returns single record
     return chain as ReturnType<typeof mockDb.select>;
   });
 }
@@ -372,16 +382,17 @@ describe('processAutomationQueue', () => {
     const customer = makeCustomer();
 
     let callIndex = 0;
-    const responses = [
-      enrollments,     // due enrollments
-      automation, customer,  // enrollment 1
-      automation, customer,  // enrollment 2
-      automation, customer,  // enrollment 3
+    // .all() for enrollments, then .get() pairs for automation+customer per enrollment
+    const responses: Array<{ all?: unknown[]; get?: unknown }> = [
+      { all: enrollments },
+      { get: automation }, { get: customer },
+      { get: automation }, { get: customer },
+      { get: automation }, { get: customer },
     ];
     mockDb.select.mockImplementation(() => {
-      const result = responses[callIndex] ?? undefined;
+      const r = responses[callIndex] ?? {};
       callIndex++;
-      return chainable(result) as ReturnType<typeof mockDb.select>;
+      return chainable(r.all, r.get) as ReturnType<typeof mockDb.select>;
     });
 
     mockSendEmail.mockResolvedValue({ success: false });
@@ -402,11 +413,15 @@ describe('processAutomationQueue', () => {
     const customer = makeCustomer();
 
     let callIndex = 0;
-    const responses = [enrollments, automation, customer, automation, customer];
+    const responses: Array<{ all?: unknown[]; get?: unknown }> = [
+      { all: enrollments },
+      { get: automation }, { get: customer },
+      { get: automation }, { get: customer },
+    ];
     mockDb.select.mockImplementation(() => {
-      const result = responses[callIndex] ?? undefined;
+      const r = responses[callIndex] ?? {};
       callIndex++;
-      return chainable(result) as ReturnType<typeof mockDb.select>;
+      return chainable(r.all, r.get) as ReturnType<typeof mockDb.select>;
     });
 
     mockSendEmail.mockResolvedValue({ success: false });
@@ -427,9 +442,7 @@ describe('processAutomationQueue', () => {
 
     const result = await processAutomationQueue();
 
-    expect(result.processed).toBe(1);
-    expect(result.sent).toBe(0);
-    expect(result.failed).toBe(0);
+    expect(result).toEqual({ processed: 1, sent: 0, skipped: 0, failed: 0, completed: 0 });
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
@@ -445,7 +458,7 @@ describe('processAutomationQueue', () => {
 
     const result = await processAutomationQueue();
 
-    expect(result.processed).toBe(1);
+    expect(result).toEqual({ processed: 1, sent: 0, skipped: 0, failed: 0, completed: 0 });
     expect(mockDb.update).toHaveBeenCalled(); // stopEnrollment
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
@@ -469,15 +482,15 @@ describe('checkAndEnrollTriggers', () => {
     const candidate = makeCustomer({ segment: 'new' });
 
     let callIndex = 0;
-    const responses: unknown[] = [
-      [automation],    // active automations
-      [candidate],     // findCandidates
-      undefined,       // existing enrollment check (none found)
+    const responses: Array<{ all?: unknown[]; get?: unknown }> = [
+      { all: [automation] },    // active automations
+      { all: [candidate] },     // findCandidates
+      { get: undefined },       // existing enrollment check (none found)
     ];
     mockDb.select.mockImplementation(() => {
-      const result = responses[callIndex] ?? undefined;
+      const r = responses[callIndex] ?? {};
       callIndex++;
-      return chainable(result) as ReturnType<typeof mockDb.select>;
+      return chainable(r.all, r.get) as ReturnType<typeof mockDb.select>;
     });
 
     checkAndEnrollTriggers();
@@ -491,15 +504,15 @@ describe('checkAndEnrollTriggers', () => {
     const existingEnrollment = { id: 'existing-enr' };
 
     let callIndex = 0;
-    const responses: unknown[] = [
-      [automation],
-      [candidate],
-      existingEnrollment, // already enrolled
+    const responses: Array<{ all?: unknown[]; get?: unknown }> = [
+      { all: [automation] },
+      { all: [candidate] },
+      { get: existingEnrollment }, // already enrolled
     ];
     mockDb.select.mockImplementation(() => {
-      const result = responses[callIndex] ?? undefined;
+      const r = responses[callIndex] ?? {};
       callIndex++;
-      return chainable(result) as ReturnType<typeof mockDb.select>;
+      return chainable(r.all, r.get) as ReturnType<typeof mockDb.select>;
     });
 
     checkAndEnrollTriggers();
