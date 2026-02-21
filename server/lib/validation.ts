@@ -1,3 +1,5 @@
+import { PORTRAIT_NAME_PATTERN, PORTRAIT_NAME_MAX_LENGTH } from '../../shared/validation.js';
+
 export function isValidEmail(value: string): boolean {
   // RFC 5321 準拠: local@domain.tld（連続ドット禁止、TLD 2文字以上）
   return value.length <= 254 && /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(value) && !value.includes('..');
@@ -20,15 +22,14 @@ export function validatePortraitName(name: unknown): string | null {
   const sanitized = name.trim();
 
   // Reject empty or too long names
-  if (sanitized.length === 0 || sanitized.length > 20) {
+  if (sanitized.length === 0 || sanitized.length > PORTRAIT_NAME_MAX_LENGTH) {
     return null;
   }
 
   // Allow only Unicode letters, numbers, spaces (NOT newlines), hyphens, and apostrophes
   // This prevents XSS attacks (e.g., <script>alert('XSS')</script>)
   // Note: Use space literal instead of \s to reject newlines (\n, \r, \t)
-  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
-  if (!validCharPattern.test(sanitized)) {
+  if (!PORTRAIT_NAME_PATTERN.test(sanitized)) {
     return null;
   }
 

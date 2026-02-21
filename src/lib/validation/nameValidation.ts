@@ -1,3 +1,5 @@
+import { PORTRAIT_NAME_PATTERN, PORTRAIT_NAME_MAX_LENGTH } from '../../../shared/validation';
+
 /**
  * 名前入力のバリデーション結果
  */
@@ -21,18 +23,17 @@ export function validatePortraitName(name: string): NameValidationResult {
     return { isValid: true, cleanedText: '' };
   }
 
-  // 文字数制限チェック（最大20文字）
-  if (name.length > 20) {
+  // 文字数制限チェック
+  if (name.length > PORTRAIT_NAME_MAX_LENGTH) {
     return {
       isValid: false,
-      error: '名前は20文字以内で入力してください。',
+      error: `名前は${PORTRAIT_NAME_MAX_LENGTH}文字以内で入力してください。`,
     };
   }
 
   // 許可文字チェック：Unicode文字、数字、スペース、ハイフン、アポストロフィ
   // 絵文字・特殊記号は不可
-  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
-  if (!validCharPattern.test(name)) {
+  if (!PORTRAIT_NAME_PATTERN.test(name)) {
     return {
       isValid: false,
       error: '使用できない文字が含まれています。文字、数字、スペース、ハイフンのみ使用できます。',
@@ -62,17 +63,16 @@ export function getNameInputWarning(name: string): string | null {
   }
 
   // 文字数警告
-  if (name.length > 20) {
-    return `${name.length}/20文字（上限を超えています）`;
+  if (name.length > PORTRAIT_NAME_MAX_LENGTH) {
+    return `${name.length}/${PORTRAIT_NAME_MAX_LENGTH}文字（上限を超えています）`;
   }
 
-  if (name.length > 15) {
-    return `${name.length}/20文字`;
+  if (name.length > PORTRAIT_NAME_MAX_LENGTH - 5) {
+    return `${name.length}/${PORTRAIT_NAME_MAX_LENGTH}文字`;
   }
 
   // 不正文字警告
-  const validCharPattern = /^[\p{L}\p{N} \-']+$/u;
-  if (!validCharPattern.test(name)) {
+  if (!PORTRAIT_NAME_PATTERN.test(name)) {
     return '使用できない文字が含まれています';
   }
 
@@ -87,7 +87,7 @@ export function getNameInputWarning(name: string): string | null {
 export function sanitizePortraitName(name: string): string {
   if (!name) return '';
 
-  // 許可文字以外を削除
+  // 許可文字以外を削除（PORTRAIT_NAME_PATTERNの文字クラスと同期）
   const cleaned = name.replace(/[^\p{L}\p{N} \-']/gu, '');
 
   // 改行をスペースに変換
@@ -96,8 +96,8 @@ export function sanitizePortraitName(name: string): string {
   // 連続スペースを1つに正規化
   const normalized = singleLine.replace(/\s+/g, ' ');
 
-  // 最大20文字に切り詰め
-  const truncated = normalized.slice(0, 20);
+  // 最大文字数に切り詰め
+  const truncated = normalized.slice(0, PORTRAIT_NAME_MAX_LENGTH);
 
   return truncated;
 }

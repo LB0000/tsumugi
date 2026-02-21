@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import type { Response } from 'express';
 import { SquareError } from 'square';
 import { logger } from '../../lib/logger.js';
+import { SHIPPING_FIELD_LIMITS } from '../../../shared/validation.js';
 import type { OrderPaymentStatus } from '../../lib/checkoutState.js';
 
 // ── Types ──────────────────────────────────────────────
@@ -150,16 +151,7 @@ export function makeIdempotencyKey(prefix: string, seed: string): string {
   return `${prefix}-${hash}`;
 }
 
-export const SHIPPING_FIELD_LIMITS: Record<keyof ShippingAddressPayload, number> = {
-  lastName: 50,
-  firstName: 50,
-  email: 254,
-  phone: 20,
-  postalCode: 10,
-  prefecture: 10,
-  city: 100,
-  addressLine: 200,
-};
+export { SHIPPING_FIELD_LIMITS };
 
 export function normalizeShippingAddress(address?: Partial<ShippingAddressPayload>): ShippingAddressPayload | null {
   if (!address) return null;

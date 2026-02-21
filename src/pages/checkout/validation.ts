@@ -1,4 +1,5 @@
 import type { ShippingAddress } from '../../types';
+import { POSTAL_CODE_PATTERN } from '../../../shared/validation';
 
 export type ShippingField = keyof ShippingAddress;
 export type ShippingFieldErrors = Partial<Record<ShippingField, string>>;
@@ -13,8 +14,6 @@ export const SHIPPING_FIELD_ORDER: ShippingField[] = [
   'city',
   'addressLine',
 ];
-
-const POSTAL_CODE_RE = /^\d{3}-?\d{4}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function requiredError(label: string, value: string): string | null {
@@ -40,7 +39,7 @@ export function validateShippingField(field: ShippingField, value: string): stri
     case 'postalCode': {
       const required = requiredError('郵便番号', trimmed);
       if (required) return required;
-      if (!POSTAL_CODE_RE.test(trimmed)) return '正しい郵便番号を入力してください（例: 100-0001）';
+      if (!POSTAL_CODE_PATTERN.test(trimmed)) return '正しい郵便番号を入力してください（例: 100-0001）';
       return null;
     }
     case 'prefecture':

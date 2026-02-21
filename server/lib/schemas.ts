@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { POSTAL_CODE_PATTERN } from '../../shared/validation.js';
 
 // Common schemas
 export const emailSchema = z.string().email();
@@ -29,7 +30,7 @@ export const shippingAddressSchema = z.object({
   firstName: z.string().min(1),
   email: z.string().email(),
   phone: z.string().regex(/^0\d{1,4}-?\d{1,4}-?\d{3,4}$/, '電話番号の形式が正しくありません'),
-  postalCode: z.string().regex(/^\d{3}-?\d{4}$/, '郵便番号の形式が正しくありません'),
+  postalCode: z.string().regex(POSTAL_CODE_PATTERN, '郵便番号の形式が正しくありません'),
   prefecture: z.string().min(1),
   city: z.string().min(1),
   addressLine: z.string().min(1),
