@@ -261,13 +261,19 @@ describe('applyTextOverlay', () => {
 
 describe('waitForFontLoad', () => {
   it('returns true when fonts API is not available', async () => {
-    const originalFonts = document.fonts;
-    Object.defineProperty(document, 'fonts', { value: undefined, configurable: true });
+    const originalDescriptor = Object.getOwnPropertyDescriptor(document, 'fonts');
+    // Remove the 'fonts' property entirely so 'fonts' in document === false
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (document as any).fonts;
 
-    const result = await waitForFontLoad('TestFont');
-    expect(result).toBe(true);
-
-    Object.defineProperty(document, 'fonts', { value: originalFonts, configurable: true });
+    try {
+      const result = await waitForFontLoad('TestFont');
+      expect(result).toBe(true);
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(document, 'fonts', originalDescriptor);
+      }
+    }
   });
 
   it('returns true when font loads successfully', async () => {

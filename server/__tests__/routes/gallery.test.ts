@@ -23,17 +23,23 @@ vi.mock('../../lib/logger.js', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('fs', () => ({
-  promises: {
-    stat: vi.fn(),
-    readFile: vi.fn(),
-  },
+const { mockFsStat, mockFsReadFile } = vi.hoisted(() => ({
+  mockFsStat: vi.fn(),
+  mockFsReadFile: vi.fn(),
 }));
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  const mockPromises = { ...actual.promises, stat: mockFsStat, readFile: mockFsReadFile };
+  return {
+    ...actual,
+    default: { ...actual, promises: mockPromises },
+    promises: mockPromises,
+  };
+});
 
 import { galleryRouter } from '../../routes/gallery.js';
 import { getGalleryItems, getGalleryItem, getGalleryImagePath, deleteGalleryItem } from '../../lib/galleryState.js';
 import { getAuthUser } from '../../middleware/requireAuth.js';
-import { promises as fs } from 'fs';
 
 // ── Helpers ────────────────────────────────────────────
 
@@ -104,6 +110,8 @@ beforeAll(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockFsStat.mockReset();
+  mockFsReadFile.mockReset();
   vi.mocked(getAuthUser).mockReturnValue(authUser);
 });
 
@@ -191,7 +199,7 @@ describe('gallery routes', () => {
         createdAt: '2026-01-01',
       });
       vi.mocked(getGalleryImagePath).mockReturnValue('/path/to/img.png');
-      vi.mocked(fs.stat).mockResolvedValue({ size: 25 * 1024 * 1024 } as Awaited<ReturnType<typeof fs.stat>>);
+      mockFsStat.mockResolvedValue({ size: 25 * 1024 * 1024 } as import('fs').Stats);
 
       const { res, statusFn, jsonFn } = mockRes();
       await imageHandler(mockReq({ params: { id: 'gal_abcdef1234567890' } }), res);
@@ -213,9 +221,9 @@ describe('gallery routes', () => {
         createdAt: '2026-01-01',
       });
       vi.mocked(getGalleryImagePath).mockReturnValue('/path/to/img.png');
-      vi.mocked(fs.stat).mockResolvedValue({ size: 1024 } as Awaited<ReturnType<typeof fs.stat>>);
+      mockFsStat.mockResolvedValue({ size: 1024 } as import('fs').Stats);
       const imageBuffer = Buffer.from('fake-image');
-      vi.mocked(fs.readFile).mockResolvedValue(imageBuffer);
+      mockFsReadFile.mockResolvedValue(imageBuffer);
 
       const { res, setHeaderFn, sendFn } = mockRes();
       await imageHandler(mockReq({ params: { id: 'gal_abcdef1234567890' } }), res);
@@ -235,7 +243,7 @@ describe('gallery routes', () => {
         createdAt: '2026-01-01',
       });
       vi.mocked(getGalleryImagePath).mockReturnValue('/path/to/img.jpg');
-      vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+      mockFsStat.mockRejectedValue(new Error('ENOENT'));
 
       const { res, statusFn, jsonFn } = mockRes();
       await imageHandler(mockReq({ params: { id: 'gal_abcdef1234567890' } }), res);
@@ -271,9 +279,9 @@ describe('gallery routes', () => {
         createdAt: '2026-01-01',
       });
       vi.mocked(getGalleryImagePath).mockReturnValue('/path/to/thumb.webp');
-      vi.mocked(fs.stat).mockResolvedValue({ size: 512 } as Awaited<ReturnType<typeof fs.stat>>);
+      mockFsStat.mockResolvedValue({ size: 512 } as import('fs').Stats);
       const thumbBuffer = Buffer.from('fake-thumb');
-      vi.mocked(fs.readFile).mockResolvedValue(thumbBuffer);
+      mockFsReadFile.mockResolvedValue(thumbBuffer);
 
       const { res, setHeaderFn, sendFn } = mockRes();
       await thumbnailHandler(mockReq({ params: { id: 'gal_abcdef1234567890' } }), res);
@@ -292,7 +300,7 @@ describe('gallery routes', () => {
         createdAt: '2026-01-01',
       });
       vi.mocked(getGalleryImagePath).mockReturnValue('/path/to/thumb.png');
-      vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+      mockFsStat.mockRejectedValue(new Error('ENOENT'));
 
       const { res, statusFn, jsonFn } = mockRes();
       await thumbnailHandler(mockReq({ params: { id: 'gal_abcdef1234567890' } }), res);
