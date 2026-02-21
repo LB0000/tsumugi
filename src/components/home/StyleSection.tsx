@@ -198,7 +198,7 @@ function StyleSectionBase() {
       {selectedStyle && (
         <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-primary/5 border border-primary/15">
           {getStyleThumbnail(selectedStyle, selectedCategory) ? (
-            <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+            <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt={selectedStyle.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-5 h-5 text-primary" />

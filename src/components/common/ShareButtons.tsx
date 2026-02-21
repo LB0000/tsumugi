@@ -7,6 +7,7 @@ interface ShareButtonsProps {
   title: string;
   imageUrl?: string;
   className?: string;
+  incentiveText?: string;
 }
 
 function LineIcon({ className }: { className?: string }) {
@@ -38,7 +39,7 @@ function appendUtm(baseUrl: string, medium: string): string {
   return `${baseUrl}${sep}utm_source=${encodeURIComponent(medium)}&utm_medium=social&utm_campaign=share`;
 }
 
-export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) {
+export function ShareButtons({ url, title, incentiveText, className = '' }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = (platform: string) => {
@@ -78,7 +79,11 @@ export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) 
   ];
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={className}>
+      {incentiveText && (
+        <p className="text-sm text-primary font-medium mb-3 text-center">{incentiveText}</p>
+      )}
+      <div className="flex items-center gap-3 justify-center">
       {shareTargets.map((target) => (
         <a
           key={target.name}
@@ -105,6 +110,7 @@ export function ShareButtons({ url, title, className = '' }: ShareButtonsProps) 
           コピーしました!
         </span>
       )}
+      </div>
     </div>
   );
 }

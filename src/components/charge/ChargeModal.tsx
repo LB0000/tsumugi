@@ -34,7 +34,7 @@ export const ChargeModal = ({ isOpen, onClose, onCharge }: ChargeModalProps) => 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm" onClose={onClose}>
         <DialogHeader>
           <DialogTitle>残高をチャージ</DialogTitle>
         </DialogHeader>

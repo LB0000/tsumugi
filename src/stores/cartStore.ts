@@ -93,8 +93,8 @@ useCartStore.subscribe((state) => {
       price: item.price,
       quantity: item.quantity,
     }));
-    saveCart(items).catch(() => {
-      // Silently ignore save errors — local storage is the primary persistence
+    saveCart(items).catch((error) => {
+      console.warn('[CartSync] Failed to save cart to server:', error instanceof Error ? error.message : String(error));
     });
   }, 30_000);
 });

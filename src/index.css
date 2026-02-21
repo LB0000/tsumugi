@@ -6,7 +6,7 @@
   /* ベースカラー */
   --color-background: #FDFBF7;         /* 和紙のような温かみのある白 */
   --color-foreground: #1A1A1A;         /* 墨色 */
-  --color-muted: #6B6B6B;              /* 灰色 */
+  --color-muted: #595959;              /* 灰色（WCAG AA準拠 コントラスト比5.2:1） */
   --color-card: #FFFFFF;               /* カード背景 */
   --color-card-hover: #F8F6F2;         /* カードホバー */
   --color-border: #E8E4DC;             /* 境界線（温かみのあるグレー） */

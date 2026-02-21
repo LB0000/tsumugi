@@ -14,6 +14,12 @@ const cookieSameSite: 'none' | 'lax' = isProduction && config.COOKIE_SAME_SITE =
  * Sets fable_anon cookie to the first TEST_USER_ID
  */
 testLoginRouter.post('/', (req, res) => {
+  // 本番環境ではテストログインを完全に無効化
+  if (isProduction) {
+    res.status(404).json({ success: false, error: { message: 'Not found' } });
+    return;
+  }
+
   const testKey = config.TEST_LOGIN_KEY;
   const testUserIds = config.TEST_USER_IDS;
 

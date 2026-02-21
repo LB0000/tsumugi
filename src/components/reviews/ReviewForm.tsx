@@ -19,7 +19,16 @@ export function ReviewForm({ orderId, category = 'pets', styleId = 'default', on
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!authUser) return null;
+  if (!authUser) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6 text-center">
+        <h3 className="font-semibold text-foreground mb-2">レビューを投稿</h3>
+        <p className="text-sm text-muted">
+          レビューを投稿するにはログインが必要です
+        </p>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (

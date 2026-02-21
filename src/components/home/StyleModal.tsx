@@ -302,7 +302,7 @@ function StyleModalBase() {
         <footer className="px-4 py-3 sm:px-6 sm:py-5 border-t border-border bg-card/50 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {selectedStyle && getStyleThumbnail(selectedStyle, selectedCategory) && (
-              <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt="" className="hidden sm:block w-10 h-10 rounded-lg object-cover border border-border/50" />
+              <img src={getStyleThumbnail(selectedStyle, selectedCategory)} alt={selectedStyle.name} className="hidden sm:block w-10 h-10 rounded-lg object-cover border border-border/50" />
             )}
             <p className="text-xs sm:text-sm text-muted truncate">
               {selectedStyle ? (

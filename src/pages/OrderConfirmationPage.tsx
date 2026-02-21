@@ -98,6 +98,9 @@ export function OrderConfirmationPage() {
                 {state.shippingAddress.addressLine}
               </p>
               <p className="text-sm text-muted mt-1">{state.shippingAddress.email}</p>
+              <p className="text-xs text-muted mt-2 bg-muted/5 rounded-lg px-3 py-2">
+                通常2〜3営業日でお届け（離島を除く）
+              </p>
             </div>
           </div>
 
@@ -113,6 +116,19 @@ export function OrderConfirmationPage() {
               領収書を表示
             </a>
           )}
+        </div>
+
+        {/* Next Purchase Coupon */}
+        <div className="mt-6 bg-secondary/5 rounded-xl border border-secondary/20 p-5 text-center">
+          <p className="text-sm font-semibold text-foreground mb-2">次回ご利用クーポン</p>
+          <div className="bg-white rounded-lg border-2 border-dashed border-secondary/40 px-4 py-3 inline-block">
+            <p className="font-mono text-lg font-bold text-secondary tracking-wider select-all">
+              NEXT10-{state.orderId.slice(-6).toUpperCase()}
+            </p>
+          </div>
+          <p className="text-xs text-muted mt-2">
+            次回のご注文で10%OFFになります
+          </p>
         </div>
 
         {/* Review Form */}
@@ -132,13 +148,10 @@ export function OrderConfirmationPage() {
 
         {/* Share section */}
         <div className="mt-10 text-center">
-          <p className="text-muted text-sm mb-4">
-            TSUMUGIの体験を友達にも教えてあげましょう
-          </p>
           <ShareButtons
             url={window.location.origin}
             title="TSUMUGIでペットの肖像画を作りました！ #TSUMUGI"
-            className="justify-center"
+            incentiveText="友達にもTSUMUGIを教えてあげましょう"
           />
         </div>
 

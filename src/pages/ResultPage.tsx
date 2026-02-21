@@ -22,7 +22,16 @@ const SESSION_KEY = 'tsumugi-result';
 
 export function ResultPage() {
   const navigate = useNavigate();
-  const { generatedImage, selectedStyle, uploadState, resetUpload, setGeneratedImage, gallerySaved, portraitName, setPortraitName, textOverlaySettings, setTextOverlaySettings } = useAppStore();
+  const generatedImage = useAppStore(s => s.generatedImage);
+  const selectedStyle = useAppStore(s => s.selectedStyle);
+  const uploadState = useAppStore(s => s.uploadState);
+  const resetUpload = useAppStore(s => s.resetUpload);
+  const setGeneratedImage = useAppStore(s => s.setGeneratedImage);
+  const gallerySaved = useAppStore(s => s.gallerySaved);
+  const portraitName = useAppStore(s => s.portraitName);
+  const setPortraitName = useAppStore(s => s.setPortraitName);
+  const textOverlaySettings = useAppStore(s => s.textOverlaySettings);
+  const setTextOverlaySettings = useAppStore(s => s.setTextOverlaySettings);
   const postcard = crossSellProducts[0];
   const beforeImage = uploadState.croppedPreviewUrl ?? uploadState.previewUrl;
   const { isWithin24Hours, timeRemaining } = useDiscountTimer(PREVIEW_GENERATED_AT_KEY);
@@ -271,8 +280,14 @@ export function ResultPage() {
           {products.map((product, index) => (
             <article
               key={product.id}
-              className={`bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 border-border hover:border-primary/50 transition-all duration-300 animate-cardEnter stagger-${index + 1}`}
+              className={`relative bg-card rounded-2xl p-5 sm:p-6 shadow-lg border-2 ${product.isPopular ? 'border-secondary' : 'border-border'} hover:border-primary/50 transition-all duration-300 animate-cardEnter stagger-${index + 1}`}
             >
+              {/* 一番人気バッジ */}
+              {product.isPopular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-secondary text-white text-xs font-bold px-3 py-1 rounded-full shadow-md whitespace-nowrap">
+                  一番人気
+                </span>
+              )}
               {/* モックアッププレビュー（物理商品のみ） */}
               {product.type === 'physical' && (
                 <ProductMockup
@@ -331,6 +346,11 @@ export function ResultPage() {
             </article>
           ))}
         </div>
+
+        {/* Bundle incentive messaging */}
+        <p className="text-center text-sm text-primary font-medium mt-6 bg-primary/5 rounded-lg py-2.5 px-4">
+          ¥5,000以上のご注文で送料無料！
+        </p>
 
         {/* Postcard cross-sell */}
         {postcard && (
@@ -430,7 +450,7 @@ export function ResultPage() {
             <div className="flex items-center gap-3">
               <img
                 src={generatedImage}
-                alt=""
+                alt="生成された肖像画"
                 className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
               />
               <div className="flex-1 min-w-0">

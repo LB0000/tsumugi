@@ -62,7 +62,9 @@ export function applyDiscount(subtotal: number, discountType: 'percentage' | 'fi
     const clamped = Math.min(Math.max(discountValue, 0), 100);
     return Math.max(0, Math.round(subtotal * (1 - clamped / 100)));
   }
-  return Math.max(0, subtotal - discountValue);
+  // Cap fixed discount at 90% of subtotal to prevent near-free orders
+  const cappedDiscount = Math.min(discountValue, Math.floor(subtotal * 0.9));
+  return Math.max(0, subtotal - cappedDiscount);
 }
 
 export async function useCoupon(code: string): Promise<boolean> {

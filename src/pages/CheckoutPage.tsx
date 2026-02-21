@@ -21,6 +21,7 @@ import { GiftOptionsSection } from './checkout/GiftOptionsSection';
 import { ShippingAddressSection } from './checkout/ShippingAddressSection';
 import { PaymentSection } from './checkout/PaymentSection';
 import { OrderSummaryCard } from './checkout/OrderSummaryCard';
+import { CheckoutErrorBoundary } from '../components/checkout/CheckoutErrorBoundary';
 
 type ProcessingStep = 'paying' | 'confirming' | null;
 
@@ -80,7 +81,9 @@ export function CheckoutPage() {
   const cardInitRef = useRef(false);
   const orderCompleteRef = useRef(false);
 
-  const { giftOptions, setGiftOptions, clearGiftOptions } = useAppStore();
+  const giftOptions = useAppStore(s => s.giftOptions);
+  const setGiftOptions = useAppStore(s => s.setGiftOptions);
+  const clearGiftOptions = useAppStore(s => s.clearGiftOptions);
   const [differentRecipient, setDifferentRecipient] = useState(false);
 
   // カスタムフックで状態管理を簡素化
@@ -394,11 +397,15 @@ export function CheckoutPage() {
               </div>
 
               <div id="payment">
+              <CheckoutErrorBoundary
+                cartSummary={cartItems.map(i => `${i.productId}x${i.quantity}`).join(',')}
+              >
               <PaymentSection
                 squareError={squareError}
                 isReady={isReady}
                 onRetry={retry}
               />
+              </CheckoutErrorBoundary>
               </div>
             </div>
 

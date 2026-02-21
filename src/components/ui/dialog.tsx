@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useRef } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 interface DialogProps {
   open: boolean;
@@ -25,11 +26,16 @@ export const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
 interface DialogContentProps {
   className?: string;
   children: React.ReactNode;
+  onClose?: () => void;
 }
 
-export const DialogContent = ({ className = '', children }: DialogContentProps) => {
+export const DialogContent = ({ className = '', children, onClose }: DialogContentProps) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(contentRef, { enabled: true, onEscape: onClose });
+
   return (
     <div
+      ref={contentRef}
       role="dialog"
       aria-modal="true"
       className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-background rounded-2xl shadow-2xl animate-slideUp p-6 ${className}`}

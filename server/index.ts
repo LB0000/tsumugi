@@ -4,6 +4,7 @@ import { initSentry, captureError, Sentry } from './lib/sentry.js';
 initSentry();
 
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import type { Request, Response, NextFunction } from 'express';
 import { config } from './config.js';
@@ -13,7 +14,7 @@ import { createRateLimiter } from './lib/rateLimit.js';
 import { generateRouter } from './routes/generate.js';
 import { stylesRouter } from './routes/styles.js';
 import { pricingRouter } from './routes/pricing.js';
-import { checkoutRouter } from './routes/checkout.js';
+import { checkoutRouter } from './routes/checkout/index.js';
 import { contactRouter } from './routes/contact.js';
 import { supportRouter } from './routes/support.js';
 import { authRouter } from './routes/auth.js';
@@ -104,6 +105,7 @@ interface RawBodyRequest extends Request {
 // Middleware
 app.disable('x-powered-by');
 app.use(cors(corsOptions));
+app.use(compression({ threshold: 1024 }));
 app.use(requestIdMiddleware);
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');

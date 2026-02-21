@@ -5,7 +5,7 @@
 
 import { createHash } from 'crypto';
 import { Router, Request, Response } from 'express';
-import { SquareError, WebhooksHelper } from 'square';
+import { WebhooksHelper } from 'square';
 import { z } from 'zod';
 import { requireAuth, getAuthUser } from '../middleware/requireAuth.js';
 import {
@@ -124,37 +124,8 @@ function makeIdempotencyKey(prefix: string, seed: string): string {
   return `${prefix}_${hash.slice(0, 24)}`;
 }
 
-/**
- * Handle Square API errors with proper status codes and error messages
- */
-function handleSquareOrServerError(
-  res: Response,
-  error: unknown,
-  defaultCode: string,
-  defaultMessage: string,
-  requestId?: string,
-) {
-  if (error instanceof SquareError) {
-    logger.error('Square API error', {
-      statusCode: error.statusCode,
-      errors: error.errors,
-      requestId,
-    });
-    const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 500
-      ? error.statusCode
-      : 502;
-    res.status(status).json({
-      success: false,
-      error: { code: error.errors?.[0]?.code || defaultCode, message: defaultMessage },
-    });
-    return;
-  }
-  logger.error(defaultCode, { error: error instanceof Error ? error.message : String(error), requestId });
-  res.status(500).json({
-    success: false,
-    error: { code: defaultCode, message: defaultMessage },
-  });
-}
+// Re-use shared error handler from checkout helpers
+import { handleSquareOrServerError } from './checkout/helpers.js';
 
 // ==================== Webhook Endpoint ====================
 

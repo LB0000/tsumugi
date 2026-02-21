@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-center">
+        <div role="alert" aria-live="assertive" className="min-h-[400px] flex flex-col items-center justify-center p-8 text-center">
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
             <svg
               className="w-8 h-8 text-red-500"

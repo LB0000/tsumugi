@@ -138,3 +138,42 @@ export async function fetchWithTimeout(
     clearTimeout(timer);
   }
 }
+
+const RETRYABLE_STATUSES = [502, 503, 504];
+
+/**
+ * Wraps fetchWithTimeout with exponential backoff retry for transient server errors.
+ * Only retries on 502/503/504 and network errors. Does NOT retry 4xx or user aborts.
+ */
+export async function fetchWithRetry(
+  url: string,
+  options?: RequestInit,
+  { timeoutMs = 30000, maxRetries = 2, baseDelayMs = 500 }: {
+    timeoutMs?: number;
+    maxRetries?: number;
+    baseDelayMs?: number;
+  } = {},
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, options, timeoutMs);
+
+      if (attempt < maxRetries && RETRYABLE_STATUSES.includes(response.status)) {
+        await new Promise(resolve => setTimeout(resolve, baseDelayMs * Math.pow(2, attempt) + Math.random() * 100));
+        continue;
+      }
+
+      return response;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw error;
+      }
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, baseDelayMs * Math.pow(2, attempt) + Math.random() * 100));
+    }
+  }
+
+  throw new Error('Unexpected: retry loop exited without return or throw');
+}

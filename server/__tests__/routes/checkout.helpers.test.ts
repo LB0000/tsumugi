@@ -3,7 +3,9 @@ import {
   normalizeShippingAddress,
   makeIdempotencyKey,
   buildOrderPaymentStatusUpdate,
-} from '../../routes/checkout.js';
+  stripHtmlTags,
+  SHIPPING_FIELD_LIMITS,
+} from '../../routes/checkout/helpers.js';
 
 // We only import the pure helpers — the Router side-effects (Square SDK etc.)
 // are fine to let load since we don't call any route handlers here.
@@ -68,6 +70,26 @@ describe('normalizeShippingAddress', () => {
 
   it('returns null for undefined input', () => {
     expect(normalizeShippingAddress(undefined)).toBeNull();
+  });
+
+  it('truncates fields that exceed length limits', () => {
+    const longName = 'あ'.repeat(60); // 60 chars, limit is 50
+    const result = normalizeShippingAddress({
+      ...validAddress,
+      lastName: longName,
+    });
+    expect(result).not.toBeNull();
+    expect(result!.lastName).toHaveLength(SHIPPING_FIELD_LIMITS.lastName);
+  });
+
+  it('truncates addressLine at 200 chars', () => {
+    const longAddress = 'X'.repeat(300);
+    const result = normalizeShippingAddress({
+      ...validAddress,
+      addressLine: longAddress,
+    });
+    expect(result).not.toBeNull();
+    expect(result!.addressLine).toHaveLength(SHIPPING_FIELD_LIMITS.addressLine);
   });
 });
 
@@ -193,5 +215,31 @@ describe('buildOrderPaymentStatusUpdate', () => {
     });
 
     expect(updated.receiptUrl).toBeUndefined();
+  });
+});
+
+describe('stripHtmlTags', () => {
+  it('strips HTML tags', () => {
+    expect(stripHtmlTags('<b>hello</b>')).toBe('hello');
+  });
+
+  it('strips script tags', () => {
+    expect(stripHtmlTags('<script>alert(1)</script>')).toBe('alert(1)');
+  });
+
+  it('replaces HTML entities with spaces', () => {
+    expect(stripHtmlTags('a&amp;b')).toBe('a b');
+  });
+
+  it('returns empty string for tags only', () => {
+    expect(stripHtmlTags('<br/><hr/>')).toBe('');
+  });
+
+  it('passes through plain text unchanged', () => {
+    expect(stripHtmlTags('hello world')).toBe('hello world');
+  });
+
+  it('handles nested tags', () => {
+    expect(stripHtmlTags('<div><p>text</p></div>')).toBe('text');
   });
 });

@@ -208,7 +208,7 @@ export function GeneratePreview() {
                   )}
                   <span className="relative flex items-center gap-2">
                     <Sparkles className="w-5 h-5" />
-                    肖像画を生成
+                    {credits && !needsCharge(credits) ? '無料で肖像画を生成' : '肖像画を生成'}
                     <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </button>

@@ -10,7 +10,13 @@ const RESULT_SESSION_KEY = 'tsumugi-result';
 const VALID_CATEGORIES = ['pets', 'family', 'kids'] as const;
 
 export function HomePage() {
-  const { selectedCategory, setSelectedCategory, resetUpload, selectedStyle, setSelectedStyle, setGeneratedImage, setGallerySaved } = useAppStore();
+  const selectedCategory = useAppStore(s => s.selectedCategory);
+  const setSelectedCategory = useAppStore(s => s.setSelectedCategory);
+  const resetUpload = useAppStore(s => s.resetUpload);
+  const selectedStyle = useAppStore(s => s.selectedStyle);
+  const setSelectedStyle = useAppStore(s => s.setSelectedStyle);
+  const setGeneratedImage = useAppStore(s => s.setGeneratedImage);
+  const setGallerySaved = useAppStore(s => s.setGallerySaved);
   const { pathname } = useLocation();
   const segment = pathname.split('/').filter(Boolean)[0] ?? '';
   const categoryFromUrl = VALID_CATEGORIES.includes(segment as typeof VALID_CATEGORIES[number])

@@ -32,12 +32,18 @@ describe('applyDiscount', () => {
       expect(applyDiscount(10000, 'fixed', 1000)).toBe(9000);
     });
 
-    it('returns 0 when discount exceeds subtotal', () => {
-      expect(applyDiscount(1000, 'fixed', 5000)).toBe(0);
+    it('caps discount at 90% when discount exceeds subtotal', () => {
+      // 5000 capped to floor(1000*0.9)=900, result=1000-900=100
+      expect(applyDiscount(1000, 'fixed', 5000)).toBe(100);
     });
 
-    it('returns 0 when discount equals subtotal', () => {
-      expect(applyDiscount(3000, 'fixed', 3000)).toBe(0);
+    it('caps discount at 90% when discount equals subtotal', () => {
+      // 3000 capped to floor(3000*0.9)=2700, result=3000-2700=300
+      expect(applyDiscount(3000, 'fixed', 3000)).toBe(300);
+    });
+
+    it('does not cap when discount is less than 90% of subtotal', () => {
+      expect(applyDiscount(10000, 'fixed', 1000)).toBe(9000);
     });
   });
 });
